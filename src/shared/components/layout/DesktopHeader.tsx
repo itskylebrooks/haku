@@ -42,8 +42,6 @@ const formatDate = (isoDate: string): string => {
 
 const iconButton =
   "inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200/80 bg-transparent text-gray-700 transition hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:border-gray-700/80 dark:text-gray-100 dark:hover:bg-white/5 dark:focus-visible:outline-gray-500";
-const toggleSegmentBase =
-  "inline-flex h-10 items-center justify-center px-3 text-sm capitalize leading-none transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:focus-visible:outline-gray-500";
 
 const DesktopHeader = ({
   mode,
@@ -94,7 +92,7 @@ const DesktopHeader = ({
         </div>
 
         <div className="flex items-center justify-center">
-          <div className="inline-flex h-10 w-32 items-center overflow-hidden rounded-full border border-gray-200/80 bg-transparent text-sm font-medium shadow-none transition dark:border-gray-800">
+          <div className="inline-flex h-10 items-center gap-1 rounded-full border border-gray-200/80 bg-transparent px-1 text-sm font-medium shadow-none transition dark:border-gray-700/80">
             {(["day", "week"] as ViewMode[]).map((value) => {
               const isActive = mode === value;
               return (
@@ -103,12 +101,11 @@ const DesktopHeader = ({
                   type="button"
                   aria-pressed={isActive}
                   onClick={() => onModeChange(value)}
-                  className={[
-                    `${toggleSegmentBase} flex-1 rounded-none px-0 first:rounded-l-full last:rounded-r-full`,
+                  className={`inline-flex h-8 w-11 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:focus-visible:outline-gray-500 ${
                     isActive
                       ? "bg-gray-200 text-gray-900 font-semibold shadow-sm dark:bg-gray-200 dark:text-gray-900"
-                      : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5",
-                  ].join(" ")}
+                      : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5"
+                  }`}
                   >
                   {value === "day" ? (
                     <Square className="h-5 w-5" aria-hidden />
