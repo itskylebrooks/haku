@@ -73,6 +73,7 @@ const AddActivityModal = ({
   const trimmedTitle = useMemo(() => title.trim(), [title]);
   const isDatePlacement = placement === "date";
   const showDurationAndRepeat = isDatePlacement && scheduledTime !== null;
+  const canSubmit = Boolean(trimmedTitle) && (!isDatePlacement || !!scheduledDate);
 
   const resetForm = () => {
     setTitle(initialTitle ?? "");
@@ -157,7 +158,8 @@ const AddActivityModal = ({
 
     if (placement === "date") {
       bucket = "scheduled";
-      dateValue = scheduledDate || todayIso();
+      if (!scheduledDate) return;
+      dateValue = scheduledDate;
       timeValue = scheduledTime;
       if (timeValue !== null) {
         durationValue = durationMinutes;
@@ -366,10 +368,10 @@ const AddActivityModal = ({
             </button>
             <button
               type="button"
-              disabled={!trimmedTitle}
+              disabled={!canSubmit}
               onClick={handleSubmit}
               className={`rounded-md px-4 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:focus-visible:outline-gray-500 ${
-                trimmedTitle
+                canSubmit
                   ? "bg-gray-900 text-white hover:bg-gray-800 active:scale-[0.99] dark:bg-white dark:text-black dark:hover:bg-gray-200"
                   : "cursor-not-allowed bg-gray-200 text-gray-500 dark:bg-gray-800 dark:text-gray-500"
               }`}
