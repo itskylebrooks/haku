@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import AddActivityModal from "./shared/components/AddActivityModal";
-import AppShell from "./layout/AppShell";
+import AppShell from "./features/app-shell/AppShell";
 
 type ViewMode = "day" | "week";
 

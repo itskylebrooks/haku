@@ -1,5 +1,5 @@
 import { useState } from "react";
-import DesktopHeader from "../shared/components/layout/DesktopHeader";
+import DesktopHeader from "./DesktopHeader";
 import MobileHeader from "./MobileHeader";
 import MobileTabBar from "./MobileTabBar";
 
