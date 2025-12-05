@@ -9,6 +9,7 @@ interface MobileHeaderProps {
   onPrev: () => void;
   onNext: () => void;
   onOpenSettings: () => void;
+  onResetToday: () => void;
 }
 
 const formatDate = (isoDate: string): string => {
@@ -37,6 +38,7 @@ const MobileHeader = ({
   onPrev,
   onNext,
   onOpenSettings,
+  onResetToday,
 }: MobileHeaderProps) => {
   const formattedDate = useMemo(() => formatDate(currentDate), [currentDate]);
   const chevronsDisabled = activeTab === "inbox";
@@ -70,7 +72,13 @@ const MobileHeader = ({
 
         {/* Center: Date */}
         <div className="absolute left-1/2 -translate-x-1/2">
-          <span className="text-sm font-medium">{formattedDate}</span>
+          <button
+            type="button"
+            onClick={onResetToday}
+            className="rounded-md px-2 py-1 text-sm font-medium transition active:bg-gray-100 dark:active:bg-white/10"
+          >
+            {formattedDate}
+          </button>
         </div>
 
         {/* Right: Settings */}

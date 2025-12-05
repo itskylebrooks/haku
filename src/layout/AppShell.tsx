@@ -79,6 +79,7 @@ const AppShell = ({
         onPrev={handleMobilePrev}
         onNext={handleMobileNext}
         onOpenSettings={onOpenSettings}
+        onResetToday={onResetToday}
       />
 
       {/* Main content area */}
