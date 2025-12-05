@@ -168,7 +168,7 @@ const AddActivityModal = ({
                 rows={3}
                 placeholder="Add a note"
                 maxLength={500}
-                className="w-full rounded-lg border border-gray-200/80 bg-transparent px-3 py-2 text-sm text-gray-900 shadow-none outline-none ring-0 transition focus:border-gray-400 dark:border-gray-700/80 dark:text-gray-100 dark:focus:border-gray-500"
+                className="w-full rounded-lg border border-gray-200/80 bg-transparent px-3 py-2 text-base text-gray-900 shadow-none outline-none ring-0 transition focus:border-gray-400 dark:border-gray-700/80 dark:text-gray-100 dark:focus:border-gray-500"
               />
             ) : (
               <button
