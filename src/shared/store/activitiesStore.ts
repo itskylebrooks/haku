@@ -1,10 +1,9 @@
 import { create } from "zustand";
 import {
-  hasDuration,
   isAnchored,
   isScheduled,
 } from "../types/activity";
-import type { Activity, Bucket } from "../types/activity";
+import type { Activity, Bucket, RepeatPattern } from "../types/activity";
 
 type AddActivityInput = {
   title: string;
@@ -12,6 +11,7 @@ type AddActivityInput = {
   date?: string | null;
   time?: string | null;
   durationMinutes?: number | null;
+  repeat?: RepeatPattern;
   note?: string | null;
 };
 
@@ -27,7 +27,12 @@ export interface ActivitiesState {
   moveToLater: (id: string) => void;
   scheduleActivity: (id: string, date: string) => void;
   unscheduleToInbox: (id: string) => void;
-  setTime: (id: string, time: string | null, durationMinutes?: number | null) => void;
+  setTime: (
+    id: string,
+    time: string | null,
+    durationMinutes?: number | null,
+    repeat?: RepeatPattern
+  ) => void;
   toggleDone: (id: string) => void;
   reorderInDay: (date: string, orderedIds: string[]) => void;
 }
@@ -39,6 +44,31 @@ const generateActivityId = (() => {
 
 const nowIsoString = () => new Date().toISOString();
 
+const isValidDuration = (value: number): boolean =>
+  Number.isFinite(value) &&
+  value >= 15 &&
+  value <= 300 &&
+  value % 15 === 0;
+
+const normalizeDurationMinutes = (
+  value?: number | null
+): number | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  return isValidDuration(value) ? value : null;
+};
+
+const normalizeRepeat = (value?: RepeatPattern | null): RepeatPattern => {
+  if (value === "daily" || value === "weekly" || value === "monthly") {
+    return value;
+  }
+  return "none";
+};
+
+const isScheduledWithTime = (bucket: Bucket, time: string | null): boolean =>
+  bucket === "scheduled" && time !== null;
+
 export const useActivitiesStore = create<ActivitiesState>((set) => ({
   activities: [],
   addActivity: (input) => {
@@ -46,13 +76,22 @@ export const useActivitiesStore = create<ActivitiesState>((set) => ({
     const bucket = input.bucket ?? "inbox";
     const now = nowIsoString();
 
+    const date = bucket === "scheduled" ? input.date ?? null : null;
+    const time = bucket === "scheduled" ? input.time ?? null : null;
+    const anchored = isScheduledWithTime(bucket, time);
+    const durationMinutes = anchored
+      ? normalizeDurationMinutes(input.durationMinutes)
+      : null;
+    const repeat = anchored ? normalizeRepeat(input.repeat) : "none";
+
     const newActivity: Activity = {
       id: generateActivityId(),
       title,
       bucket,
-      date: bucket === "scheduled" ? input.date ?? null : null,
-      time: bucket === "scheduled" ? input.time ?? null : null,
-      durationMinutes: input.durationMinutes ?? null,
+      date,
+      time,
+      durationMinutes,
+      repeat,
       note: input.note ?? null,
       isDone: false,
       orderIndex: null,
@@ -70,21 +109,72 @@ export const useActivitiesStore = create<ActivitiesState>((set) => ({
     }
 
     set((state) => {
-      let modified = false;
       const now = nowIsoString();
       const { updatedAt: _ignoredUpdatedAt, ...restUpdates } = updates;
+      let modified = false;
 
       const activities = state.activities.map((activity): Activity => {
         if (activity.id !== id) {
           return activity;
         }
 
+        const nextBucket = restUpdates.bucket ?? activity.bucket;
+        const nextDate =
+          nextBucket === "scheduled" ? restUpdates.date ?? activity.date : null;
+
+        const rawTime =
+          restUpdates.time !== undefined ? restUpdates.time : activity.time;
+        const anchored = isScheduledWithTime(nextBucket, rawTime);
+        const nextTime = anchored ? rawTime : null;
+
+        const rawDuration =
+          restUpdates.durationMinutes !== undefined
+            ? restUpdates.durationMinutes
+            : activity.durationMinutes;
+        const nextDuration = anchored
+          ? normalizeDurationMinutes(rawDuration)
+          : null;
+
+        const rawRepeat =
+          restUpdates.repeat !== undefined ? restUpdates.repeat : activity.repeat;
+        const nextRepeat = anchored ? normalizeRepeat(rawRepeat) : "none";
+
+        const nextTitle = restUpdates.title ?? activity.title;
+        const nextNote =
+          restUpdates.note !== undefined ? restUpdates.note : activity.note;
+        const nextIsDone =
+          restUpdates.isDone !== undefined ? restUpdates.isDone : activity.isDone;
+        const nextOrderIndex =
+          restUpdates.orderIndex !== undefined
+            ? restUpdates.orderIndex
+            : activity.orderIndex;
+
+        if (
+          activity.bucket === nextBucket &&
+          activity.date === nextDate &&
+          activity.time === nextTime &&
+          activity.durationMinutes === nextDuration &&
+          activity.repeat === nextRepeat &&
+          activity.title === nextTitle &&
+          activity.note === nextNote &&
+          activity.isDone === nextIsDone &&
+          activity.orderIndex === nextOrderIndex
+        ) {
+          return activity;
+        }
+
         modified = true;
         return {
           ...activity,
-          ...restUpdates,
-          createdAt: activity.createdAt,
-          id: activity.id,
+          bucket: nextBucket,
+          date: nextDate,
+          time: nextTime,
+          durationMinutes: nextDuration,
+          repeat: nextRepeat,
+          title: nextTitle,
+          note: nextNote,
+          isDone: nextIsDone,
+          orderIndex: nextOrderIndex,
           updatedAt: now,
         };
       });
@@ -118,6 +208,8 @@ export const useActivitiesStore = create<ActivitiesState>((set) => ({
           bucket: "inbox",
           date: null,
           time: null,
+          durationMinutes: null,
+          repeat: "none",
           updatedAt: now,
         };
       });
@@ -145,6 +237,8 @@ export const useActivitiesStore = create<ActivitiesState>((set) => ({
           bucket: "later",
           date: null,
           time: null,
+          durationMinutes: null,
+          repeat: "none",
           updatedAt: now,
         };
       });
@@ -194,13 +288,15 @@ export const useActivitiesStore = create<ActivitiesState>((set) => ({
           bucket: "inbox",
           date: null,
           time: null,
+          durationMinutes: null,
+          repeat: "none",
           updatedAt: now,
         };
       });
       return changed ? { activities } : state;
     });
   },
-  setTime: (id, time, durationMinutes) => {
+  setTime: (id, time, durationMinutes, repeat) => {
     set((state) => {
       const now = nowIsoString();
       let changed = false;
@@ -209,21 +305,25 @@ export const useActivitiesStore = create<ActivitiesState>((set) => ({
           return activity;
         }
 
-        let nextTime = time;
-        let nextDuration = activity.durationMinutes;
+        const anchored = isScheduledWithTime(activity.bucket, time);
+        const nextTime = anchored ? time : null;
 
-        if (time === null) {
-          nextTime = null;
-          nextDuration = null;
-        } else if (durationMinutes !== undefined) {
-          nextDuration = durationMinutes;
-        }
+        const rawDuration =
+          durationMinutes !== undefined
+            ? durationMinutes
+            : activity.durationMinutes;
+        const nextDuration = anchored
+          ? normalizeDurationMinutes(rawDuration)
+          : null;
 
-        const durationMatches =
-          nextDuration === activity.durationMinutes ||
-          (nextDuration === null && !hasDuration(activity));
+        const rawRepeat = repeat ?? activity.repeat;
+        const nextRepeat = anchored ? normalizeRepeat(rawRepeat) : "none";
 
-        if (activity.time === nextTime && durationMatches) {
+        if (
+          activity.time === nextTime &&
+          activity.durationMinutes === nextDuration &&
+          activity.repeat === nextRepeat
+        ) {
           return activity;
         }
 
@@ -232,6 +332,7 @@ export const useActivitiesStore = create<ActivitiesState>((set) => ({
           ...activity,
           time: nextTime,
           durationMinutes: nextDuration,
+          repeat: nextRepeat,
           updatedAt: now,
         };
       });

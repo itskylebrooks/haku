@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import type { Bucket } from "../types/activity";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Bucket, RepeatPattern } from "../types/activity";
 import { useActivitiesStore } from "../store/activitiesStore";
 import SimpleDatePicker from "./date/SimpleDatePicker";
 import SimpleTimePicker from "./date/SimpleTimePicker";
@@ -21,6 +21,31 @@ const placementLabels: { key: PlacementOption; label: string }[] = [
   { key: "later", label: "Later" },
 ];
 
+const durationOptions: Array<number | null> = [
+  null,
+  ...Array.from({ length: 20 }, (_, index) => 15 * (index + 1)),
+];
+
+const formatDurationLabel = (minutes: number | null): string => {
+  if (minutes === null) return "None";
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (hours > 0 && remainingMinutes > 0) {
+    return `${hours} h ${remainingMinutes} min`;
+  }
+  if (hours > 0) {
+    return `${hours} h`;
+  }
+  return `${remainingMinutes} min`;
+};
+
+const repeatOptions: { value: RepeatPattern; label: string }[] = [
+  { value: "none", label: "None" },
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
+];
+
 const AddActivityModal = ({
   isOpen,
   onClose,
@@ -36,17 +61,28 @@ const AddActivityModal = ({
   const [placement, setPlacement] = useState<PlacementOption>(defaultPlacement);
   const [scheduledDate, setScheduledDate] = useState<string | null>(todayIso());
   const [scheduledTime, setScheduledTime] = useState<string | null>(null);
+  const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
+  const [repeat, setRepeat] = useState<RepeatPattern>("none");
+  const [isDurationMenuOpen, setIsDurationMenuOpen] = useState(false);
+  const [isRepeatMenuOpen, setIsRepeatMenuOpen] = useState(false);
   const [note, setNote] = useState<string>("");
   const [showNote, setShowNote] = useState<boolean>(false);
+  const durationContainerRef = useRef<HTMLDivElement>(null);
+  const repeatContainerRef = useRef<HTMLDivElement>(null);
 
   const trimmedTitle = useMemo(() => title.trim(), [title]);
   const isDatePlacement = placement === "date";
+  const showDurationAndRepeat = isDatePlacement && scheduledTime !== null;
 
   const resetForm = () => {
     setTitle(initialTitle ?? "");
     setPlacement(defaultPlacement);
     setScheduledDate(todayIso());
     setScheduledTime(null);
+    setDurationMinutes(null);
+    setRepeat("none");
+    setIsDurationMenuOpen(false);
+    setIsRepeatMenuOpen(false);
     setNote("");
     setShowNote(false);
   };
@@ -64,9 +100,50 @@ const AddActivityModal = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialTitle, initialPlacement]);
 
+  useEffect(() => {
+    if (scheduledTime === null) {
+      setDurationMinutes(null);
+      setRepeat("none");
+      setIsDurationMenuOpen(false);
+      setIsRepeatMenuOpen(false);
+    }
+  }, [scheduledTime]);
+
+  useEffect(() => {
+    if (!isDurationMenuOpen && !isRepeatMenuOpen) {
+      return;
+    }
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const durationContains = durationContainerRef.current?.contains(target);
+      const repeatContains = repeatContainerRef.current?.contains(target);
+
+      if (!durationContains && !repeatContains) {
+        setIsDurationMenuOpen(false);
+        setIsRepeatMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isDurationMenuOpen, isRepeatMenuOpen]);
+
   const handleClose = () => {
     resetForm();
     onClose();
+  };
+
+  const handleDurationSelect = (value: number | null) => {
+    setDurationMinutes(value);
+    setIsDurationMenuOpen(false);
+  };
+
+  const handleRepeatSelect = (value: RepeatPattern) => {
+    setRepeat(value);
+    setIsRepeatMenuOpen(false);
   };
 
   const handleSubmit = () => {
@@ -75,11 +152,17 @@ const AddActivityModal = ({
     let bucket: Bucket = "inbox";
     let dateValue: string | null = null;
     let timeValue: string | null = null;
+    let durationValue: number | null = null;
+    let repeatValue: RepeatPattern = "none";
 
     if (placement === "date") {
       bucket = "scheduled";
       dateValue = scheduledDate || todayIso();
       timeValue = scheduledTime;
+      if (timeValue !== null) {
+        durationValue = durationMinutes;
+        repeatValue = repeat;
+      }
     } else if (placement === "later") {
       bucket = "later";
     }
@@ -91,7 +174,8 @@ const AddActivityModal = ({
       bucket,
       date: dateValue,
       time: timeValue,
-      durationMinutes: null,
+      durationMinutes: durationValue,
+      repeat: repeatValue,
       note: noteValue === "" ? null : noteValue,
     });
 
@@ -133,7 +217,13 @@ const AddActivityModal = ({
                   <button
                     key={key}
                     type="button"
-                    onClick={() => setPlacement(key)}
+                    onClick={() => {
+                      setPlacement(key);
+                      if (key !== "date") {
+                        setIsDurationMenuOpen(false);
+                        setIsRepeatMenuOpen(false);
+                      }
+                    }}
                     className={`inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:focus-visible:outline-gray-500 ${
                       isActive
                         ? "bg-gray-900 text-white shadow-sm dark:bg-white dark:text-black"
@@ -147,15 +237,100 @@ const AddActivityModal = ({
             </div>
 
             {isDatePlacement && (
-              <div className="flex flex-wrap items-center gap-3">
-                <SimpleDatePicker
-                  value={scheduledDate}
-                  onChange={setScheduledDate}
-                />
-                <SimpleTimePicker
-                  value={scheduledTime}
-                  onChange={setScheduledTime}
-                />
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <SimpleDatePicker
+                    value={scheduledDate}
+                    onChange={setScheduledDate}
+                  />
+                  <SimpleTimePicker
+                    value={scheduledTime}
+                    onChange={setScheduledTime}
+                  />
+                </div>
+
+                {showDurationAndRepeat && (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div ref={durationContainerRef} className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsDurationMenuOpen((prev) => !prev);
+                          setIsRepeatMenuOpen(false);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200/80 bg-transparent px-3 py-2 text-sm text-gray-900 transition hover:border-gray-300 focus:border-gray-400 focus:outline-none dark:border-gray-700/80 dark:text-gray-100 dark:hover:border-gray-600 dark:focus:border-gray-500"
+                      >
+                        <span className="text-gray-500 dark:text-gray-400">Duration:</span>
+                        <span>{formatDurationLabel(durationMinutes)}</span>
+                      </button>
+
+                      {isDurationMenuOpen && (
+                        <div className="absolute left-0 top-full z-50 mt-2 w-48 rounded-lg border border-gray-200/80 bg-white p-2 shadow-lg dark:border-gray-700/80 dark:bg-black">
+                          <div className="max-h-56 space-y-1 overflow-y-auto overscroll-contain">
+                            {durationOptions.map((option) => {
+                              const isSelected = durationMinutes === option;
+                              return (
+                                <button
+                                  key={option ?? "none"}
+                                  type="button"
+                                  onClick={() => handleDurationSelect(option)}
+                                  className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
+                                    isSelected
+                                      ? "bg-gray-900 text-white dark:bg-white dark:text-black"
+                                      : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10"
+                                    }`}
+                                >
+                                  {formatDurationLabel(option)}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div ref={repeatContainerRef} className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsRepeatMenuOpen((prev) => !prev);
+                          setIsDurationMenuOpen(false);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200/80 bg-transparent px-3 py-2 text-sm text-gray-900 transition hover:border-gray-300 focus:border-gray-400 focus:outline-none dark:border-gray-700/80 dark:text-gray-100 dark:hover:border-gray-600 dark:focus:border-gray-500"
+                      >
+                        <span className="text-gray-500 dark:text-gray-400">Repeat:</span>
+                        <span>
+                          {repeatOptions.find((item) => item.value === repeat)?.label ??
+                            "None"}
+                        </span>
+                      </button>
+
+                      {isRepeatMenuOpen && (
+                        <div className="absolute left-0 top-full z-50 mt-2 w-40 rounded-lg border border-gray-200/80 bg-white p-2 shadow-lg dark:border-gray-700/80 dark:bg-black">
+                          <div className="space-y-1">
+                            {repeatOptions.map(({ value, label }) => {
+                              const isSelected = repeat === value;
+                              return (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  onClick={() => handleRepeatSelect(value)}
+                                  className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
+                                    isSelected
+                                      ? "bg-gray-900 text-white dark:bg-white dark:text-black"
+                                      : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10"
+                                    }`}
+                                >
+                                  {label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
