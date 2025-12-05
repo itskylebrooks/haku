@@ -21,6 +21,7 @@ interface DesktopHeaderProps {
   onToggleInbox: () => void;
   onToggleLater: () => void;
   onOpenSettings: () => void;
+  onOpenAdd: () => void;
 }
 
 const formatDate = (isoDate: string): string => {
@@ -53,6 +54,7 @@ const DesktopHeader = ({
   onToggleInbox,
   onToggleLater,
   onOpenSettings,
+  onOpenAdd,
 }: DesktopHeaderProps) => {
   const formattedDate = useMemo(() => formatDate(currentDate), [currentDate]);
 
@@ -141,7 +143,7 @@ const DesktopHeader = ({
         </div>
       </div>
 
-      <div className="mt-2 flex justify-center px-2 lg:px-0">
+      <div className="mt-2 flex items-center justify-center gap-3 px-2 lg:px-0">
         <button
           type="button"
           onClick={onResetToday}
@@ -149,6 +151,14 @@ const DesktopHeader = ({
           aria-label="Reset to today"
         >
           {formattedDate}
+        </button>
+        <span className="text-base font-bold text-gray-400 dark:text-gray-500">·</span>
+        <button
+          type="button"
+          onClick={onOpenAdd}
+          className="inline-flex items-center rounded-md px-3 py-2 text-base font-semibold text-gray-900 transition hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 active:scale-[0.99] dark:text-gray-100 dark:hover:bg-white/5 dark:focus-visible:outline-gray-500"
+        >
+          Add activity
         </button>
       </div>
     </header>

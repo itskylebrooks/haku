@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import AddActivityModal from "./shared/components/AddActivityModal";
 import AppShell from "./layout/AppShell";
 
 type ViewMode = "day" | "week";
@@ -20,6 +21,7 @@ const shiftDate = (isoDate: string, mode: ViewMode, direction: 1 | -1) => {
 function App() {
   const [mode, setMode] = useState<ViewMode>("day");
   const [currentDate, setCurrentDate] = useState<string>(todayIso());
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const handlePrev = () =>
     setCurrentDate((date) => shiftDate(date, mode, -1));
@@ -35,6 +37,8 @@ function App() {
   const handleOpenSettings = () => {
     // Placeholder for future settings action.
   };
+  const handleOpenAddModal = () => setIsAddModalOpen(true);
+  const handleCloseAddModal = () => setIsAddModalOpen(false);
 
   const currentSummary = useMemo(
     () => ({
@@ -57,6 +61,7 @@ function App() {
           onToggleInbox={handleToggleInbox}
           onToggleLater={handleToggleLater}
           onOpenSettings={handleOpenSettings}
+          onOpenAdd={handleOpenAddModal}
         >
           <div className="mx-4 mt-8 rounded-xl border border-gray-200/80 bg-white/70 p-6 text-sm text-gray-700 shadow-sm dark:border-gray-800 dark:bg-white/5 dark:text-gray-200 md:mx-0">
             <div className="flex items-center justify-between">
@@ -85,6 +90,7 @@ function App() {
           </div>
         </AppShell>
       </div>
+      <AddActivityModal isOpen={isAddModalOpen} onClose={handleCloseAddModal} />
     </div>
   );
 }

@@ -16,6 +16,7 @@ interface AppShellProps {
   onToggleInbox: () => void;
   onToggleLater: () => void;
   onOpenSettings: () => void;
+  onOpenAdd: () => void;
   children: React.ReactNode;
 }
 
@@ -29,6 +30,7 @@ const AppShell = ({
   onToggleInbox,
   onToggleLater,
   onOpenSettings,
+  onOpenAdd,
   children,
 }: AppShellProps) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>("day");
@@ -67,6 +69,7 @@ const AppShell = ({
         onToggleInbox={onToggleInbox}
         onToggleLater={onToggleLater}
         onOpenSettings={onOpenSettings}
+        onOpenAdd={onOpenAdd}
       />
 
       {/* Mobile Header - hidden on desktop */}
@@ -82,7 +85,11 @@ const AppShell = ({
       <main className="flex-1 pb-24 md:pb-0">{children}</main>
 
       {/* Mobile Tab Bar - hidden on desktop */}
-      <MobileTabBar activeTab={activeTab} onTabChange={handleTabChange} />
+      <MobileTabBar
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        onAdd={onOpenAdd}
+      />
     </>
   );
 };
