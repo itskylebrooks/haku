@@ -80,30 +80,16 @@ const SimpleTimePicker = ({ value, onChange }: SimpleTimePickerProps) => {
         onClick={() => setIsOpen(!isOpen)}
         className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200/80 bg-transparent px-3 py-2 text-sm text-gray-900 transition hover:border-gray-300 focus:border-gray-400 focus:outline-none dark:border-gray-700/80 dark:text-gray-100 dark:hover:border-gray-600 dark:focus:border-gray-500"
       >
-        <svg
-          className="h-4 w-4 text-gray-500 dark:text-gray-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-        <span>
-          {value ? formatDisplayTime(value) : "Pick a time"}
-        </span>
+        <span className="text-gray-500 dark:text-gray-400">Time:</span>
+        <span>{value ? formatDisplayTime(value) : "None"}</span>
       </button>
 
       {/* Popup Time List */}
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-40 rounded-lg border border-gray-200/80 bg-white shadow-lg dark:border-gray-700/80 dark:bg-black">
+        <div className="absolute left-0 top-full z-50 mt-2 w-48 rounded-lg border border-gray-200/80 bg-white p-2 shadow-lg dark:border-gray-700/80 dark:bg-black">
           <div
             ref={listRef}
-            className="max-h-56 overflow-y-auto overscroll-contain py-1"
+            className="max-h-56 overflow-y-auto overscroll-contain space-y-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {TIME_OPTIONS.map((time) => {
               const isSelected = value === time;
@@ -112,7 +98,7 @@ const SimpleTimePicker = ({ value, onChange }: SimpleTimePickerProps) => {
                   key={time}
                   type="button"
                   onClick={() => handleTimeClick(time)}
-                  className={`flex w-full items-center px-3 py-2 text-left text-sm transition ${
+                  className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition ${
                     isSelected
                       ? "bg-gray-900 text-white dark:bg-white dark:text-black"
                       : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10"

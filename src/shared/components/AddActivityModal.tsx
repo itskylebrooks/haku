@@ -266,7 +266,7 @@ const AddActivityModal = ({
 
                       {isDurationMenuOpen && (
                         <div className="absolute left-0 top-full z-50 mt-2 w-48 rounded-lg border border-gray-200/80 bg-white p-2 shadow-lg dark:border-gray-700/80 dark:bg-black">
-                          <div className="max-h-56 space-y-1 overflow-y-auto overscroll-contain">
+                          <div className="max-h-56 space-y-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                             {durationOptions.map((option) => {
                               const isSelected = durationMinutes === option;
                               return (
@@ -307,7 +307,7 @@ const AddActivityModal = ({
 
                       {isRepeatMenuOpen && (
                         <div className="absolute left-0 top-full z-50 mt-2 w-40 rounded-lg border border-gray-200/80 bg-white p-2 shadow-lg dark:border-gray-700/80 dark:bg-black">
-                          <div className="space-y-1">
+                          <div className="max-h-56 space-y-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                             {repeatOptions.map(({ value, label }) => {
                               const isSelected = repeat === value;
                               return (
