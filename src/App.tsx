@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import DesktopHeader from "./shared/components/layout/DesktopHeader";
+import AppShell from "./layout/AppShell";
 
 type ViewMode = "day" | "week";
 
@@ -46,8 +46,8 @@ function App() {
 
   return (
     <div className="min-h-screen bg-white text-gray-900 dark:bg-black dark:text-gray-100">
-      <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-6 pb-10 pt-6 lg:px-10">
-        <DesktopHeader
+      <div className="mx-auto flex min-h-screen max-w-4xl flex-col pb-10 pt-6">
+        <AppShell
           mode={mode}
           currentDate={currentDate}
           onModeChange={setMode}
@@ -57,10 +57,8 @@ function App() {
           onToggleInbox={handleToggleInbox}
           onToggleLater={handleToggleLater}
           onOpenSettings={handleOpenSettings}
-        />
-
-        <main className="flex-1">
-          <div className="mt-8 rounded-xl border border-gray-200/80 bg-white/70 p-6 text-sm text-gray-700 shadow-sm dark:border-gray-800 dark:bg-white/5 dark:text-gray-200">
+        >
+          <div className="mx-4 mt-8 rounded-xl border border-gray-200/80 bg-white/70 p-6 text-sm text-gray-700 shadow-sm dark:border-gray-800 dark:bg-white/5 dark:text-gray-200 md:mx-0">
             <div className="flex items-center justify-between">
               <div className="flex flex-col gap-1">
                 <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -85,7 +83,7 @@ function App() {
               layout.
             </p>
           </div>
-        </main>
+        </AppShell>
       </div>
     </div>
   );
