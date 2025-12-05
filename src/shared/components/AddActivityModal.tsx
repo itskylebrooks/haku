@@ -54,7 +54,13 @@ const AddActivityModal = ({
   useEffect(() => {
     if (isOpen) {
       resetForm();
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
     }
+    return () => {
+      document.body.style.overflow = "";
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialTitle, initialPlacement]);
 
