@@ -104,7 +104,7 @@ const AddActivityModal = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-8 backdrop-blur-sm sm:py-12"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 px-4 pt-[20vh] backdrop-blur-sm"
       onClick={handleClose}
       role="dialog"
       aria-modal="true"
