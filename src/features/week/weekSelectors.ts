@@ -1,0 +1,83 @@
+import type { Activity } from "../../shared/types/activity";
+import { compareActivitiesByTime, isScheduled } from "../../shared/types/activity";
+
+export type WeekActivities = Record<string, Activity[]>;
+
+const compareFlexibleActivities = (a: Activity, b: Activity): number => {
+  if (a.orderIndex !== null && b.orderIndex !== null) {
+    return a.orderIndex - b.orderIndex;
+  }
+  if (a.orderIndex !== null) {
+    return -1;
+  }
+  if (b.orderIndex !== null) {
+    return 1;
+  }
+  return a.createdAt.localeCompare(b.createdAt);
+};
+
+export const getWeekStartDate = (isoDate: string): string => {
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) {
+    return isoDate;
+  }
+
+  const dayOfWeek = date.getUTCDay(); // Sunday = 0, Monday = 1
+  const diffToMonday = (dayOfWeek + 6) % 7; // 0 when already Monday
+
+  date.setUTCDate(date.getUTCDate() - diffToMonday);
+  return date.toISOString().slice(0, 10);
+};
+
+export const getWeekDates = (weekStartDate: string): string[] => {
+  const start = new Date(`${weekStartDate}T00:00:00Z`);
+  if (Number.isNaN(start.getTime())) {
+    return [];
+  }
+
+  return Array.from({ length: 7 }, (_, dayOffset) => {
+    const nextDate = new Date(start);
+    nextDate.setUTCDate(start.getUTCDate() + dayOffset);
+    return nextDate.toISOString().slice(0, 10);
+  });
+};
+
+export const getWeekActivities = (
+  activities: Activity[],
+  weekStartDate: string
+): WeekActivities => {
+  const dates = getWeekDates(weekStartDate);
+  if (dates.length === 0) {
+    return {};
+  }
+
+  const dateSet = new Set(dates);
+  const grouped: WeekActivities = {};
+  dates.forEach((date) => {
+    grouped[date] = [];
+  });
+
+  for (const activity of activities) {
+    if (!isScheduled(activity) || activity.date === null) {
+      continue;
+    }
+    if (!dateSet.has(activity.date)) {
+      continue;
+    }
+    grouped[activity.date].push(activity);
+  }
+
+  Object.keys(grouped).forEach((date) => {
+    const items = grouped[date];
+    const anchored = items
+      .filter((activity) => activity.time !== null)
+      .sort(compareActivitiesByTime);
+    const flexible = items
+      .filter((activity) => activity.time === null)
+      .sort(compareFlexibleActivities);
+
+    grouped[date] = [...anchored, ...flexible];
+  });
+
+  return grouped;
+};

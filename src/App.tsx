@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import AddActivityModal from "./shared/components/AddActivityModal";
 import AppShell from "./features/app-shell/AppShell";
 import DayPage from "./features/day/DayPage";
+import WeekPage from "./features/week/WeekPage";
 
 type ViewMode = "day" | "week";
 
@@ -41,17 +42,13 @@ function App() {
   const handleOpenAddModal = () => setIsAddModalOpen(true);
   const handleCloseAddModal = () => setIsAddModalOpen(false);
 
-  const currentSummary = useMemo(
-    () => ({
-      label: mode === "day" ? "Day view" : "Week view",
-      iso: currentDate,
-    }),
-    [mode, currentDate]
-  );
-
   return (
     <div className="min-h-screen bg-[var(--color-page-bg)] text-[var(--color-text-primary)]">
-      <div className="mx-auto flex min-h-screen max-w-4xl flex-col pb-10 pt-6">
+      <div
+        className={`mx-auto flex min-h-screen flex-col pb-10 pt-6 ${
+          mode === "week" ? "w-full max-w-none" : "max-w-6xl"
+        }`}
+      >
         <AppShell
           mode={mode}
           currentDate={currentDate}
@@ -67,30 +64,7 @@ function App() {
           {mode === "day" ? (
             <DayPage activeDate={currentDate} />
           ) : (
-            <div className="mx-4 mt-8 rounded-xl border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] p-6 text-sm text-[var(--color-text-secondary)] shadow-sm md:mx-0">
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs uppercase tracking-wide text-[var(--color-text-subtle)]">
-                    Current mode
-                  </span>
-                  <span className="text-base font-semibold text-[var(--color-text-primary)]">
-                    {currentSummary.label}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-1 text-right">
-                  <span className="text-xs uppercase tracking-wide text-[var(--color-text-subtle)]">
-                    Active date
-                  </span>
-                  <span className="text-base font-semibold text-[var(--color-text-primary)]">
-                    {currentSummary.iso}
-                  </span>
-                </div>
-              </div>
-              <p className="mt-4 text-sm text-[var(--color-text-muted)]">
-                Week view coming soon. The header above controls the mode and
-                date context shared across the desktop layout.
-              </p>
-            </div>
+            <WeekPage activeDate={currentDate} />
           )}
         </AppShell>
       </div>
