@@ -258,7 +258,7 @@ const AddActivityModal = ({
       aria-modal="true"
     >
       <div
-        className="w-96 rounded-2xl border border-gray-200/80 bg-white p-6 shadow-2xl shadow-black/10 outline-none dark:border-gray-700/80 dark:bg-black"
+        className="w-96 rounded-2xl border border-neutral-200 bg-white p-6 shadow-2xl shadow-black/10 outline-none dark:border-neutral-700 dark:bg-black"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="space-y-5">
@@ -268,7 +268,7 @@ const AddActivityModal = ({
               onChange={(event) => setTitle(event.target.value)}
               placeholder="Activity title"
               maxLength={100}
-              className="w-full rounded-lg border border-gray-200/80 bg-transparent px-3 py-2 text-base text-gray-900 shadow-none outline-none ring-0 transition focus:border-gray-400 dark:border-gray-700/80 dark:text-gray-50 dark:focus:border-gray-500"
+              className="w-full rounded-lg border border-neutral-200 bg-transparent px-3 py-2 text-base text-gray-900 shadow-none outline-none ring-0 transition focus:border-gray-400 dark:border-neutral-700 dark:text-gray-50 dark:focus:border-gray-500"
               autoFocus
             />
           </div>
@@ -322,14 +322,14 @@ const AddActivityModal = ({
                           setIsDurationMenuOpen((prev) => !prev);
                           setIsRepeatMenuOpen(false);
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200/80 bg-transparent px-3 py-2 text-sm text-gray-900 transition hover:border-gray-300 focus:border-gray-400 focus:outline-none dark:border-gray-700/80 dark:text-gray-100 dark:hover:border-gray-600 dark:focus:border-gray-500"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-transparent px-3 py-2 text-sm text-gray-900 transition hover:border-gray-300 focus:border-gray-400 focus:outline-none dark:border-neutral-700 dark:text-gray-100 dark:hover:border-gray-600 dark:focus:border-gray-500"
                       >
                         <span className="text-gray-500 dark:text-gray-400">Duration:</span>
                         <span>{formatDurationLabel(durationMinutes)}</span>
                       </button>
 
                       {isDurationMenuOpen && (
-                        <div className="absolute left-0 top-full z-50 mt-2 w-48 rounded-lg border border-gray-200/80 bg-white p-2 shadow-lg dark:border-gray-700/80 dark:bg-black">
+                        <div className="absolute left-0 top-full z-50 mt-2 w-48 rounded-lg border border-neutral-200 bg-white p-2 shadow-lg dark:border-neutral-700 dark:bg-black">
                           <div className="max-h-56 space-y-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                             {durationOptions.map((option) => {
                               const isSelected = durationMinutes === option;
@@ -360,7 +360,7 @@ const AddActivityModal = ({
                           setIsRepeatMenuOpen((prev) => !prev);
                           setIsDurationMenuOpen(false);
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200/80 bg-transparent px-3 py-2 text-sm text-gray-900 transition hover:border-gray-300 focus:border-gray-400 focus:outline-none dark:border-gray-700/80 dark:text-gray-100 dark:hover:border-gray-600 dark:focus:border-gray-500"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-transparent px-3 py-2 text-sm text-gray-900 transition hover:border-gray-300 focus:border-gray-400 focus:outline-none dark:border-neutral-700 dark:text-gray-100 dark:hover:border-gray-600 dark:focus:border-gray-500"
                       >
                         <span className="text-gray-500 dark:text-gray-400">Repeat:</span>
                         <span>
@@ -370,7 +370,7 @@ const AddActivityModal = ({
                       </button>
 
                       {isRepeatMenuOpen && (
-                        <div className="absolute left-0 top-full z-50 mt-2 w-40 rounded-lg border border-gray-200/80 bg-white p-2 shadow-lg dark:border-gray-700/80 dark:bg-black">
+                        <div className="absolute left-0 top-full z-50 mt-2 w-40 rounded-lg border border-neutral-200 bg-white p-2 shadow-lg dark:border-neutral-700 dark:bg-black">
                           <div className="max-h-56 space-y-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                             {repeatOptions.map(({ value, label }) => {
                               const isSelected = repeat === value;
@@ -407,13 +407,13 @@ const AddActivityModal = ({
                 rows={3}
                 placeholder="Add a note"
                 maxLength={500}
-                className="w-full rounded-lg border border-gray-200/80 bg-transparent px-3 py-2 text-base text-gray-900 shadow-none outline-none ring-0 transition focus:border-gray-400 dark:border-gray-700/80 dark:text-gray-100 dark:focus:border-gray-500"
+                className="w-full rounded-lg border border-neutral-200 bg-transparent px-3 py-2 text-base text-gray-900 shadow-none outline-none ring-0 transition focus:border-gray-400 dark:border-neutral-700 dark:text-gray-100 dark:focus:border-gray-500"
               />
             ) : (
               <button
                 type="button"
                 onClick={() => setShowNote(true)}
-                className="inline-flex items-center rounded-full border border-gray-200/80 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:border-gray-700/80 dark:text-gray-300 dark:hover:bg-white/5 dark:focus-visible:outline-gray-500"
+                className="inline-flex items-center rounded-full border border-neutral-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:border-neutral-700 dark:text-gray-300 dark:hover:bg-white/5 dark:focus-visible:outline-gray-500"
               >
                 Add note
               </button>
@@ -438,7 +438,7 @@ const AddActivityModal = ({
               <button
                 type="button"
                 onClick={handleClose}
-                className="rounded-md border border-gray-200/80 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:border-gray-700/80 dark:text-gray-300 dark:hover:bg-white/5 dark:focus-visible:outline-gray-500"
+                className="rounded-md border border-neutral-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:border-neutral-700 dark:text-gray-300 dark:hover:bg-white/5 dark:focus-visible:outline-gray-500"
               >
                 Cancel
               </button>
@@ -449,7 +449,7 @@ const AddActivityModal = ({
                 className={`rounded-md px-4 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:focus-visible:outline-gray-500 ${
                   canSubmit
                     ? "bg-gray-900 text-white hover:bg-gray-800 active:scale-[0.99] dark:bg-white dark:text-black dark:hover:bg-gray-200"
-                    : "cursor-not-allowed bg-gray-200 text-gray-500 dark:bg-gray-800 dark:text-gray-500"
+                    : "cursor-not-allowed bg-neutral-200 text-gray-500 dark:bg-neutral-700 dark:text-gray-400"
                 }`}
               >
                 {isEditMode ? "Save" : "Add"}

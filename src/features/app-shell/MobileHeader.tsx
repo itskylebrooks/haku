@@ -30,7 +30,7 @@ const formatDate = (isoDate: string): string => {
 };
 
 const iconButton =
-  "inline-flex h-11 w-11 items-center justify-center rounded-full border border-gray-200/80 bg-transparent text-gray-700 transition active:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:border-gray-700/80 dark:text-gray-100 dark:active:bg-white/10 dark:focus-visible:outline-gray-500";
+  "inline-flex h-11 w-11 items-center justify-center rounded-full border border-neutral-200 bg-transparent text-gray-700 transition active:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:border-neutral-700 dark:text-gray-100 dark:active:bg-white/10 dark:focus-visible:outline-gray-500";
 
 const MobileHeader = ({
   activeTab,

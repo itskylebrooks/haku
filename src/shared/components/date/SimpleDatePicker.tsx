@@ -154,7 +154,7 @@ const SimpleDatePicker = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200/80 bg-transparent px-3 py-2 text-sm text-gray-900 transition hover:border-gray-300 focus:border-gray-400 focus:outline-none dark:border-gray-700/80 dark:text-gray-100 dark:hover:border-gray-600 dark:focus:border-gray-500"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-transparent px-3 py-2 text-sm text-gray-900 transition hover:border-gray-300 focus:border-gray-400 focus:outline-none dark:border-neutral-700 dark:text-gray-100 dark:hover:border-gray-600 dark:focus:border-gray-500"
       >
         <svg
           className="h-4 w-4 text-gray-500 dark:text-gray-400"
@@ -176,7 +176,7 @@ const SimpleDatePicker = ({
       {isOpen && (
         <div
           ref={popupRef}
-          className="absolute left-0 top-full z-50 mt-2 w-64 rounded-lg border border-gray-200/80 bg-white p-3 shadow-lg dark:border-gray-700/80 dark:bg-black"
+          className="absolute left-0 top-full z-50 mt-2 w-64 rounded-lg border border-neutral-200 bg-white p-3 shadow-lg dark:border-neutral-700 dark:bg-black"
         >
           {/* Month Navigation */}
           <div className="mb-3 flex items-center justify-between">
@@ -266,7 +266,7 @@ const SimpleDatePicker = ({
           </div>
 
           {/* Clear Button */}
-          <div className="mt-3 flex justify-end border-t border-gray-200/80 pt-2 dark:border-gray-700/80">
+          <div className="mt-3 flex justify-end border-t border-neutral-200 pt-2 dark:border-neutral-700">
             <button
               type="button"
               onClick={handleClear}
