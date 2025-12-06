@@ -78,15 +78,15 @@ const SimpleTimePicker = ({ value, onChange }: SimpleTimePickerProps) => {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-transparent px-3 py-2 text-sm text-gray-900 transition hover:border-gray-300 focus:border-gray-400 focus:outline-none dark:border-neutral-700 dark:text-gray-100 dark:hover:border-gray-600 dark:focus:border-gray-500"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text-primary)] transition hover:border-[var(--color-border-hover)] focus:border-[var(--color-border-focus)] focus:outline-none"
       >
-        <span className="text-gray-500 dark:text-gray-400">Time:</span>
+        <span className="text-[var(--color-text-subtle)]">Time:</span>
         <span>{value ? formatDisplayTime(value) : "None"}</span>
       </button>
 
       {/* Popup Time List */}
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-48 rounded-lg border border-neutral-200 bg-white p-2 shadow-lg dark:border-neutral-700 dark:bg-black">
+        <div className="absolute left-0 top-full z-50 mt-2 w-48 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-lg">
           <div
             ref={listRef}
             className="max-h-56 overflow-y-auto overscroll-contain space-y-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -100,8 +100,8 @@ const SimpleTimePicker = ({ value, onChange }: SimpleTimePickerProps) => {
                   onClick={() => handleTimeClick(time)}
                   className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition ${
                     isSelected
-                      ? "bg-gray-900 text-white dark:bg-white dark:text-black"
-                      : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10"
+                      ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)]"
+                      : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
                   }`}
                 >
                   <span className="tabular-nums">{formatDisplayTime(time)}</span>
@@ -111,11 +111,11 @@ const SimpleTimePicker = ({ value, onChange }: SimpleTimePickerProps) => {
           </div>
 
           {/* Clear Button */}
-          <div className="border-t border-neutral-200 px-3 py-2 dark:border-neutral-700">
+          <div className="border-t border-[var(--color-border)] px-3 py-2">
             <button
               type="button"
               onClick={handleClear}
-              className="text-xs text-gray-500 transition hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="text-xs text-[var(--color-text-subtle)] transition hover:text-[var(--color-text-primary)]"
             >
               Clear time
             </button>

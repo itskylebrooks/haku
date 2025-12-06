@@ -50,7 +50,7 @@ function App() {
   );
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 dark:bg-black dark:text-gray-100">
+    <div className="min-h-screen bg-[var(--color-page-bg)] text-[var(--color-text-primary)]">
       <div className="mx-auto flex min-h-screen max-w-4xl flex-col pb-10 pt-6">
         <AppShell
           mode={mode}
@@ -67,26 +67,26 @@ function App() {
           {mode === "day" ? (
             <DayPage activeDate={currentDate} />
           ) : (
-            <div className="mx-4 mt-8 rounded-xl border border-gray-200/80 bg-white/70 p-6 text-sm text-gray-700 shadow-sm dark:border-gray-800 dark:bg-white/5 dark:text-gray-200 md:mx-0">
+            <div className="mx-4 mt-8 rounded-xl border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] p-6 text-sm text-[var(--color-text-secondary)] shadow-sm md:mx-0">
               <div className="flex items-center justify-between">
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  <span className="text-xs uppercase tracking-wide text-[var(--color-text-subtle)]">
                     Current mode
                   </span>
-                  <span className="text-base font-semibold text-gray-900 dark:text-gray-50">
+                  <span className="text-base font-semibold text-[var(--color-text-primary)]">
                     {currentSummary.label}
                   </span>
                 </div>
                 <div className="flex flex-col gap-1 text-right">
-                  <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  <span className="text-xs uppercase tracking-wide text-[var(--color-text-subtle)]">
                     Active date
                   </span>
-                  <span className="text-base font-semibold text-gray-900 dark:text-gray-50">
+                  <span className="text-base font-semibold text-[var(--color-text-primary)]">
                     {currentSummary.iso}
                   </span>
                 </div>
               </div>
-              <p className="mt-4 text-sm text-gray-600 dark:text-gray-300">
+              <p className="mt-4 text-sm text-[var(--color-text-muted)]">
                 Week view coming soon. The header above controls the mode and
                 date context shared across the desktop layout.
               </p>

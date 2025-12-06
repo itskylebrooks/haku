@@ -42,7 +42,7 @@ const formatDate = (isoDate: string): string => {
 };
 
 const iconButton =
-  "inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-transparent text-gray-700 transition hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:border-neutral-700 dark:text-gray-100 dark:hover:bg-white/5 dark:focus-visible:outline-gray-500";
+  "inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-transparent text-[var(--color-text-primary)] transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]";
 
 const DesktopHeader = ({
   mode,
@@ -59,10 +59,10 @@ const DesktopHeader = ({
   const formattedDate = useMemo(() => formatDate(currentDate), [currentDate]);
 
   return (
-    <header className="sticky top-6 z-40 hidden bg-white pb-1 pt-0 text-sm text-gray-900 dark:bg-black dark:text-gray-100 lg:block">
+    <header className="sticky top-6 z-40 hidden bg-[var(--color-surface)] pb-1 pt-0 text-sm text-[var(--color-text-primary)] lg:block">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-6 h-6 bg-white dark:bg-black"
+        className="pointer-events-none absolute inset-x-0 -top-6 h-6 bg-[var(--color-surface)]"
       />
       <div className="mx-auto w-full max-w-xl px-4 pt-4 md:pt-0">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
@@ -99,7 +99,7 @@ const DesktopHeader = ({
           </div>
 
           <div className="flex items-center justify-center">
-            <div className="inline-flex h-10 items-center gap-1 rounded-full border border-neutral-200 bg-transparent px-1 text-sm font-medium shadow-none transition dark:border-neutral-700">
+            <div className="inline-flex h-10 items-center gap-1 rounded-full border border-[var(--color-border)] bg-transparent px-1 text-sm font-medium shadow-none transition">
               {(["day", "week"] as ViewMode[]).map((value) => {
                 const isActive = mode === value;
                 return (
@@ -108,10 +108,10 @@ const DesktopHeader = ({
                     type="button"
                     aria-pressed={isActive}
                     onClick={() => onModeChange(value)}
-                    className={`inline-flex h-8 w-11 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:focus-visible:outline-gray-500 ${
+                    className={`inline-flex h-8 w-11 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
                       isActive
-                        ? "bg-gray-200 text-gray-900 font-semibold shadow-sm dark:bg-gray-200 dark:text-gray-900"
-                        : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5"
+                        ? "bg-[var(--color-surface-strong)] text-[var(--color-text-contrast)] font-semibold shadow-sm"
+                        : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
                     }`}
                     >
                     {value === "day" ? (
@@ -153,7 +153,7 @@ const DesktopHeader = ({
           <button
             type="button"
             onClick={onResetToday}
-            className="inline-flex items-center rounded-md px-3 py-2 text-base font-semibold text-gray-900 transition hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 active:scale-[0.99] dark:text-gray-100 dark:hover:bg-white/5 dark:focus-visible:outline-gray-500"
+            className="inline-flex items-center rounded-md px-3 py-2 text-base font-semibold text-[var(--color-text-primary)] transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99]"
             aria-label="Reset to today"
           >
             {formattedDate}
@@ -162,7 +162,7 @@ const DesktopHeader = ({
             <button
               type="button"
               onClick={onOpenAdd}
-              className="inline-flex items-center rounded-md px-3 py-2 text-base font-semibold text-gray-900 transition hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 active:scale-[0.99] dark:text-gray-100 dark:hover:bg-white/5 dark:focus-visible:outline-gray-500"
+              className="inline-flex items-center rounded-md px-3 py-2 text-base font-semibold text-[var(--color-text-primary)] transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99]"
             >
               Add activity
             </button>

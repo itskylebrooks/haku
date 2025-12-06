@@ -57,7 +57,7 @@ const DayPage = ({ activeDate }: DayPageProps) => {
         {/* Empty state */}
         {isEmpty && (
           <div className="py-16 text-center">
-            <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            <p className="text-sm text-[var(--color-text-subtle)]">
               No activities for this day yet.
             </p>
           </div>
@@ -66,7 +66,7 @@ const DayPage = ({ activeDate }: DayPageProps) => {
         {/* Overdue section */}
         {hasOverdue && (
           <div className="mb-6">
-            <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+            <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-[var(--color-text-subtle)]">
               Overdue
             </span>
             <div className="space-y-2 md:space-y-3">
@@ -81,7 +81,7 @@ const DayPage = ({ activeDate }: DayPageProps) => {
             </div>
             {/* Separator - short centered line */}
             <div className="mt-6 flex justify-center">
-              <div className="w-16 border-t border-neutral-200 dark:border-neutral-800" />
+              <div className="w-16 border-t border-[var(--color-border-divider)]" />
             </div>
           </div>
         )}

@@ -154,10 +154,10 @@ const SimpleDatePicker = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-transparent px-3 py-2 text-sm text-gray-900 transition hover:border-gray-300 focus:border-gray-400 focus:outline-none dark:border-neutral-700 dark:text-gray-100 dark:hover:border-gray-600 dark:focus:border-gray-500"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text-primary)] transition hover:border-[var(--color-border-hover)] focus:border-[var(--color-border-focus)] focus:outline-none"
       >
         <svg
-          className="h-4 w-4 text-gray-500 dark:text-gray-400"
+          className="h-4 w-4 text-[var(--color-text-subtle)]"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -176,14 +176,14 @@ const SimpleDatePicker = ({
       {isOpen && (
         <div
           ref={popupRef}
-          className="absolute left-0 top-full z-50 mt-2 w-64 rounded-lg border border-neutral-200 bg-white p-3 shadow-lg dark:border-neutral-700 dark:bg-black"
+          className="absolute left-0 top-full z-50 mt-2 w-64 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-lg"
         >
           {/* Month Navigation */}
           <div className="mb-3 flex items-center justify-between">
             <button
               type="button"
               onClick={handlePrevMonth}
-              className="rounded p-1 text-gray-600 transition hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10"
+              className="rounded p-1 text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-hover)]"
             >
               <svg
                 className="h-4 w-4"
@@ -199,13 +199,13 @@ const SimpleDatePicker = ({
                 />
               </svg>
             </button>
-            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+            <span className="text-sm font-medium text-[var(--color-text-primary)]">
               {getMonthLabel(viewYear, viewMonth)}
             </span>
             <button
               type="button"
               onClick={handleNextMonth}
-              className="rounded p-1 text-gray-600 transition hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10"
+              className="rounded p-1 text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-hover)]"
             >
               <svg
                 className="h-4 w-4"
@@ -228,7 +228,7 @@ const SimpleDatePicker = ({
             {WEEKDAYS.map((day) => (
               <div
                 key={day}
-                className="py-1 text-center text-xs font-medium text-gray-500 dark:text-gray-400"
+                className="py-1 text-center text-xs font-medium text-[var(--color-text-subtle)]"
               >
                 {day}
               </div>
@@ -253,10 +253,10 @@ const SimpleDatePicker = ({
                   onClick={() => handleDayClick(day)}
                   className={`flex h-8 w-full items-center justify-center rounded text-sm transition ${
                     isSelected
-                      ? "bg-gray-900 text-white dark:bg-white dark:text-black"
+                      ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)]"
                       : isToday
-                        ? "font-semibold text-gray-900 dark:text-gray-100"
-                        : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10"
+                        ? "font-semibold text-[var(--color-text-primary)]"
+                        : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
                   }`}
                 >
                   {day}
@@ -266,11 +266,11 @@ const SimpleDatePicker = ({
           </div>
 
           {/* Clear Button */}
-          <div className="mt-3 flex justify-end border-t border-neutral-200 pt-2 dark:border-neutral-700">
+          <div className="mt-3 flex justify-end border-t border-[var(--color-border)] pt-2">
             <button
               type="button"
               onClick={handleClear}
-              className="text-xs text-gray-500 transition hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="text-xs text-[var(--color-text-subtle)] transition hover:text-[var(--color-text-primary)]"
             >
               Clear date
             </button>

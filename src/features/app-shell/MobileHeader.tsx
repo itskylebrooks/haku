@@ -30,7 +30,7 @@ const formatDate = (isoDate: string): string => {
 };
 
 const iconButton =
-  "inline-flex h-11 w-11 items-center justify-center rounded-full border border-neutral-200 bg-transparent text-gray-700 transition active:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:border-neutral-700 dark:text-gray-100 dark:active:bg-white/10 dark:focus-visible:outline-gray-500";
+  "inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)] bg-transparent text-[var(--color-text-primary)] transition active:bg-[var(--color-surface-pressed)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]";
 
 const MobileHeader = ({
   activeTab,
@@ -44,10 +44,10 @@ const MobileHeader = ({
   const chevronsDisabled = activeTab === "inbox";
 
   return (
-    <header className="sticky top-6 z-40 block w-full bg-white py-2 text-gray-900 dark:bg-black dark:text-gray-100 md:hidden">
+    <header className="sticky top-6 z-40 block w-full bg-[var(--color-surface)] py-2 text-[var(--color-text-primary)] md:hidden">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-6 h-6 bg-white dark:bg-black"
+        className="pointer-events-none absolute inset-x-0 -top-6 h-6 bg-[var(--color-surface)]"
       />
       <div className="flex items-center justify-between px-4">
         {/* Left: Chevrons */}
@@ -79,7 +79,7 @@ const MobileHeader = ({
           <button
             type="button"
             onClick={onResetToday}
-            className="rounded-md px-2 py-1 text-sm font-medium transition active:bg-gray-100 dark:active:bg-white/10"
+            className="rounded-md px-2 py-1 text-sm font-medium transition active:bg-[var(--color-surface-pressed)]"
           >
             {formattedDate}
           </button>

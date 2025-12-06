@@ -63,15 +63,15 @@ const ActivityCard = ({
       className={`group flex rounded-xl transition ${
         isDone
           ? ""
-          : "hover:bg-neutral-100 hover:shadow-sm dark:hover:bg-neutral-800/50 dark:hover:shadow-sm"
+          : "hover:bg-[var(--color-card-hover)] hover:shadow-sm"
       }`}
     >
       {/* Left: Edit button column - always visible, rounded left corners */}
       <button
         type="button"
         onClick={() => onEdit(activity)}
-        className={`flex w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-l-xl transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-neutral-200 dark:hover:bg-neutral-800 dark:focus-visible:outline-neutral-700 md:w-8 ${
-          isDone ? "text-neutral-400 dark:text-neutral-500" : "text-neutral-600 dark:text-neutral-400"
+        className={`flex w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-l-xl transition hover:bg-[var(--color-card-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[var(--color-border)] md:w-8 ${
+          isDone ? "text-[var(--color-text-faint)]" : "text-[var(--color-text-meta)]"
         }`}
         aria-label="Edit activity"
       >
@@ -86,20 +86,20 @@ const ActivityCard = ({
             <span
               className={`${
                 isDone
-                  ? "text-neutral-400 dark:text-neutral-500"
-                  : "text-gray-700 dark:text-gray-100"
+                  ? "text-[var(--color-text-faint)]"
+                  : "text-[var(--color-text-secondary)]"
               }`}
             >
               {formatTimeWithAmPm(time)}
             </span>
             {durationMinutes !== null && (
               <>
-                <span className="text-neutral-400 dark:text-neutral-500">•</span>
+                <span className="text-[var(--color-text-faint)]">•</span>
                 <span
                   className={`${
                     isDone
-                      ? "text-neutral-400 dark:text-neutral-500"
-                      : "text-neutral-600 dark:text-neutral-400"
+                      ? "text-[var(--color-text-faint)]"
+                      : "text-[var(--color-text-meta)]"
                   }`}
                 >
                   {formatDuration(durationMinutes)}
@@ -108,12 +108,12 @@ const ActivityCard = ({
             )}
             {repeatLabel && (
               <>
-                <span className="text-neutral-400 dark:text-neutral-500">•</span>
+                <span className="text-[var(--color-text-faint)]">•</span>
                 <span
                   className={`${
                     isDone
-                      ? "text-neutral-400 dark:text-neutral-500"
-                      : "text-neutral-600 dark:text-neutral-400"
+                      ? "text-[var(--color-text-faint)]"
+                      : "text-[var(--color-text-meta)]"
                   }`}
                 >
                   {repeatLabel}
@@ -127,8 +127,8 @@ const ActivityCard = ({
         <h3
           className={`text-sm font-semibold leading-snug md:text-base ${
             isDone
-              ? "text-neutral-400 line-through decoration-neutral-400/50 dark:text-neutral-500 dark:decoration-neutral-500/50"
-              : "text-neutral-900 dark:text-neutral-100"
+              ? "text-[var(--color-text-faint)] line-through decoration-[var(--color-strike)]"
+              : "text-[var(--color-text-primary)]"
           }`}
         >
           {title}
@@ -139,8 +139,8 @@ const ActivityCard = ({
           <p
             className={`mt-1 text-xs leading-relaxed md:text-sm ${
               isDone
-                ? "text-neutral-400 dark:text-neutral-500"
-                : "text-neutral-500 dark:text-neutral-400"
+                ? "text-[var(--color-text-faint)]"
+                : "text-[var(--color-text-subtle)]"
             }`}
           >
             {note}
@@ -152,17 +152,13 @@ const ActivityCard = ({
       <button
         type="button"
         onClick={() => onToggleDone(id)}
-        className={`flex w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-r-xl transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-neutral-200 dark:focus-visible:outline-neutral-700 md:w-11 ${
-          isDone
-            ? "hover:bg-neutral-100 dark:hover:bg-neutral-800"
-            : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
-        }`}
+        className="flex w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-r-xl transition hover:bg-[var(--color-card-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[var(--color-border)] md:w-11"
         aria-label={isDone ? "Mark as not done" : "Mark as done"}
       >
         {isDone ? (
-          <CheckCircle2 className="h-6 w-6 text-neutral-400 dark:text-neutral-500 md:h-7 md:w-7" />
+          <CheckCircle2 className="h-6 w-6 text-[var(--color-text-faint)] md:h-7 md:w-7" />
         ) : (
-          <Circle className="h-6 w-6 text-neutral-600 dark:text-neutral-400 md:h-7 md:w-7" />
+          <Circle className="h-6 w-6 text-[var(--color-text-meta)] md:h-7 md:w-7" />
         )}
       </button>
     </div>
