@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import AddActivityModal from "./shared/components/AddActivityModal";
 import AppShell from "./features/app-shell/AppShell";
+import DayPage from "./features/day/DayPage";
 
 type ViewMode = "day" | "week";
 
@@ -63,34 +64,41 @@ function App() {
           onOpenSettings={handleOpenSettings}
           onOpenAdd={handleOpenAddModal}
         >
-          <div className="mx-4 mt-8 rounded-xl border border-gray-200/80 bg-white/70 p-6 text-sm text-gray-700 shadow-sm dark:border-gray-800 dark:bg-white/5 dark:text-gray-200 md:mx-0">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-1">
-                <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  Current mode
-                </span>
-                <span className="text-base font-semibold text-gray-900 dark:text-gray-50">
-                  {currentSummary.label}
-                </span>
+          {mode === "day" ? (
+            <DayPage activeDate={currentDate} />
+          ) : (
+            <div className="mx-4 mt-8 rounded-xl border border-gray-200/80 bg-white/70 p-6 text-sm text-gray-700 shadow-sm dark:border-gray-800 dark:bg-white/5 dark:text-gray-200 md:mx-0">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Current mode
+                  </span>
+                  <span className="text-base font-semibold text-gray-900 dark:text-gray-50">
+                    {currentSummary.label}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1 text-right">
+                  <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Active date
+                  </span>
+                  <span className="text-base font-semibold text-gray-900 dark:text-gray-50">
+                    {currentSummary.iso}
+                  </span>
+                </div>
               </div>
-              <div className="flex flex-col gap-1 text-right">
-                <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  Active date
-                </span>
-                <span className="text-base font-semibold text-gray-900 dark:text-gray-50">
-                  {currentSummary.iso}
-                </span>
-              </div>
+              <p className="mt-4 text-sm text-gray-600 dark:text-gray-300">
+                Week view coming soon. The header above controls the mode and
+                date context shared across the desktop layout.
+              </p>
             </div>
-            <p className="mt-4 text-sm text-gray-600 dark:text-gray-300">
-              It will be replaced with the day/week content. The header above
-              controls the mode and date context shared across the desktop
-              layout.
-            </p>
-          </div>
+          )}
         </AppShell>
       </div>
-      <AddActivityModal isOpen={isAddModalOpen} onClose={handleCloseAddModal} />
+      <AddActivityModal
+        isOpen={isAddModalOpen}
+        onClose={handleCloseAddModal}
+        defaultDate={currentDate}
+      />
     </div>
   );
 }

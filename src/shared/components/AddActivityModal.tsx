@@ -1,16 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Bucket, RepeatPattern } from "../types/activity";
+import type { Activity, Bucket, RepeatPattern } from "../types/activity";
 import { useActivitiesStore } from "../store/activitiesStore";
 import SimpleDatePicker from "./date/SimpleDatePicker";
 import SimpleTimePicker from "./date/SimpleTimePicker";
 
 type PlacementOption = "inbox" | "date" | "later";
+type ModalMode = "create" | "edit";
 
 interface AddActivityModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialTitle?: string;
   initialPlacement?: Bucket;
+  mode?: ModalMode;
+  activityToEdit?: Activity;
+  onDelete?: (id: string) => void;
+  onUpdate?: (id: string, updates: Partial<Omit<Activity, "id" | "createdAt">>) => void;
+  defaultDate?: string;
 }
 
 const todayIso = (): string => new Date().toISOString().slice(0, 10);
@@ -51,11 +57,34 @@ const AddActivityModal = ({
   onClose,
   initialTitle,
   initialPlacement,
+  mode = "create",
+  activityToEdit,
+  onDelete,
+  onUpdate,
+  defaultDate,
 }: AddActivityModalProps) => {
   const addActivity = useActivitiesStore((state) => state.addActivity);
 
-  const defaultPlacement: PlacementOption =
-    initialPlacement === "scheduled" ? "date" : initialPlacement ?? "inbox";
+  const isEditMode = mode === "edit" && activityToEdit !== undefined;
+
+  // Derive initial placement from activity being edited or use defaults
+  const getInitialPlacement = (): PlacementOption => {
+    if (isEditMode) {
+      if (activityToEdit.bucket === "scheduled") return "date";
+      if (activityToEdit.bucket === "later") return "later";
+      return "inbox";
+    }
+    return initialPlacement === "scheduled" ? "date" : initialPlacement ?? "inbox";
+  };
+
+  const getInitialDate = (): string | null => {
+    if (isEditMode && activityToEdit.date !== null) {
+      return activityToEdit.date;
+    }
+    return defaultDate ?? todayIso();
+  };
+
+  const defaultPlacement = getInitialPlacement();
 
   const [title, setTitle] = useState(initialTitle ?? "");
   const [placement, setPlacement] = useState<PlacementOption>(defaultPlacement);
@@ -76,16 +105,29 @@ const AddActivityModal = ({
   const canSubmit = Boolean(trimmedTitle) && (!isDatePlacement || !!scheduledDate);
 
   const resetForm = () => {
-    setTitle(initialTitle ?? "");
-    setPlacement(defaultPlacement);
-    setScheduledDate(todayIso());
-    setScheduledTime(null);
-    setDurationMinutes(null);
-    setRepeat("none");
+    if (isEditMode) {
+      // Pre-fill with activity values for edit mode
+      setTitle(activityToEdit.title);
+      setPlacement(getInitialPlacement());
+      setScheduledDate(activityToEdit.date ?? getInitialDate());
+      setScheduledTime(activityToEdit.time);
+      setDurationMinutes(activityToEdit.durationMinutes);
+      setRepeat(activityToEdit.repeat);
+      setNote(activityToEdit.note ?? "");
+      setShowNote(activityToEdit.note !== null && activityToEdit.note !== "");
+    } else {
+      // Reset to defaults for create mode
+      setTitle(initialTitle ?? "");
+      setPlacement(defaultPlacement);
+      setScheduledDate(getInitialDate());
+      setScheduledTime(null);
+      setDurationMinutes(null);
+      setRepeat("none");
+      setNote("");
+      setShowNote(false);
+    }
     setIsDurationMenuOpen(false);
     setIsRepeatMenuOpen(false);
-    setNote("");
-    setShowNote(false);
   };
 
   useEffect(() => {
@@ -99,7 +141,7 @@ const AddActivityModal = ({
       document.body.style.overflow = "";
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, initialTitle, initialPlacement]);
+  }, [isOpen, initialTitle, initialPlacement, activityToEdit, mode]);
 
   useEffect(() => {
     if (scheduledTime === null) {
@@ -171,17 +213,37 @@ const AddActivityModal = ({
 
     const noteValue = note.trim();
 
-    addActivity({
-      title: trimmedTitle,
-      bucket,
-      date: dateValue,
-      time: timeValue,
-      durationMinutes: durationValue,
-      repeat: repeatValue,
-      note: noteValue === "" ? null : noteValue,
-    });
+    if (isEditMode && onUpdate) {
+      // Edit mode: update existing activity
+      onUpdate(activityToEdit.id, {
+        title: trimmedTitle,
+        bucket,
+        date: dateValue,
+        time: timeValue,
+        durationMinutes: durationValue,
+        repeat: repeatValue,
+        note: noteValue === "" ? null : noteValue,
+      });
+    } else {
+      // Create mode: add new activity
+      addActivity({
+        title: trimmedTitle,
+        bucket,
+        date: dateValue,
+        time: timeValue,
+        durationMinutes: durationValue,
+        repeat: repeatValue,
+        note: noteValue === "" ? null : noteValue,
+      });
+    }
 
     handleClose();
+  };
+
+  const handleDelete = () => {
+    if (isEditMode && onDelete) {
+      onDelete(activityToEdit.id);
+    }
   };
 
   if (!isOpen) {
@@ -358,26 +420,41 @@ const AddActivityModal = ({
             )}
           </div>
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="rounded-md border border-gray-200/80 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:border-gray-700/80 dark:text-gray-300 dark:hover:bg-white/5 dark:focus-visible:outline-gray-500"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              disabled={!canSubmit}
-              onClick={handleSubmit}
-              className={`rounded-md px-4 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:focus-visible:outline-gray-500 ${
-                canSubmit
-                  ? "bg-gray-900 text-white hover:bg-gray-800 active:scale-[0.99] dark:bg-white dark:text-black dark:hover:bg-gray-200"
-                  : "cursor-not-allowed bg-gray-200 text-gray-500 dark:bg-gray-800 dark:text-gray-500"
-              }`}
-            >
-              Add
-            </button>
+          <div className="flex items-center justify-between gap-3 pt-2">
+            {/* Delete button (edit mode only) */}
+            {isEditMode ? (
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+              >
+                Delete
+              </button>
+            ) : (
+              <div />
+            )}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleClose}
+                className="rounded-md border border-gray-200/80 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:border-gray-700/80 dark:text-gray-300 dark:hover:bg-white/5 dark:focus-visible:outline-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!canSubmit}
+                onClick={handleSubmit}
+                className={`rounded-md px-4 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:focus-visible:outline-gray-500 ${
+                  canSubmit
+                    ? "bg-gray-900 text-white hover:bg-gray-800 active:scale-[0.99] dark:bg-white dark:text-black dark:hover:bg-gray-200"
+                    : "cursor-not-allowed bg-gray-200 text-gray-500 dark:bg-gray-800 dark:text-gray-500"
+                }`}
+              >
+                {isEditMode ? "Save" : "Add"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
