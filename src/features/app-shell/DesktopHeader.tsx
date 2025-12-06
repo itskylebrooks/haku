@@ -59,7 +59,11 @@ const DesktopHeader = ({
   const formattedDate = useMemo(() => formatDate(currentDate), [currentDate]);
 
   return (
-    <header className="sticky top-0 z-40 hidden bg-white pb-1 pt-0 text-sm text-gray-900 dark:bg-black dark:text-gray-100 lg:block">
+    <header className="sticky top-6 z-40 hidden bg-white pb-1 pt-0 text-sm text-gray-900 dark:bg-black dark:text-gray-100 lg:block">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 -top-6 h-6 bg-white dark:bg-black"
+      />
       <div className="mx-auto w-full max-w-xl px-4 pt-4 md:pt-0">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
           <div className="flex items-center justify-start gap-2">
