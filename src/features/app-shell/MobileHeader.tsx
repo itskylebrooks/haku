@@ -44,7 +44,7 @@ const MobileHeader = ({
   const chevronsDisabled = activeTab === "inbox";
 
   return (
-    <header className="block w-full bg-white py-2 text-gray-900 dark:bg-black dark:text-gray-100 md:hidden">
+    <header className="sticky top-0 z-40 block w-full bg-white py-2 text-gray-900 dark:bg-black dark:text-gray-100 md:hidden">
       <div className="flex items-center justify-between px-4">
         {/* Left: Chevrons */}
         <div className="flex items-center gap-1">
