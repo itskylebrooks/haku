@@ -127,26 +127,28 @@ const DesktopHeader = ({
           </div>
         </div>
 
-        <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-          <span aria-hidden />
-          <button
-            type="button"
-            onClick={onResetToday}
-            className="inline-flex items-center rounded-md px-3 py-2 text-base font-semibold text-[var(--color-text-primary)] transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99]"
-            aria-label="Reset to today"
-          >
-            {formattedDate}
-          </button>
-          <div className="flex justify-end">
+        {selectedTab === "day" && (
+          <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+            <span aria-hidden />
             <button
               type="button"
-              onClick={onOpenAdd}
+              onClick={onResetToday}
               className="inline-flex items-center rounded-md px-3 py-2 text-base font-semibold text-[var(--color-text-primary)] transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99]"
+              aria-label="Reset to today"
             >
-              Add activity
+              {formattedDate}
             </button>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={onOpenAdd}
+                className="inline-flex items-center rounded-md px-3 py-2 text-base font-semibold text-[var(--color-text-primary)] transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99]"
+              >
+                Add activity
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </header>
   );
