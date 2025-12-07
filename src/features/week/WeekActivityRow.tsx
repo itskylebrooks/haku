@@ -92,15 +92,13 @@ const WeekActivityRow = ({ activity, onToggleDone, onEdit }: WeekActivityRowProp
           </p>
         </div>
 
-        {hasMeta && (
-          <p
-            className={`mt-0 text-[10px] leading-snug ${
-              isDone ? "text-[var(--color-text-faint)]" : "text-[var(--color-text-subtle)]"
-            }`}
-          >
-            {metaParts.join(" · ")}
-          </p>
-        )}
+        <p
+          className={`mt-0 text-[10px] leading-snug h-3.5 ${
+            isDone ? "text-[var(--color-text-faint)]" : "text-[var(--color-text-subtle)]"
+          } ${hasMeta ? "" : "invisible"}`}
+        >
+          {hasMeta ? metaParts.join(" · ") : " "}
+        </p>
       </div>
 
       <button

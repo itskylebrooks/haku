@@ -14,6 +14,21 @@ interface WeekPageProps {
   activeDate: string;
 }
 
+const PLACEHOLDER_ACTIVITY: Activity = {
+  id: "placeholder",
+  title: "Placeholder",
+  bucket: "scheduled",
+  date: null,
+  time: null,
+  durationMinutes: null,
+  repeat: "none",
+  note: null,
+  isDone: false,
+  orderIndex: null,
+  createdAt: "",
+  updatedAt: "",
+};
+
 const formatMobileDayLabel = (isoDate: string): { weekday: string; monthDay: string } => {
   const date = new Date(`${isoDate}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return { weekday: isoDate, monthDay: "" };
@@ -57,9 +72,37 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
     () => getWeekDates(weekStartDate),
     [weekStartDate]
   );
+  const weekDatesWithoutSunday = useMemo(
+    () => weekDates.filter((date) => new Date(`${date}T00:00:00Z`).getUTCDay() !== 0),
+    [weekDates]
+  );
+  const sundayDate = useMemo(
+    () => weekDates.find((date) => new Date(`${date}T00:00:00Z`).getUTCDay() === 0),
+    [weekDates]
+  );
   const weekActivities = useMemo(
     () => getWeekActivities(activities, weekStartDate),
     [activities, weekStartDate]
+  );
+  const desktopMaxDividerCount = useMemo(() => {
+    const counts = weekDatesWithoutSunday.map((date) => weekActivities[date]?.length ?? 0);
+    const maxCount = counts.length > 0 ? Math.max(...counts) : 0;
+    return Math.max(5, maxCount);
+  }, [weekActivities, weekDatesWithoutSunday]);
+
+  const Divider = () => (
+    <div className="flex h-[2px] items-center px-1">
+      <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
+    </div>
+  );
+  const PlaceholderRow = () => (
+    <div className="invisible pointer-events-none select-none" aria-hidden>
+      <WeekActivityRow
+        activity={PLACEHOLDER_ACTIVITY}
+        onToggleDone={() => {}}
+        onEdit={() => {}}
+      />
+    </div>
   );
 
   const handleToggleDone = (id: string) => {
@@ -109,8 +152,12 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                     ))}
                   </div>
                 ) : (
-                  <div className="flex justify-center pt-4 pb-3">
-                    <div className="w-12 border-t border-[var(--color-border-divider)]" />
+                  <div className="space-y-2 pt-4 pb-3">
+                    {Array.from({ length: 5 }).map((_, idx) => (
+                      <div key={idx} className="flex h-7 items-center">
+                        <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
+                      </div>
+                    ))}
                   </div>
                 )}
               </section>
@@ -119,18 +166,18 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
         </div>
       </div>
 
-      {/* Desktop 7-column grid */}
+      {/* Desktop grid (Sunday under Saturday) */}
       <div className="hidden md:block">
         <div className="mx-auto w-full px-3 pt-4">
-          <div className="grid grid-cols-7 gap-0 divide-x divide-[var(--color-border-divider)]">
-            {weekDates.map((date) => {
+          <div className="grid grid-cols-6 gap-0 divide-x divide-[var(--color-border-divider)]">
+            {weekDatesWithoutSunday.map((date) => {
               const activitiesForDay = weekActivities[date] ?? [];
               const { weekday, monthDay } = formatDesktopDayLabel(date);
 
               return (
                 <div
                   key={date}
-                  className="flex flex-col gap-3 px-1 py-3"
+                  className="flex min-h-64 flex-col gap-2 px-1 py-3"
                 >
                   <div className="flex items-baseline justify-between gap-2 px-1">
                     <div className="text-sm font-semibold text-[var(--color-text-primary)]">
@@ -138,25 +185,85 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                     </div>
                     <div className="text-sm text-[var(--color-text-meta)]">{monthDay}</div>
                   </div>
-                  <div className="space-y-0.5">
-                    {activitiesForDay.map((activity) => (
-                      <WeekActivityRow
-                        key={activity.id}
-                        activity={activity}
-                        onToggleDone={handleToggleDone}
-                        onEdit={handleEdit}
-                      />
-                    ))}
-                    {activitiesForDay.length === 0 && (
-                      <div className="mt-1 flex justify-center px-1 pt-4 pb-3">
-                        <div className="w-10 border-t border-[var(--color-border-divider)]" />
-                      </div>
-                    )}
+                  <div>
+                    {(() => {
+                      const placeholderCount = Math.max(
+                        desktopMaxDividerCount - activitiesForDay.length,
+                        0
+                      );
+
+                      return (
+                        <>
+                          {activitiesForDay.map((activity) => (
+                            <div key={activity.id}>
+                              <Divider />
+                              <WeekActivityRow
+                                activity={activity}
+                                onToggleDone={handleToggleDone}
+                                onEdit={handleEdit}
+                              />
+                            </div>
+                          ))}
+                          {Array.from({ length: placeholderCount }).map((_, idx) => (
+                            <div key={`placeholder-${idx}`}>
+                              <Divider />
+                              <PlaceholderRow />
+                            </div>
+                          ))}
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               );
             })}
           </div>
+          {sundayDate && (
+            <div className="mt-10 grid grid-cols-6">
+              <div className="col-start-6 border-l border-[var(--color-border-divider)]">
+                {(() => {
+                  const activitiesForDay = weekActivities[sundayDate] ?? [];
+                  const { weekday, monthDay } = formatDesktopDayLabel(sundayDate);
+                  return (
+                    <div className="flex min-h-64 flex-col gap-2 px-1 py-3">
+                      <div className="flex items-baseline justify-between gap-2 px-1">
+                        <div className="text-sm font-semibold text-[var(--color-text-primary)]">
+                          {weekday}
+                        </div>
+                        <div className="text-sm text-[var(--color-text-meta)]">{monthDay}</div>
+                      </div>
+                      <div>
+                        {(() => {
+                          const placeholderCount = Math.max(5 - activitiesForDay.length, 0);
+
+                          return (
+                            <>
+                              {activitiesForDay.map((activity) => (
+                                <div key={activity.id}>
+                                  <Divider />
+                                  <WeekActivityRow
+                                    activity={activity}
+                                    onToggleDone={handleToggleDone}
+                                    onEdit={handleEdit}
+                                  />
+                                </div>
+                              ))}
+                              {Array.from({ length: placeholderCount }).map((_, idx) => (
+                                <div key={`sunday-placeholder-${idx}`}>
+                                  <Divider />
+                                  <PlaceholderRow />
+                                </div>
+                              ))}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
