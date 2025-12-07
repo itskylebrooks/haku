@@ -91,10 +91,40 @@ const DayPage = ({ activeDate }: DayPageProps) => {
     [activities, activeDate]
   );
 
-  const todayActivities = useMemo(
-    () => [...todayAnchored, ...todayFlexible],
-    [todayAnchored, todayFlexible]
-  );
+  const todayActivities = useMemo(() => {
+    // Combine anchored and flexible activities, then sort by orderIndex
+    const combined = [...todayAnchored, ...todayFlexible];
+    
+    // Sort by orderIndex if present, maintaining time-based order for anchored activities
+    combined.sort((a, b) => {
+      // Both have orderIndex - use it
+      if (a.orderIndex !== null && b.orderIndex !== null) {
+        return a.orderIndex - b.orderIndex;
+      }
+      // Only a has orderIndex - it comes first
+      if (a.orderIndex !== null) {
+        return -1;
+      }
+      // Only b has orderIndex - it comes first
+      if (b.orderIndex !== null) {
+        return 1;
+      }
+      // Neither has orderIndex - anchored activities sorted by time come before flexible
+      if (a.time !== null && b.time !== null) {
+        return a.time.localeCompare(b.time);
+      }
+      if (a.time !== null) {
+        return -1;
+      }
+      if (b.time !== null) {
+        return 1;
+      }
+      // Both flexible without orderIndex - sort by createdAt
+      return a.createdAt.localeCompare(b.createdAt);
+    });
+    
+    return combined;
+  }, [todayAnchored, todayFlexible]);
 
   const displayActivities = previewOrder ?? todayActivities;
 
