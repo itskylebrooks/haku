@@ -128,8 +128,7 @@ const DesktopHeader = ({
         </div>
 
         {selectedTab === "day" && (
-          <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-            <span aria-hidden />
+          <div className="mt-2 grid grid-cols-[auto_1fr_auto] items-center gap-4">
             <button
               type="button"
               onClick={onResetToday}
@@ -138,6 +137,7 @@ const DesktopHeader = ({
             >
               {formattedDate}
             </button>
+            <span aria-hidden />
             <div className="flex justify-end">
               <button
                 type="button"
