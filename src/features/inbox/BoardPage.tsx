@@ -55,6 +55,7 @@ const BoardPage = () => {
   const touchStartXRef = useRef(0);
   const isTouchDraggingRef = useRef(false);
   const touchDragBucketRef = useRef<Extract<Bucket, "inbox" | "later"> | null>(null);
+  const lastTouchPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const { startAutoScroll, stopAutoScroll } = useAutoScroll();
 
@@ -351,6 +352,9 @@ const BoardPage = () => {
       y: touch.clientY - dragOffset.y
     });
 
+    // Store the last touch position for computing target index on drop
+    lastTouchPosRef.current = { x: touch.clientX, y: touch.clientY };
+
     // Update which bucket we're over
     const targetBucket = getBucketAtPosition(touch.clientX, touch.clientY);
     if (targetBucket) {
@@ -372,13 +376,25 @@ const BoardPage = () => {
       const draggedActivity = activities.find((a) => a.id === activityId);
       const targetBucket = touchDragBucketRef.current || originalBucket;
       
-      if (draggedActivity && draggedActivity.bucket !== targetBucket) {
-        // Only move to target bucket if it changed
-        if (targetBucket === "inbox") {
-          moveToInbox(activityId);
-        } else {
-          moveToLater(activityId);
+      if (draggedActivity) {
+        // Move to target bucket if it changed
+        if (draggedActivity.bucket !== targetBucket) {
+          if (targetBucket === "inbox") {
+            moveToInbox(activityId);
+          } else {
+            moveToLater(activityId);
+          }
         }
+        
+        // Compute target index from final touch position
+        const targetIndex = getTargetIndexFromY(lastTouchPosRef.current.y, targetBucket);
+        
+        // Get current ordered IDs excluding the dragged item
+        const orderedIds = getBucketOrderedIds(targetBucket, activityId);
+        const clampedIndex = Math.min(Math.max(targetIndex, 0), orderedIds.length);
+        // Insert the dragged item at the target index
+        orderedIds.splice(clampedIndex, 0, activityId);
+        reorderInBucket(targetBucket, orderedIds);
       }
     }
 
@@ -391,7 +407,7 @@ const BoardPage = () => {
     document.body.style.touchAction = "";
     stopAutoScroll();
     resetDragState();
-  }, [clearLongPressTimer, activities, moveToInbox, moveToLater]);
+  }, [clearLongPressTimer, activities, moveToInbox, moveToLater, getBucketOrderedIds, getTargetIndexFromY, reorderInBucket, stopAutoScroll]);
 
   return (
     <>

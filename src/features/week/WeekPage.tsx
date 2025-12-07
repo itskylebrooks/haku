@@ -110,6 +110,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
   const touchStartXRef = useRef(0);
   const isTouchDraggingRef = useRef(false);
   const touchDragDateRef = useRef<string | null>(null);
+  const lastTouchPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const { startAutoScroll, stopAutoScroll } = useAutoScroll();
 
@@ -615,6 +616,9 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
       y: touch.clientY - dragOffset.y
     });
 
+    // Store the last touch position for computing target index on drop
+    lastTouchPosRef.current = { x: touch.clientX, y: touch.clientY };
+
     // Update which date we're over
     const targetDate = getDateAtPosition(touch.clientX, touch.clientY);
     if (targetDate) {
@@ -642,10 +646,24 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
         // If moving to a different date, schedule the activity
         if (sourceDate !== targetDate) {
           scheduleActivity(activityId, targetDate);
+          
+          // Clean up source date if it was flexible and moved
+          if (sourceDate && activity.time === null) {
+            const remainingSource = (weekActivities[sourceDate] ?? [])
+              .filter((a) => a.id !== activityId && a.time === null)
+              .map((a) => a.id);
+            if (remainingSource.length > 0) {
+              reorderInDay(sourceDate, remainingSource);
+            }
+          }
         }
         
-        // For same-date reordering, keep current order
-        // The activity stays in its position since we're not computing previews
+        // Always compute and apply reordering for the target date
+        const targetIndex = getMobileTargetIndexFromY(lastTouchPosRef.current.y, targetDate);
+        const activitiesForDay = weekActivities[targetDate] ?? [];
+        const finalOrder = computeMobilePreviewOrder(activitiesForDay, activityId, targetIndex);
+        const orderedIds = finalOrder.map((a) => a.id);
+        reorderInDay(targetDate, orderedIds);
       }
     }
 
@@ -659,7 +677,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
     stopAutoScroll();
     resetDragState();
     setMobilePreviewOrder({});
-  }, [clearLongPressTimer, findActivityById, scheduleActivity]);
+  }, [clearLongPressTimer, findActivityById, scheduleActivity, reorderInDay, weekActivities, getMobileTargetIndexFromY, computeMobilePreviewOrder, stopAutoScroll]);
 
   const renderBucketColumn = (
     label: string,
