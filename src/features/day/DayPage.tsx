@@ -66,7 +66,7 @@ const DayPage = ({ activeDate }: DayPageProps) => {
         {/* Overdue section */}
         {hasOverdue && (
           <div className="mb-4">
-            <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-[var(--color-text-subtle)]">
+            <span className="mb-2 block text-center text-xs font-medium uppercase tracking-wide text-[var(--color-text-subtle)]">
               Overdue
             </span>
             <div className="space-y-1.5">
