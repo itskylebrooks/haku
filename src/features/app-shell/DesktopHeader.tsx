@@ -9,7 +9,7 @@ import {
 import { useMemo } from "react";
 
 type ViewMode = "day" | "week";
-type ActiveTab = "inbox" | "day" | "week";
+type ActiveTab = "board" | "day" | "week";
 
 interface DesktopHeaderProps {
   mode: ViewMode;
@@ -55,8 +55,8 @@ const DesktopHeader = ({
   onOpenAdd,
 }: DesktopHeaderProps) => {
   const formattedDate = useMemo(() => formatDate(currentDate), [currentDate]);
-  const selectedTab: ActiveTab = activeTab === "inbox" ? "inbox" : mode;
-  const chevronsDisabled = selectedTab === "inbox";
+  const selectedTab: ActiveTab = activeTab === "board" ? "board" : mode;
+  const chevronsDisabled = selectedTab === "board";
 
   return (
     <header className="sticky top-6 z-40 hidden bg-[var(--color-surface)] pb-1 pt-0 text-sm text-[var(--color-text-primary)] lg:block">
@@ -97,7 +97,7 @@ const DesktopHeader = ({
 
           <div className="flex items-center justify-center">
             <div className="inline-flex h-10 items-center gap-1 rounded-full border border-[var(--color-border)] bg-transparent px-1 text-sm font-medium shadow-none transition">
-              {(["inbox", "day", "week"] as ActiveTab[]).map((value) => {
+              {(["board", "day", "week"] as ActiveTab[]).map((value) => {
                 const isActive = selectedTab === value;
                 return (
                   <button
@@ -111,7 +111,7 @@ const DesktopHeader = ({
                         : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
                     }`}
                     >
-                    {value === "inbox" && <Circle className="h-5 w-5" aria-hidden />}
+                    {value === "board" && <Circle className="h-5 w-5" aria-hidden />}
                     {value === "day" && <Square className="h-5 w-5" aria-hidden />}
                     {value === "week" && <Grid2x2 className="h-5 w-5" aria-hidden />}
                     <span className="sr-only">{value}</span>
@@ -134,7 +134,7 @@ const DesktopHeader = ({
           </div>
         </div>
 
-        {(selectedTab === "day" || selectedTab === "inbox") && (
+        {(selectedTab === "day" || selectedTab === "board") && (
           <div className="mt-2 grid grid-cols-[auto_1fr_auto] items-center gap-4">
             <button
               type="button"

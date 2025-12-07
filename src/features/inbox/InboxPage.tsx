@@ -55,7 +55,7 @@ const InboxPage = () => {
         {isEmpty && (
           <div className="py-16 text-center">
             <p className="text-sm text-[var(--color-text-subtle)]">
-              No activities in Inbox yet.
+              No activities on your board yet.
             </p>
           </div>
         )}

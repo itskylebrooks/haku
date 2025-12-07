@@ -6,7 +6,7 @@ import WeekPage from "./features/week/WeekPage";
 import InboxPage from "./features/inbox/InboxPage";
 
 type ViewMode = "day" | "week";
-type ActiveTab = "inbox" | "day" | "week";
+type ActiveTab = "board" | "day" | "week";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -39,7 +39,7 @@ function App() {
       setMode("day");
     } else if (tab === "week") {
       setMode("week");
-    } else if (tab === "inbox") {
+    } else if (tab === "board") {
       setCurrentDate(todayIso());
     }
   };
@@ -68,7 +68,7 @@ function App() {
           onOpenSettings={handleOpenSettings}
           onOpenAdd={handleOpenAddModal}
         >
-          {activeTab === "inbox" ? (
+          {activeTab === "board" ? (
             <InboxPage />
           ) : mode === "day" ? (
             <DayPage activeDate={currentDate} />

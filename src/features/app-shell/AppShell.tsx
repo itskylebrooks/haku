@@ -3,7 +3,7 @@ import MobileHeader from "./MobileHeader";
 import MobileTabBar from "./MobileTabBar";
 
 type ViewMode = "day" | "week";
-type ActiveTab = "inbox" | "day" | "week";
+type ActiveTab = "board" | "day" | "week";
 
 interface AppShellProps {
   mode: ViewMode;
@@ -34,12 +34,12 @@ const AppShell = ({
 }: AppShellProps) => {
   // Calculate prev/next based on active tab
   const handlePrev = () => {
-    if (activeTab === "inbox") return;
+    if (activeTab === "board") return;
     onPrev();
   };
 
   const handleNext = () => {
-    if (activeTab === "inbox") return;
+    if (activeTab === "board") return;
     onNext();
   };
 

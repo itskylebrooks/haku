@@ -1,7 +1,7 @@
 import { Bolt, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo } from "react";
 
-type ActiveTab = "inbox" | "day" | "week";
+type ActiveTab = "board" | "day" | "week";
 
 interface MobileHeaderProps {
   activeTab: ActiveTab;
@@ -41,7 +41,7 @@ const MobileHeader = ({
   onResetToday,
 }: MobileHeaderProps) => {
   const formattedDate = useMemo(() => formatDate(currentDate), [currentDate]);
-  const chevronsDisabled = activeTab === "inbox";
+  const chevronsDisabled = activeTab === "board";
 
   return (
     <header className="sticky top-6 z-40 block w-full bg-[var(--color-surface)] py-2 text-[var(--color-text-primary)] md:hidden">

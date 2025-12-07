@@ -1,6 +1,6 @@
 import { Circle, Grid2x2, Plus, Square } from "lucide-react";
 
-type ActiveTab = "inbox" | "day" | "week";
+type ActiveTab = "board" | "day" | "week";
 
 interface MobileTabBarProps {
   activeTab: ActiveTab;
@@ -10,8 +10,8 @@ interface MobileTabBarProps {
 
 const tabs: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
   {
-    id: "inbox",
-    label: "Inbox",
+    id: "board",
+    label: "Board",
     icon: <Circle className="h-6 w-6" />,
   },
   {
