@@ -1,5 +1,5 @@
 import type React from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { CirclePlus } from "lucide-react";
 import ActivityCard from "../day/ActivityCard";
 import { useActivitiesStore, getInboxActivities, getLaterActivities } from "../../shared/store/activitiesStore";
@@ -61,6 +61,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
   const [newActivityPlacement, setNewActivityPlacement] = useState<Bucket>("scheduled");
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+  const dragLeaveTimeoutRef = useRef<number | null>(null);
 
   const weekStartDate = useMemo(
     () => getWeekStartDate(activeDate),
@@ -123,7 +124,11 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
           onDragOver(event);
         }
       }}
-      onDragLeave={onDragLeave}
+      onDragLeave={(event) => {
+        if (onDragLeave) {
+          onDragLeave(event);
+        }
+      }}
       onDrop={(event) => {
         if (onDrop) {
           event.preventDefault();
@@ -238,15 +243,38 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
     event.preventDefault();
     event.stopPropagation();
     event.dataTransfer.dropEffect = "move";
+    if (dragLeaveTimeoutRef.current !== null) {
+      window.clearTimeout(dragLeaveTimeoutRef.current);
+      dragLeaveTimeoutRef.current = null;
+    }
     if (dragOverKey !== key) {
       setDragOverKey(key);
     }
   };
 
-  const handleDragLeaveZone = (key: string) => {
+  const clearDragKey = (key: string) => {
     if (dragOverKey === key) {
       setDragOverKey(null);
     }
+  };
+
+  const handleDragLeaveZone = (
+    event: React.DragEvent<HTMLElement> | null,
+    key: string
+  ) => {
+    if (event) {
+      const nextTarget = event.relatedTarget as Node | null;
+      if (nextTarget && event.currentTarget.contains(nextTarget)) {
+        return;
+      }
+    }
+    if (dragLeaveTimeoutRef.current !== null) {
+      window.clearTimeout(dragLeaveTimeoutRef.current);
+    }
+    dragLeaveTimeoutRef.current = window.setTimeout(() => {
+      clearDragKey(key);
+      dragLeaveTimeoutRef.current = null;
+    }, 50);
   };
 
   const getFlexibleIdsForDate = (date: string, excludeId?: string): string[] => {
@@ -375,7 +403,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
             : undefined
         }
         onDragLeave={
-          interactionsEnabled ? () => handleDragLeaveZone(appendKey) : undefined
+          interactionsEnabled ? (event) => handleDragLeaveZone(event, appendKey) : undefined
         }
         onDrop={
           interactionsEnabled
@@ -418,7 +446,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                   <Divider
                     isActive={dividerActive}
                     onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                    onDragLeave={() => handleDragLeaveZone(zoneKey)}
+                                  onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
                     onDrop={(event) => handleDropToBucket(event, placement, dropIndex)}
                   />
                   <WeekActivityRow
@@ -429,7 +457,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                     onDragStart={(event) => handleDragStart(event, activity)}
                     onDragEnd={handleDragEnd}
                     onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                    onDragLeave={() => handleDragLeaveZone(zoneKey)}
+                    onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
                     onDrop={(event) => handleDropToBucket(event, placement, dropIndex)}
                   />
                 </div>
@@ -469,7 +497,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                         handlerKey ? (event) => handleDragOverZone(event, handlerKey) : undefined
                       }
                       onDragLeave={
-                        handlerKey ? () => handleDragLeaveZone(handlerKey) : undefined
+                        handlerKey ? (event) => handleDragLeaveZone(event, handlerKey) : undefined
                       }
                       onDrop={
                         handlerKey
@@ -482,7 +510,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                         handlerKey ? (event) => handleDragOverZone(event, handlerKey) : undefined
                       }
                       onDragLeave={
-                        handlerKey ? () => handleDragLeaveZone(handlerKey) : undefined
+                        handlerKey ? (event) => handleDragLeaveZone(event, handlerKey) : undefined
                       }
                       onDrop={
                         handlerKey
@@ -575,7 +603,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                   </div>
                   <div
                     onDragOver={(event) => handleDragOverZone(event, appendKey)}
-                    onDragLeave={() => handleDragLeaveZone(appendKey)}
+                    onDragLeave={(event) => handleDragLeaveZone(event, appendKey)}
                     onDrop={(event) => handleDropOnDay(event, date, zoneIndex)}
                   >
                     {(() => {
@@ -599,7 +627,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                                 <Divider
                                   isActive={dragOverKey === zoneKey}
                                   onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                                  onDragLeave={() => handleDragLeaveZone(zoneKey)}
+                                      onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
                                   onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
                                 />
                                 <WeekActivityRow
@@ -611,7 +639,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                                   onDragStart={(event) => handleDragStart(event, activity)}
                                   onDragEnd={handleDragEnd}
                                   onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                                  onDragLeave={() => handleDragLeaveZone(zoneKey)}
+                                      onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
                                   onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
                                 />
                               </div>
@@ -632,12 +660,12 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                                     <Divider
                                       isActive={dragOverKey === activeKey}
                                       onDragOver={(event) => handleDragOverZone(event, activeKey)}
-                                      onDragLeave={() => handleDragLeaveZone(activeKey)}
+                                      onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
                                       onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
                                     />
                                     <div
                                       onDragOver={(event) => handleDragOverZone(event, activeKey)}
-                                      onDragLeave={() => handleDragLeaveZone(activeKey)}
+                                      onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
                                       onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
                                     >
                                       <EmptySlot onClick={() => handleOpenCreateModal({ date })} />
@@ -723,7 +751,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                       </div>
                       <div
                         onDragOver={(event) => handleDragOverZone(event, appendKey)}
-                        onDragLeave={() => handleDragLeaveZone(appendKey)}
+                        onDragLeave={(event) => handleDragLeaveZone(event, appendKey)}
                         onDrop={(event) => handleDropOnDay(event, sundayDate, zoneIndex)}
                       >
                         {(() => {
@@ -744,7 +772,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                                     <Divider
                                       isActive={dragOverKey === zoneKey}
                                       onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                                      onDragLeave={() => handleDragLeaveZone(zoneKey)}
+                                      onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
                                       onDrop={(event) =>
                                         handleDropOnDay(event, sundayDate, dropIndex)
                                       }
@@ -758,7 +786,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                                       onDragStart={(event) => handleDragStart(event, activity)}
                                       onDragEnd={handleDragEnd}
                                       onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                                      onDragLeave={() => handleDragLeaveZone(zoneKey)}
+                                      onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
                                       onDrop={(event) =>
                                         handleDropOnDay(event, sundayDate, dropIndex)
                                       }
@@ -781,14 +809,14 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                                         <Divider
                                           isActive={dragOverKey === activeKey}
                                           onDragOver={(event) => handleDragOverZone(event, activeKey)}
-                                          onDragLeave={() => handleDragLeaveZone(activeKey)}
+                                          onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
                                           onDrop={(event) =>
                                             handleDropOnDay(event, sundayDate, dropIndex)
                                           }
                                         />
                                         <div
                                           onDragOver={(event) => handleDragOverZone(event, activeKey)}
-                                          onDragLeave={() => handleDragLeaveZone(activeKey)}
+                                          onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
                                           onDrop={(event) =>
                                             handleDropOnDay(event, sundayDate, dropIndex)
                                           }
