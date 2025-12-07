@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { CirclePlus } from "lucide-react";
 import ActivityCard from "../day/ActivityCard";
-import { useActivitiesStore } from "../../shared/store/activitiesStore";
-import type { Activity } from "../../shared/types/activity";
+import { useActivitiesStore, getInboxActivities, getLaterActivities } from "../../shared/store/activitiesStore";
+import type { Activity, Bucket } from "../../shared/types/activity";
 import AddActivityModal from "../../shared/components/AddActivityModal";
 import WeekActivityRow from "./WeekActivityRow";
 import {
@@ -10,6 +10,7 @@ import {
   getWeekDates,
   getWeekStartDate,
 } from "./weekSelectors";
+import { distributeIntoTwoColumns } from "./columnDistribution";
 
 interface WeekPageProps {
   activeDate: string;
@@ -51,6 +52,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
   const [activityBeingEdited, setActivityBeingEdited] = useState<Activity | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newActivityDate, setNewActivityDate] = useState<string | null>(null);
+  const [newActivityPlacement, setNewActivityPlacement] = useState<Bucket>("scheduled");
 
   const weekStartDate = useMemo(
     () => getWeekStartDate(activeDate),
@@ -72,6 +74,22 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
     () => getWeekActivities(activities, weekStartDate),
     [activities, weekStartDate]
   );
+  const inboxActivities = useMemo(
+    () => getInboxActivities(activities),
+    [activities]
+  );
+  const laterActivities = useMemo(
+    () => getLaterActivities(activities),
+    [activities]
+  );
+  const [inboxPrimary, inboxSecondary] = useMemo(
+    () => distributeIntoTwoColumns(inboxActivities),
+    [inboxActivities]
+  );
+  const [laterPrimary, laterSecondary] = useMemo(
+    () => distributeIntoTwoColumns(laterActivities),
+    [laterActivities]
+  );
   const desktopMaxDividerCount = useMemo(() => {
     const counts = weekDatesWithoutSunday.map((date) => weekActivities[date]?.length ?? 0);
     const maxCount = counts.length > 0 ? Math.max(...counts) : 0;
@@ -84,26 +102,22 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
     </div>
   );
   
-  const EmptySlot = ({ date }: { date: string }) => (
+  const EmptySlot = ({ onClick, label = "New activity" }: { onClick: () => void; label?: string }) => (
     <div
       role="button"
       tabIndex={0}
-      onClick={() => {
-        setNewActivityDate(date);
-        setIsCreateModalOpen(true);
-      }}
+      onClick={onClick}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          setNewActivityDate(date);
-          setIsCreateModalOpen(true);
+          onClick();
         }
       }}
       className="group/empty flex min-h-[38px] items-center rounded-lg px-1.5 py-1 cursor-pointer transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
     >
       <div className="flex min-w-0 flex-1">
         <p className="truncate text-[13px] font-semibold text-[var(--color-text-meta)] opacity-0 group-hover/empty:opacity-100 transition-opacity">
-          New activity
+          {label}
         </p>
       </div>
       <div className="flex-shrink-0 opacity-0 group-hover/empty:opacity-100 transition-opacity">
@@ -134,6 +148,77 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
   const handleCloseCreateModal = () => {
     setIsCreateModalOpen(false);
     setNewActivityDate(null);
+    setNewActivityPlacement("scheduled");
+  };
+
+  const handleOpenCreateModal = ({
+    date = null,
+    placement = "scheduled",
+  }: {
+    date?: string | null;
+    placement?: Bucket;
+  }) => {
+    setNewActivityDate(date);
+    setNewActivityPlacement(placement);
+    setIsCreateModalOpen(true);
+  };
+
+  const renderBucketColumn = (
+    label: string,
+    bucketActivities: Activity[],
+    placement: Bucket,
+    showLabel: boolean,
+    totalCount: number
+  ) => {
+    const COLUMN_HEIGHT = 5;
+    const placeholderCount = Math.max(COLUMN_HEIGHT - bucketActivities.length, 0);
+
+    return (
+      <div className="flex min-h-64 flex-col gap-2 px-1 py-3">
+        <div className="flex items-baseline justify-between gap-2 px-1">
+          <div
+            className={`text-sm font-semibold text-[var(--color-text-primary)] ${
+              showLabel ? "" : "text-transparent"
+            }`}
+            aria-hidden={!showLabel}
+          >
+            {showLabel ? label : "Placeholder"}
+          </div>
+          {showLabel ? (
+            <div className="text-xs text-[var(--color-text-meta)]">
+              {totalCount > 0 ? totalCount : ""}
+            </div>
+          ) : (
+            <div aria-hidden className="text-xs text-transparent">0</div>
+          )}
+        </div>
+        <div>
+          {bucketActivities.map((activity) => (
+            <div key={activity.id}>
+              <Divider />
+              <WeekActivityRow
+                activity={activity}
+                onToggleDone={handleToggleDone}
+                onEdit={handleEdit}
+              />
+            </div>
+          ))}
+          {Array.from({ length: placeholderCount }).map((_, idx) => (
+            <div key={`${placement}-placeholder-${idx}`}>
+              <Divider />
+              {idx === 0 ? (
+                <EmptySlot
+                  label={`Add to ${label}`}
+                  onClick={() => handleOpenCreateModal({ placement })}
+                />
+              ) : (
+                <div className="min-h-[38px]" />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -178,7 +263,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
         </div>
       </div>
 
-      {/* Desktop grid (Sunday under Saturday) */}
+      {/* Desktop grid with Sunday + Inbox/Later row */}
       <div className="hidden md:block">
         <div className="mx-auto w-full px-3 pt-4">
           <div className="grid grid-cols-6 gap-0">
@@ -203,6 +288,8 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                         desktopMaxDividerCount - activitiesForDay.length,
                         0
                       );
+                      // Ensure at least 1 slot for "Add activity" even if list is full
+                      const totalSlots = Math.max(placeholderCount, 1);
 
                       return (
                         <>
@@ -216,10 +303,14 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                               />
                             </div>
                           ))}
-                          {Array.from({ length: placeholderCount }).map((_, idx) => (
+                          {Array.from({ length: totalSlots }).map((_, idx) => (
                             <div key={`placeholder-${idx}`}>
                               <Divider />
-                              {idx === 0 ? <EmptySlot date={date} /> : <div className="min-h-[38px]" />}
+                              {idx === 0 ? (
+                                <EmptySlot onClick={() => handleOpenCreateModal({ date })} />
+                              ) : (
+                                <div className="min-h-[38px]" />
+                              )}
                             </div>
                           ))}
                         </>
@@ -231,8 +322,21 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
             })}
           </div>
           {sundayDate && (
-            <div className="mt-10 grid grid-cols-6">
-              <div className="col-start-6">
+            <div className="mt-10 grid grid-cols-6 gap-0">
+              <div>
+                {renderBucketColumn("Inbox", inboxPrimary, "inbox", true, inboxActivities.length)}
+              </div>
+              <div>
+                {renderBucketColumn("Inbox", inboxSecondary, "inbox", false, inboxActivities.length)}
+              </div>
+              <div>
+                {renderBucketColumn("Later", laterPrimary, "later", true, laterActivities.length)}
+              </div>
+              <div>
+                {renderBucketColumn("Later", laterSecondary, "later", false, laterActivities.length)}
+              </div>
+              <div className="min-h-64" aria-hidden />
+              <div>
                 {(() => {
                   const activitiesForDay = weekActivities[sundayDate] ?? [];
                   const { weekday, monthDay } = formatDesktopDayLabel(sundayDate);
@@ -247,6 +351,8 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                       <div>
                         {(() => {
                           const placeholderCount = Math.max(5 - activitiesForDay.length, 0);
+                          // Ensure at least 1 slot for "Add activity" even if list is full
+                          const totalSlots = Math.max(placeholderCount, 1);
 
                           return (
                             <>
@@ -260,10 +366,16 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                                   />
                                 </div>
                               ))}
-                              {Array.from({ length: placeholderCount }).map((_, idx) => (
+                              {Array.from({ length: totalSlots }).map((_, idx) => (
                                 <div key={`sunday-placeholder-${idx}`}>
                                   <Divider />
-                                  {idx === 0 ? <EmptySlot date={sundayDate} /> : <div className="min-h-[38px]" />}
+                                  {idx === 0 ? (
+                                    <EmptySlot
+                                      onClick={() => handleOpenCreateModal({ date: sundayDate })}
+                                    />
+                                  ) : (
+                                    <div className="min-h-[38px]" />
+                                  )}
                                 </div>
                               ))}
                             </>
@@ -295,7 +407,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
         isOpen={isCreateModalOpen}
         onClose={handleCloseCreateModal}
         mode="create"
-        initialPlacement="scheduled"
+        initialPlacement={newActivityPlacement}
         defaultDate={newActivityDate ?? activeDate}
       />
     </>
