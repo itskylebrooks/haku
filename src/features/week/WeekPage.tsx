@@ -133,7 +133,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
     >
       <div
         className={`h-px w-full rounded-full transition-colors ${
-          isActive ? "bg-[var(--color-text-primary)]" : "bg-[var(--color-border-divider)]"
+          isActive ? "bg-[var(--color-text-meta)]" : "bg-[var(--color-border-divider)]"
         }`}
       />
     </div>
