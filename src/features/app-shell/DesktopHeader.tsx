@@ -2,8 +2,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Grid2x2,
-  Inbox,
-  Settings,
+  Circle,
+  Bolt,
   Square,
 } from "lucide-react";
 import { useMemo } from "react";
@@ -104,7 +104,7 @@ const DesktopHeader = ({
                         : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
                     }`}
                     >
-                    {value === "inbox" && <Inbox className="h-5 w-5" aria-hidden />}
+                    {value === "inbox" && <Circle className="h-5 w-5" aria-hidden />}
                     {value === "day" && <Square className="h-5 w-5" aria-hidden />}
                     {value === "week" && <Grid2x2 className="h-5 w-5" aria-hidden />}
                     <span className="sr-only">{value}</span>
@@ -122,7 +122,7 @@ const DesktopHeader = ({
               aria-label="Open Settings"
               title="Settings"
             >
-              <Settings className="h-5 w-5" />
+              <Bolt className="h-5 w-5" />
             </button>
           </div>
         </div>

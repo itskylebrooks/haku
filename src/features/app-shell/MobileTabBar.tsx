@@ -1,4 +1,4 @@
-import { Grid2x2, Inbox, Plus, Square } from "lucide-react";
+import { Circle, Grid2x2, Plus, Square } from "lucide-react";
 
 type ActiveTab = "inbox" | "day" | "week";
 
@@ -12,7 +12,7 @@ const tabs: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
   {
     id: "inbox",
     label: "Inbox",
-    icon: <Inbox className="h-6 w-6" />,
+    icon: <Circle className="h-6 w-6" />,
   },
   {
     id: "day",

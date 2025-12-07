@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { Bolt, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo } from "react";
 
 type ActiveTab = "inbox" | "day" | "week";
@@ -94,7 +94,7 @@ const MobileHeader = ({
             aria-label="Open Settings"
             title="Settings"
           >
-            <Settings className="h-5 w-5" />
+            <Bolt className="h-5 w-5" />
           </button>
         </div>
       </div>
