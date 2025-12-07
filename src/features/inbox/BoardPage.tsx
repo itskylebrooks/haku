@@ -59,6 +59,7 @@ const BoardPage = () => {
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isTouchDrag, setIsTouchDrag] = useState(false);
+  const [touchDragOverBucket, setTouchDragOverBucket] = useState<Extract<Bucket, "inbox" | "later"> | null>(null);
 
   useEffect(() => {
     if (isTouchDrag) {
@@ -263,6 +264,36 @@ const BoardPage = () => {
     return targetIndex;
   }, []);
 
+  const getBucketAtPosition = useCallback((clientX: number, clientY: number): Extract<Bucket, "inbox" | "later"> | null => {
+    // Check inbox container
+    if (inboxContainerRef.current) {
+      const rect = inboxContainerRef.current.getBoundingClientRect();
+      if (
+        clientX >= rect.left &&
+        clientX <= rect.right &&
+        clientY >= rect.top &&
+        clientY <= rect.bottom
+      ) {
+        return "inbox";
+      }
+    }
+    
+    // Check later container
+    if (laterContainerRef.current) {
+      const rect = laterContainerRef.current.getBoundingClientRect();
+      if (
+        clientX >= rect.left &&
+        clientX <= rect.right &&
+        clientY >= rect.top &&
+        clientY <= rect.bottom
+      ) {
+        return "later";
+      }
+    }
+    
+    return null;
+  }, []);
+
   const handleTouchStart = useCallback((
     event: React.TouchEvent<HTMLDivElement>,
     activity: Activity,
@@ -295,8 +326,8 @@ const BoardPage = () => {
 
   const handleTouchMove = useCallback((
     event: React.TouchEvent<HTMLDivElement>,
-    activityId: string,
-    bucket: Extract<Bucket, "inbox" | "later">
+    _activityId: string,
+    _originalBucket: Extract<Bucket, "inbox" | "later">
   ) => {
     const touch = event.touches[0];
 
@@ -317,55 +348,30 @@ const BoardPage = () => {
       y: touch.clientY - dragOffset.y
     });
 
-    const targetIndex = getTargetIndexFromY(touch.clientY, bucket);
-    
-    const draggedActivity = activities.find((a) => a.id === activityId);
-    if (!draggedActivity) return;
-
-    if (bucket === "inbox") {
-      const targetList = draggedActivity.bucket === "inbox"
-        ? inboxActivities
-        : [...inboxActivities, draggedActivity];
-      const newOrder = computeBucketPreviewOrder(targetList, activityId, targetIndex);
-      setPreviewInbox(newOrder);
-      if (draggedActivity.bucket === "later") {
-        setPreviewLater(laterActivities.filter((a) => a.id !== activityId));
-      }
-    } else {
-      const targetList = draggedActivity.bucket === "later"
-        ? laterActivities
-        : [...laterActivities, draggedActivity];
-      const newOrder = computeBucketPreviewOrder(targetList, activityId, targetIndex);
-      setPreviewLater(newOrder);
-      if (draggedActivity.bucket === "inbox") {
-        setPreviewInbox(inboxActivities.filter((a) => a.id !== activityId));
-      }
+    // Update which bucket we're over
+    const targetBucket = getBucketAtPosition(touch.clientX, touch.clientY);
+    if (targetBucket) {
+      touchDragBucketRef.current = targetBucket;
+      setTouchDragOverBucket(targetBucket);
     }
-  }, [clearLongPressTimer, getTargetIndexFromY, activities, inboxActivities, laterActivities, dragOffset]);
+  }, [clearLongPressTimer, getBucketAtPosition, dragOffset]);
 
   const handleTouchEnd = useCallback((
     activityId: string,
-    bucket: Extract<Bucket, "inbox" | "later">
+    originalBucket: Extract<Bucket, "inbox" | "later">
   ) => {
     clearLongPressTimer();
 
     if (isTouchDraggingRef.current) {
       const draggedActivity = activities.find((a) => a.id === activityId);
-      if (draggedActivity) {
-        // Move to target bucket if needed
-        if (draggedActivity.bucket !== bucket) {
-          if (bucket === "inbox") {
-            moveToInbox(activityId);
-          } else {
-            moveToLater(activityId);
-          }
-        }
-
-        // Use preview order if available
-        const previewList = bucket === "inbox" ? previewInbox : previewLater;
-        if (previewList) {
-          const orderedIds = previewList.map((a) => a.id);
-          reorderInBucket(bucket, orderedIds);
+      const targetBucket = touchDragBucketRef.current || originalBucket;
+      
+      if (draggedActivity && draggedActivity.bucket !== targetBucket) {
+        // Only move to target bucket if it changed
+        if (targetBucket === "inbox") {
+          moveToInbox(activityId);
+        } else {
+          moveToLater(activityId);
         }
       }
     }
@@ -374,10 +380,11 @@ const BoardPage = () => {
     touchDragBucketRef.current = null;
     setIsTouchDrag(false);
     setDragPosition(null);
+    setTouchDragOverBucket(null);
     document.body.style.overflow = "";
     document.body.style.touchAction = "";
     resetDragState();
-  }, [clearLongPressTimer, activities, moveToInbox, moveToLater, previewInbox, previewLater, reorderInBucket]);
+  }, [clearLongPressTimer, activities, moveToInbox, moveToLater]);
 
   return (
     <>
@@ -396,7 +403,7 @@ const BoardPage = () => {
             onDragOver={(e) => handleDragOver(e, "inbox", displayInbox.length)}
             onDrop={(e) => handleDrop(e, "inbox", displayInbox.length)}
           >
-            {displayInbox.length === 0 && (
+            {displayInbox.length === 0 && touchDragOverBucket !== "inbox" && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <p className="text-sm text-[var(--color-text-subtle)]">
                   Nothing here yet
@@ -442,7 +449,7 @@ const BoardPage = () => {
             onDragOver={(e) => handleDragOver(e, "later", displayLater.length)}
             onDrop={(e) => handleDrop(e, "later", displayLater.length)}
           >
-            {displayLater.length === 0 && (
+            {displayLater.length === 0 && touchDragOverBucket !== "later" && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <p className="text-sm text-[var(--color-text-subtle)]">
                   Nothing here yet
