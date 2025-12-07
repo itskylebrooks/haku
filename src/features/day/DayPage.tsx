@@ -84,7 +84,11 @@ const DayPage = ({ activeDate }: DayPageProps) => {
 
         {/* Today section */}
         {hasTodayActivities && (
-          <div className="space-y-1.5">
+          <div
+            className={`space-y-1.5 ${
+              !hasOverdue ? "mt-3 md:mt-5" : ""
+            }`}
+          >
             {hasOverdue && (
               <span className="mb-2 block text-center text-xs font-medium uppercase tracking-wide text-[var(--color-text-subtle)]">
                 Today
