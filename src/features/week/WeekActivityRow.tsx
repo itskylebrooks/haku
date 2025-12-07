@@ -87,7 +87,7 @@ const WeekActivityRow = ({ activity, onToggleDone, onEdit }: WeekActivityRowProp
       >
         <div className="flex min-w-0 items-center">
           <p
-            className={`flex-1 min-w-0 line-clamp-1 text-[13px] font-semibold leading-tight ${
+            className={`flex-1 min-w-0 truncate text-[13px] font-semibold leading-tight ${
               isDone
                 ? "text-[var(--color-text-faint)] line-through decoration-[var(--color-strike)]"
                 : "text-[var(--color-text-primary)]"
