@@ -1,6 +1,6 @@
 import type React from "react";
 import { useMemo, useRef, useState, useCallback, useEffect } from "react";
-import { CirclePlus } from "lucide-react";
+import { CirclePlus, FlagTriangleRight } from "lucide-react";
 import ActivityCard from "../day/ActivityCard";
 import { useActivitiesStore, getInboxActivities, getLaterActivities } from "../../shared/store/activitiesStore";
 import type { Activity, Bucket } from "../../shared/types/activity";
@@ -909,6 +909,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
             {weekDatesWithoutSunday.map((date) => {
               const activitiesForDay = weekActivities[date] ?? [];
               const { weekday, monthDay } = formatDesktopDayLabel(date);
+              const isToday = date === activeDate;
               let zoneIndex = 0;
               const appendKey = makeDayAppendKey(date);
 
@@ -918,8 +919,9 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                   className="flex min-h-64 flex-col gap-2 px-1 py-3"
                 >
                   <div className="flex items-baseline justify-between gap-2 px-1">
-                    <div className="text-sm font-semibold text-[var(--color-text-primary)]">
+                    <div className="flex items-center gap-1.5 text-sm font-semibold text-[var(--color-text-primary)]">
                       {weekday}
+                      {isToday && <FlagTriangleRight className="h-3.5 w-3.5" />}
                     </div>
                     <div className="text-sm text-[var(--color-text-meta)]">{monthDay}</div>
                   </div>
@@ -1061,13 +1063,15 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                 {(() => {
                   const activitiesForDay = weekActivities[sundayDate] ?? [];
                   const { weekday, monthDay } = formatDesktopDayLabel(sundayDate);
-              let zoneIndex = 0;
-              const appendKey = makeDayAppendKey(sundayDate);
+                  const isToday = sundayDate === activeDate;
+                  let zoneIndex = 0;
+                  const appendKey = makeDayAppendKey(sundayDate);
                   return (
                     <div className="flex min-h-64 flex-col gap-2 px-1 py-3">
                       <div className="flex items-baseline justify-between gap-2 px-1">
-                        <div className="text-sm font-semibold text-[var(--color-text-primary)]">
-                          {weekday}
+                        <div className="flex items-center gap-1.5 text-sm font-semibold text-[var(--color-text-primary)]">
+                          <span>{weekday}</span>
+                          {isToday && <FlagTriangleRight className="h-3.5 w-3.5" />}
                         </div>
                         <div className="text-sm text-[var(--color-text-meta)]">{monthDay}</div>
                       </div>
