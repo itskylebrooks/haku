@@ -422,12 +422,12 @@ const BoardPage = () => {
             Inbox
           </span>
           <div
-            className="min-h-20 relative"
+            className="min-h-20 relative mb-6"
             onDragOver={(e) => handleDragOver(e, "inbox", displayInbox.length)}
             onDrop={(e) => handleDrop(e, "inbox", displayInbox.length)}
           >
             {displayInbox.length === 0 && touchDragOverBucket !== "inbox" && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="absolute inset-0 flex items-start justify-center pt-2 pointer-events-none">
                 <p className="text-sm text-[var(--color-text-subtle)]">
                   This space is free.
                 </p>
@@ -468,12 +468,12 @@ const BoardPage = () => {
             Later
           </span>
           <div
-            className="min-h-20 relative"
+            className="min-h-20 relative mb-4"
             onDragOver={(e) => handleDragOver(e, "later", displayLater.length)}
             onDrop={(e) => handleDrop(e, "later", displayLater.length)}
           >
             {displayLater.length === 0 && touchDragOverBucket !== "later" && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="absolute inset-0 flex items-start justify-center pt-2 pointer-events-none">
                 <p className="text-sm text-[var(--color-text-subtle)]">
                   This space is free.
                 </p>

@@ -867,7 +867,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                   onDrop={(e) => handleMobileDrop(e, date, displayActivities.length)}
                 >
                   {displayActivities.length === 0 && mobileDragOverDate !== date && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="absolute inset-0 flex items-start justify-center pt-2 pointer-events-none">
                       <p className="text-sm text-[var(--color-text-subtle)]">
                         Nothing planned… yet.
                       </p>
