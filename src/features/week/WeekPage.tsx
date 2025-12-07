@@ -169,7 +169,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
       {/* Desktop grid (Sunday under Saturday) */}
       <div className="hidden md:block">
         <div className="mx-auto w-full px-3 pt-4">
-          <div className="grid grid-cols-6 gap-0 divide-x divide-[var(--color-border-divider)]">
+          <div className="grid grid-cols-6 gap-0">
             {weekDatesWithoutSunday.map((date) => {
               const activitiesForDay = weekActivities[date] ?? [];
               const { weekday, monthDay } = formatDesktopDayLabel(date);
@@ -220,7 +220,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
           </div>
           {sundayDate && (
             <div className="mt-10 grid grid-cols-6">
-              <div className="col-start-6 border-l border-[var(--color-border-divider)]">
+              <div className="col-start-6">
                 {(() => {
                   const activitiesForDay = weekActivities[sundayDate] ?? [];
                   const { weekday, monthDay } = formatDesktopDayLabel(sundayDate);
