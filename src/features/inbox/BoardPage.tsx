@@ -413,7 +413,7 @@ const BoardPage = () => {
             {displayInbox.length === 0 && touchDragOverBucket !== "inbox" && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <p className="text-sm text-[var(--color-text-subtle)]">
-                  Nothing here yet
+                  This space is free.
                 </p>
               </div>
             )}
@@ -459,7 +459,7 @@ const BoardPage = () => {
             {displayLater.length === 0 && touchDragOverBucket !== "later" && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <p className="text-sm text-[var(--color-text-subtle)]">
-                  Nothing here yet
+                  This space is free.
                 </p>
               </div>
             )}

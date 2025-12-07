@@ -289,7 +289,7 @@ const DayPage = ({ activeDate }: DayPageProps) => {
         {isEmpty && (
           <div className="py-16 text-center">
             <p className="text-sm text-[var(--color-text-subtle)]">
-              No activities for this day yet.
+              A quiet day.
             </p>
           </div>
         )}

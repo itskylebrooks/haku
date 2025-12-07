@@ -851,7 +851,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                   {displayActivities.length === 0 && mobileDragOverDate !== date && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <p className="text-sm text-[var(--color-text-subtle)]">
-                        Nothing for this day
+                        Nothing planned… yet.
                       </p>
                     </div>
                   )}
