@@ -85,9 +85,11 @@ const DayPage = ({ activeDate }: DayPageProps) => {
         {/* Today section */}
         {hasTodayActivities && (
           <div className="space-y-1.5">
-            <span className="mb-2 block text-center text-xs font-medium uppercase tracking-wide text-[var(--color-text-subtle)]">
-              Today
-            </span>
+            {hasOverdue && (
+              <span className="mb-2 block text-center text-xs font-medium uppercase tracking-wide text-[var(--color-text-subtle)]">
+                Today
+              </span>
+            )}
             {todayActivities.map((activity) => (
               <ActivityCard
                 key={activity.id}
