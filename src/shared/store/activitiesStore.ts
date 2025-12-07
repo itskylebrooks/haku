@@ -369,7 +369,7 @@ export const useActivitiesStore = create<ActivitiesState>((set) => ({
       let changed = false;
 
       const activities = state.activities.map((activity): Activity => {
-        if (activity.date !== date || isAnchored(activity)) {
+        if (activity.date !== date) {
           return activity;
         }
 

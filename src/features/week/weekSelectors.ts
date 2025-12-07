@@ -69,6 +69,26 @@ export const getWeekActivities = (
 
   Object.keys(grouped).forEach((date) => {
     const items = grouped[date];
+    const anyOrderIndex = items.some((item) => item.orderIndex !== null);
+
+    if (anyOrderIndex) {
+      grouped[date] = [...items].sort((a, b) => {
+        if (a.orderIndex !== null && b.orderIndex !== null) {
+          return a.orderIndex - b.orderIndex;
+        }
+        if (a.orderIndex !== null) return -1;
+        if (b.orderIndex !== null) return 1;
+
+        if (a.time !== null && b.time !== null) {
+          return compareActivitiesByTime(a, b);
+        }
+        if (a.time !== null && b.time === null) return 1;
+        if (a.time === null && b.time !== null) return -1;
+        return a.createdAt.localeCompare(b.createdAt);
+      });
+      return;
+    }
+
     const anchored = items
       .filter((activity) => activity.time !== null)
       .sort(compareActivitiesByTime);
@@ -76,7 +96,7 @@ export const getWeekActivities = (
       .filter((activity) => activity.time === null)
       .sort(compareFlexibleActivities);
 
-    grouped[date] = [...anchored, ...flexible];
+    grouped[date] = [...flexible, ...anchored];
   });
 
   return grouped;

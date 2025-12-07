@@ -259,7 +259,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
   const handleDropOnDay = (
     event: React.DragEvent<HTMLDivElement>,
     date: string,
-    flexibleIndex: number
+    targetIndex: number
   ) => {
     event.preventDefault();
     event.stopPropagation();
@@ -278,21 +278,33 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
       scheduleActivity(activity.id, date);
     }
 
-    if (isFlexible) {
-      const targetIds = getFlexibleIdsForDate(date, activity.id);
-      const clampedIndex = Math.min(Math.max(flexibleIndex, 0), targetIds.length);
-      targetIds.splice(clampedIndex, 0, activity.id);
-      reorderInDay(date, targetIds);
+    const currentDayItems = weekActivities[date] ?? [];
+    const withoutDropped = currentDayItems.filter((item) => item.id !== activity.id);
+    const clampedIndex = Math.min(Math.max(targetIndex, 0), withoutDropped.length);
+    const merged = [...withoutDropped.slice(0, clampedIndex), activity, ...withoutDropped.slice(clampedIndex)];
 
-      if (sourceDate && sourceDate !== date) {
-        const remainingSource = getFlexibleIdsForDate(sourceDate, activity.id);
-        reorderInDay(sourceDate, remainingSource);
+    const anchored = merged.filter((item) => item.time !== null).sort((a, b) => {
+      if (a.time === null || b.time === null) return 0;
+      return a.time.localeCompare(b.time);
+    });
+    let anchoredPtr = 0;
+    const finalOrder = merged.map((item) => {
+      if (item.time !== null) {
+        return anchored[anchoredPtr++];
       }
-    } else if (sourceDate && sourceDate !== date) {
+      return item;
+    });
+
+    const orderedIds = finalOrder.map((item, index) => ({ id: item.id, idx: index }));
+    orderedIds.sort((a, b) => a.idx - b.idx);
+    reorderInDay(date, orderedIds.map((o) => o.id));
+
+    if (isFlexible && sourceDate && sourceDate !== date) {
       const remainingSource = getFlexibleIdsForDate(sourceDate, activity.id);
-      if (remainingSource.length > 0) {
-        reorderInDay(sourceDate, remainingSource);
-      }
+      reorderInDay(sourceDate, remainingSource);
+    } else if (!isFlexible && sourceDate && sourceDate !== date) {
+      const remainingSource = getFlexibleIdsForDate(sourceDate, activity.id);
+      reorderInDay(sourceDate, remainingSource);
     }
 
     resetDragState();
@@ -547,7 +559,6 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
             {weekDatesWithoutSunday.map((date) => {
               const activitiesForDay = weekActivities[date] ?? [];
               const { weekday, monthDay } = formatDesktopDayLabel(date);
-              let flexibleIndex = 0;
               let zoneIndex = 0;
               const appendKey = makeDayAppendKey(date);
 
@@ -565,7 +576,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                   <div
                     onDragOver={(event) => handleDragOverZone(event, appendKey)}
                     onDragLeave={() => handleDragLeaveZone(appendKey)}
-                    onDrop={(event) => handleDropOnDay(event, date, flexibleIndex)}
+                    onDrop={(event) => handleDropOnDay(event, date, zoneIndex)}
                   >
                     {(() => {
                       const placeholderCount = Math.max(
@@ -578,14 +589,9 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                       return (
                         <>
                           {activitiesForDay.map((activity) => {
-                            const dropIndex = flexibleIndex;
+                            const dropIndex = zoneIndex;
                             const dropKey = makeDayDropKey(date, dropIndex);
                             const zoneKey = makeDayZoneKey(date, zoneIndex);
-                            const isFlexible = activity.time === null;
-
-                            if (isFlexible) {
-                              flexibleIndex += 1;
-                            }
                             zoneIndex += 1;
 
                             return (
@@ -612,7 +618,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                             );
                           })}
                           {Array.from({ length: totalSlots }).map((_, idx) => {
-                            const dropIndex = flexibleIndex;
+                            const dropIndex = zoneIndex;
                             const zoneKey = makeDayZoneKey(date, zoneIndex);
 
                             zoneIndex += 1;
@@ -705,9 +711,8 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                 {(() => {
                   const activitiesForDay = weekActivities[sundayDate] ?? [];
                   const { weekday, monthDay } = formatDesktopDayLabel(sundayDate);
-                  let flexibleIndex = 0;
-                  let zoneIndex = 0;
-                  const appendKey = makeDayAppendKey(sundayDate);
+              let zoneIndex = 0;
+              const appendKey = makeDayAppendKey(sundayDate);
                   return (
                     <div className="flex min-h-64 flex-col gap-2 px-1 py-3">
                       <div className="flex items-baseline justify-between gap-2 px-1">
@@ -719,7 +724,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                       <div
                         onDragOver={(event) => handleDragOverZone(event, appendKey)}
                         onDragLeave={() => handleDragLeaveZone(appendKey)}
-                        onDrop={(event) => handleDropOnDay(event, sundayDate, flexibleIndex)}
+                        onDrop={(event) => handleDropOnDay(event, sundayDate, zoneIndex)}
                       >
                         {(() => {
                           const placeholderCount = Math.max(5 - activitiesForDay.length, 0);
@@ -729,14 +734,9 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                           return (
                             <>
                               {activitiesForDay.map((activity) => {
-                                const dropIndex = flexibleIndex;
+                                const dropIndex = zoneIndex;
                                 const dropKey = makeDayDropKey(sundayDate, dropIndex);
                                 const zoneKey = makeDayZoneKey(sundayDate, zoneIndex);
-                                const isFlexible = activity.time === null;
-
-                                if (isFlexible) {
-                                  flexibleIndex += 1;
-                                }
                                 zoneIndex += 1;
 
                                 return (
@@ -767,7 +767,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                                 );
                               })}
                               {Array.from({ length: totalSlots }).map((_, idx) => {
-                                const dropIndex = flexibleIndex;
+                                const dropIndex = zoneIndex;
                                 const zoneKey = makeDayZoneKey(sundayDate, zoneIndex);
 
                                 zoneIndex += 1;
