@@ -127,7 +127,7 @@ const DesktopHeader = ({
           </div>
         </div>
 
-        {selectedTab === "day" && (
+        {(selectedTab === "day" || selectedTab === "inbox") && (
           <div className="mt-2 grid grid-cols-[auto_1fr_auto] items-center gap-4">
             <button
               type="button"
