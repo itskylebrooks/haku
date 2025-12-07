@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Linkedin, User } from "lucide-react";
 import pkg from "../../../package.json";
+import { downloadStateAsJson, importStateFromFile, useHakuStore } from "../storage";
 
 interface SettingsModalProps {
   open: boolean;
@@ -24,6 +25,10 @@ export default function SettingsModal({
   const timeoutRef = useRef<number | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
+  const [importError, setImportError] = useState<string | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const resetAllData = useHakuStore((state) => state.resetAllData);
+
   useEffect(() => {
     if (!open) {
       return;
@@ -43,6 +48,14 @@ export default function SettingsModal({
     };
   }, []);
 
+  // Reset error state when modal closes
+  useEffect(() => {
+    if (!open) {
+      setImportError(null);
+      setShowResetConfirm(false);
+    }
+  }, [open]);
+
   function beginClose() {
     try {
       onClose();
@@ -53,6 +66,47 @@ export default function SettingsModal({
 
   function triggerFilePick() {
     fileRef.current?.click();
+  }
+
+  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImportError(null);
+    const result = await importStateFromFile(file);
+    
+    if (!result.ok) {
+      setImportError(result.error);
+    } else {
+      // Success - close modal and reset file input
+      if (fileRef.current) {
+        fileRef.current.value = "";
+      }
+      beginClose();
+    }
+  }
+
+  function handleExport() {
+    try {
+      downloadStateAsJson();
+    } catch {
+      // Silently fail - download already handles errors
+    }
+  }
+
+  function handleReset() {
+    if (!showResetConfirm) {
+      setShowResetConfirm(true);
+      return;
+    }
+    
+    resetAllData();
+    setShowResetConfirm(false);
+    beginClose();
+  }
+
+  function cancelReset() {
+    setShowResetConfirm(false);
   }
 
   if (!open) return null;
@@ -206,20 +260,20 @@ export default function SettingsModal({
             {/* Reset */}
             <button
               type="button"
-              onClick={() => window.alert("Reset coming soon")}
+              onClick={handleReset}
               className="w-full flex items-center justify-center gap-1.5 rounded-lg h-10 px-3 text-xs font-medium border border-[var(--color-danger-border)] text-[var(--color-danger-text)] hover:bg-[var(--color-danger-surface)] transition whitespace-nowrap"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 21H8a2 2 0 0 1-1.42-.587l-3.994-3.999a2 2 0 0 1 0-2.828l10-10a2 2 0 0 1 2.829 0l5.999 6a2 2 0 0 1 0 2.828L12.834 21" />
                 <path d="m5.082 11.09 8.828 8.828" />
               </svg>
-              <span>Reset</span>
+              <span>{showResetConfirm ? "Confirm?" : "Reset"}</span>
             </button>
 
             {/* Export */}
             <button
               type="button"
-              onClick={() => window.alert("Export coming soon")}
+              onClick={handleExport}
               className="w-full flex items-center justify-center gap-1.5 rounded-lg h-10 px-3 text-xs font-medium border border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] transition whitespace-nowrap"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -230,7 +284,29 @@ export default function SettingsModal({
               <span>Export</span>
             </button>
           </div>
-          <input ref={fileRef} type="file" accept="application/json" onChange={() => window.alert("Import coming soon")} className="hidden" />
+
+          {/* Reset confirmation hint */}
+          {showResetConfirm && (
+            <div className="mt-2 flex items-center justify-between text-xs">
+              <span className="text-[var(--color-danger-text)]">This will erase all data!</span>
+              <button
+                type="button"
+                onClick={cancelReset}
+                className="text-[var(--color-text-subtle)] hover:text-[var(--color-text-primary)] underline"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {/* Import error message */}
+          {importError && (
+            <div className="mt-2 text-xs text-[var(--color-danger-text)]">
+              {importError}
+            </div>
+          )}
+
+          <input ref={fileRef} type="file" accept="application/json" onChange={handleFileChange} className="hidden" />
         </div>
 
         <div className="mt-5">

@@ -5,10 +5,10 @@ import DayPage from "./features/day/DayPage";
 import WeekPage from "./features/week/WeekPage";
 import BoardPage from "./features/inbox/BoardPage";
 import SettingsModal from "./shared/components/SettingsModal";
+import { useHakuStore, type ThemeMode } from "./shared/storage";
 
 type ViewMode = "day" | "week";
 type ActiveTab = "board" | "day" | "week";
-type ThemeMode = "system" | "light" | "dark";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -30,8 +30,12 @@ function App() {
   const [currentDate, setCurrentDate] = useState<string>(todayIso());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [weekStart, setWeekStart] = useState<"monday" | "sunday">("monday");
-  const [themeMode, setThemeMode] = useState<ThemeMode>("system");
+  
+  // Get settings from persisted store
+  const weekStart = useHakuStore((state) => state.settings.weekStart);
+  const themeMode = useHakuStore((state) => state.settings.themeMode);
+  const setWeekStart = useHakuStore((state) => state.setWeekStart);
+  const setThemeMode = useHakuStore((state) => state.setThemeMode);
 
   const handlePrev = () =>
     setCurrentDate((date) => shiftDate(date, mode, -1));
