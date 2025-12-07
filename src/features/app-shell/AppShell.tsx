@@ -23,7 +23,7 @@ const AppShell = ({
   mode,
   activeTab,
   currentDate,
-  onModeChange,
+  onModeChange: _onModeChange,
   onTabChange,
   onPrev,
   onNext,

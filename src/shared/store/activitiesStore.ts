@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import {
-  isAnchored,
   isScheduled,
 } from "../types/activity";
 import type { Activity, Bucket, RepeatPattern } from "../types/activity";

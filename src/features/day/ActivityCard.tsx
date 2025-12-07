@@ -1,3 +1,4 @@
+import type React from "react";
 import { Circle, CheckCircle2 } from "lucide-react";
 import type { Activity, RepeatPattern } from "../../shared/types/activity";
 
@@ -5,6 +6,13 @@ interface ActivityCardProps {
   activity: Activity;
   onToggleDone: (id: string) => void;
   onEdit: (activity: Activity) => void;
+  draggable?: boolean;
+  isDragging?: boolean;
+  onDragStart?: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDragEnd?: () => void;
+  onTouchStart?: (event: React.TouchEvent<HTMLDivElement>) => void;
+  onTouchMove?: (event: React.TouchEvent<HTMLDivElement>) => void;
+  onTouchEnd?: (event: React.TouchEvent<HTMLDivElement>) => void;
 }
 
 /**
@@ -52,6 +60,13 @@ const ActivityCard = ({
   activity,
   onToggleDone,
   onEdit,
+  draggable = false,
+  isDragging = false,
+  onDragStart,
+  onDragEnd,
+  onTouchStart,
+  onTouchMove,
+  onTouchEnd,
 }: ActivityCardProps) => {
   const { id, title, time, durationMinutes, repeat, note, isDone } = activity;
 
@@ -64,8 +79,14 @@ const ActivityCard = ({
         isDone
           ? ""
           : "hover:bg-[var(--color-card-hover)] hover:shadow-sm"
-      }`}
+      } ${draggable ? "cursor-grab active:cursor-grabbing" : ""} ${isDragging ? "opacity-50" : ""}`}
       onClick={() => onEdit(activity)}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
     >
       {/* Content block - click anywhere here to edit */}
       <div className="flex-1 pl-3 pr-3 py-3 md:pl-3 md:pr-4 md:py-2.5">

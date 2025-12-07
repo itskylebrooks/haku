@@ -7,10 +7,11 @@ interface WeekActivityRowProps {
   onToggleDone: (id: string) => void;
   onEdit: (activity: Activity) => void;
   draggable?: boolean;
+  isDragging?: boolean;
   onDragStart?: (event: React.DragEvent<HTMLDivElement>) => void;
   onDragEnd?: () => void;
   onDragOver?: (event: React.DragEvent<HTMLDivElement>) => void;
-  onDragLeave?: () => void;
+  onDragLeave?: (event: React.DragEvent<HTMLDivElement>) => void;
   onDrop?: (event: React.DragEvent<HTMLDivElement>) => void;
 }
 
@@ -51,6 +52,7 @@ const WeekActivityRow = ({
   onToggleDone,
   onEdit,
   draggable = false,
+  isDragging = false,
   onDragStart,
   onDragEnd,
   onDragOver,
@@ -100,7 +102,7 @@ const WeekActivityRow = ({
       onDrop={onDrop}
       className={`group flex min-h-[38px] items-stretch rounded-lg px-1.5 py-1 transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
         isDone ? "bg-transparent" : ""
-      } ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
+      } ${draggable ? "cursor-grab active:cursor-grabbing" : ""} ${isDragging ? "opacity-50" : ""}`}
     >
       <div
         className={`flex min-w-0 flex-1 flex-col ${
