@@ -307,9 +307,20 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
     }
 
     const currentDayItems = weekActivities[date] ?? [];
+    const currentIndex = currentDayItems.findIndex((item) => item.id === activity.id);
+    let adjustedIndex = targetIndex;
+    if (sourceDate === date && currentIndex >= 0) {
+      if (targetIndex > currentIndex) {
+        adjustedIndex = targetIndex - 1;
+      }
+    }
     const withoutDropped = currentDayItems.filter((item) => item.id !== activity.id);
-    const clampedIndex = Math.min(Math.max(targetIndex, 0), withoutDropped.length);
-    const merged = [...withoutDropped.slice(0, clampedIndex), activity, ...withoutDropped.slice(clampedIndex)];
+    const clampedIndex = Math.min(Math.max(adjustedIndex, 0), withoutDropped.length);
+    const merged = [
+      ...withoutDropped.slice(0, clampedIndex),
+      activity,
+      ...withoutDropped.slice(clampedIndex),
+    ];
 
     const anchored = merged.filter((item) => item.time !== null).sort((a, b) => {
       if (a.time === null || b.time === null) return 0;
