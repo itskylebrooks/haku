@@ -18,6 +18,7 @@ import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
 
 interface WeekPageProps {
   activeDate: string;
+  weekStart: "monday" | "sunday";
 }
 
 const formatMobileDayLabel = (isoDate: string): { weekday: string; monthDay: string } => {
@@ -83,7 +84,7 @@ const computeMobilePreviewOrder = (
   });
 };
 
-const WeekPage = ({ activeDate }: WeekPageProps) => {
+const WeekPage = ({ activeDate, weekStart }: WeekPageProps) => {
   const activities = useActivitiesStore((state) => state.activities);
   const toggleDone = useActivitiesStore((state) => state.toggleDone);
   const deleteActivity = useActivitiesStore((state) => state.deleteActivity);
@@ -132,8 +133,8 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
   }, [isTouchDrag]);
 
   const weekStartDate = useMemo(
-    () => getWeekStartDate(activeDate),
-    [activeDate]
+    () => getWeekStartDate(activeDate, weekStart),
+    [activeDate, weekStart]
   );
   const weekDates = useMemo(
     () => getWeekDates(weekStartDate),

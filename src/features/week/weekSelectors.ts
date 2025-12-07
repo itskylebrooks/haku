@@ -16,16 +16,20 @@ const compareFlexibleActivities = (a: Activity, b: Activity): number => {
   return a.createdAt.localeCompare(b.createdAt);
 };
 
-export const getWeekStartDate = (isoDate: string): string => {
+export const getWeekStartDate = (
+  isoDate: string,
+  weekStartsOn: "monday" | "sunday" = "monday"
+): string => {
   const date = new Date(`${isoDate}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) {
     return isoDate;
   }
 
   const dayOfWeek = date.getUTCDay(); // Sunday = 0, Monday = 1
-  const diffToMonday = (dayOfWeek + 6) % 7; // 0 when already Monday
+  const offset =
+    weekStartsOn === "sunday" ? dayOfWeek : (dayOfWeek + 6) % 7; // Monday as start
 
-  date.setUTCDate(date.getUTCDate() - diffToMonday);
+  date.setUTCDate(date.getUTCDate() - offset);
   return date.toISOString().slice(0, 10);
 };
 

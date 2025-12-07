@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AddActivityModal from "./shared/components/AddActivityModal";
 import AppShell from "./features/app-shell/AppShell";
 import DayPage from "./features/day/DayPage";
 import WeekPage from "./features/week/WeekPage";
 import BoardPage from "./features/inbox/BoardPage";
+import SettingsModal from "./shared/components/SettingsModal";
 
 type ViewMode = "day" | "week";
 type ActiveTab = "board" | "day" | "week";
+type ThemeMode = "system" | "light" | "dark";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -27,6 +29,9 @@ function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("day");
   const [currentDate, setCurrentDate] = useState<string>(todayIso());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [weekStart, setWeekStart] = useState<"monday" | "sunday">("monday");
+  const [themeMode, setThemeMode] = useState<ThemeMode>("system");
 
   const handlePrev = () =>
     setCurrentDate((date) => shiftDate(date, mode, -1));
@@ -43,11 +48,37 @@ function App() {
       setCurrentDate(todayIso());
     }
   };
-  const handleOpenSettings = () => {
-    // Placeholder for future settings action.
-  };
+  const handleOpenSettings = () => setIsSettingsOpen(true);
   const handleOpenAddModal = () => setIsAddModalOpen(true);
   const handleCloseAddModal = () => setIsAddModalOpen(false);
+  const handleCloseSettings = () => setIsSettingsOpen(false);
+
+  // Apply theme to document root
+  useEffect(() => {
+    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+    const applyTheme = () => {
+      const resolved: ThemeMode =
+        themeMode === "system" ? (mql.matches ? "dark" : "light") : themeMode;
+      const shouldUseDark = resolved === "dark";
+      const root = document.documentElement;
+      root.classList.toggle("dark", shouldUseDark);
+      root.dataset.theme = resolved;
+      root.style.colorScheme = shouldUseDark ? "dark" : "light";
+    };
+
+    applyTheme();
+
+    const handleChange = () => {
+      if (themeMode === "system") {
+        applyTheme();
+      }
+    };
+
+    mql.addEventListener("change", handleChange);
+    return () => {
+      mql.removeEventListener("change", handleChange);
+    };
+  }, [themeMode]);
 
   return (
     <div className="min-h-screen bg-[var(--color-page-bg)] text-[var(--color-text-primary)]">
@@ -73,7 +104,7 @@ function App() {
           ) : mode === "day" ? (
             <DayPage activeDate={currentDate} />
           ) : (
-            <WeekPage activeDate={currentDate} />
+            <WeekPage activeDate={currentDate} weekStart={weekStart} />
           )}
         </AppShell>
       </div>
@@ -81,6 +112,14 @@ function App() {
         isOpen={isAddModalOpen}
         onClose={handleCloseAddModal}
         defaultDate={currentDate}
+      />
+      <SettingsModal
+        open={isSettingsOpen}
+        onClose={handleCloseSettings}
+        weekStart={weekStart}
+        onWeekStartChange={setWeekStart}
+        themeMode={themeMode}
+        onThemeChange={setThemeMode}
       />
     </div>
   );
