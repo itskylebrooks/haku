@@ -77,6 +77,7 @@ const generateActivityId = (() => {
 })();
 
 const nowIsoString = () => new Date().toISOString();
+const todayIsoDate = () => new Date().toISOString().slice(0, 10);
 
 const isValidDuration = (value: number): boolean =>
   Number.isFinite(value) &&
@@ -416,18 +417,41 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
   toggleDone: (id) => {
     set((state) => {
       const now = nowIsoString();
+      const today = todayIsoDate();
       let changed = false;
+
       const activities = state.activities.map((activity): Activity => {
         if (activity.id !== id) {
           return activity;
         }
+
+        const nextIsDone = !activity.isDone;
+        const shouldScheduleToday =
+          nextIsDone && (activity.bucket === "inbox" || activity.bucket === "later");
+
         changed = true;
+
+        if (!shouldScheduleToday) {
+          return {
+            ...activity,
+            isDone: nextIsDone,
+            updatedAt: now,
+          };
+        }
+
         return {
           ...activity,
-          isDone: !activity.isDone,
+          bucket: "scheduled",
+          date: today,
+          time: null,
+          durationMinutes: null,
+          repeat: "none",
+          orderIndex: null,
+          isDone: nextIsDone,
           updatedAt: now,
         };
       });
+
       return changed ? { activities } : state;
     });
   },
