@@ -49,6 +49,48 @@ const computePreviewOrder = (
   });
 };
 
+/**
+ * Computes preview order for desktop drag - shows gap without the dragged card.
+ * Returns cards reordered with a placeholder at the drop position.
+ */
+const computeDesktopPreviewOrder = (
+  activities: Activity[],
+  draggedId: string,
+  targetIndex: number
+): Activity[] => {
+  const dragged = activities.find((a) => a.id === draggedId);
+  if (!dragged) return activities;
+
+  const withoutDragged = activities.filter((a) => a.id !== draggedId);
+  const clampedIndex = Math.min(Math.max(targetIndex, 0), withoutDragged.length);
+
+  // Create a placeholder that will render as empty space
+  const placeholder: Activity = {
+    ...dragged,
+    id: '__DRAG_PLACEHOLDER__',
+  };
+
+  const merged = [
+    ...withoutDragged.slice(0, clampedIndex),
+    placeholder,
+    ...withoutDragged.slice(clampedIndex),
+  ];
+
+  // Anchored activities must maintain their time order
+  const anchored = merged.filter((a) => a.time !== null).sort((a, b) => {
+    if (a.time === null || b.time === null) return 0;
+    return a.time.localeCompare(b.time);
+  });
+
+  let anchoredPtr = 0;
+  return merged.map((item) => {
+    if (item.time !== null) {
+      return anchored[anchoredPtr++];
+    }
+    return item;
+  });
+};
+
 const DayPage = ({ activeDate }: DayPageProps) => {
   const activities = useActivitiesStore((state) => state.activities);
   const toggleDone = useActivitiesStore((state) => state.toggleDone);
@@ -59,6 +101,7 @@ const DayPage = ({ activeDate }: DayPageProps) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [activityBeingEdited, setActivityBeingEdited] = useState<Activity | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [draggedCardHeight, setDraggedCardHeight] = useState<number>(72);
   const [previewOrder, setPreviewOrder] = useState<Activity[] | null>(null);
   const dragLeaveTimeoutRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -165,6 +208,12 @@ const DayPage = ({ activeDate }: DayPageProps) => {
     event.dataTransfer.setData("text/plain", activity.id);
     setDraggingId(activity.id);
     setPreviewOrder(null);
+    
+    // Capture the height of the card being dragged
+    const target = event.currentTarget;
+    if (target) {
+      setDraggedCardHeight(target.offsetHeight);
+    }
   };
 
   const handleDragEnd = () => {
@@ -182,7 +231,8 @@ const DayPage = ({ activeDate }: DayPageProps) => {
     }
 
     if (draggingId) {
-      const newOrder = computePreviewOrder(todayActivities, draggingId, targetIndex);
+      // Desktop drag: remove dragged card to show gap, no preview card
+      const newOrder = computeDesktopPreviewOrder(todayActivities, draggingId, targetIndex);
       setPreviewOrder(newOrder);
     }
   };
@@ -362,19 +412,23 @@ const DayPage = ({ activeDate }: DayPageProps) => {
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDrop={(e) => handleDrop(e, index)}
               >
-                <ActivityCard
-                  activity={activity}
-                  onToggleDone={handleToggleDone}
-                  onEdit={handleEdit}
-                  draggable={isDesktop}
-                  isDragging={draggingId === activity.id}
-                  disableHover={draggingId !== null}
-                  onDragStart={(e) => handleDragStart(e, activity)}
-                  onDragEnd={handleDragEnd}
-                  onTouchStart={(e) => handleTouchStart(e, activity)}
-                  onTouchMove={(e) => handleTouchMove(e, activity.id)}
-                  onTouchEnd={() => handleTouchEnd(activity.id)}
-                />
+                {activity.id === '__DRAG_PLACEHOLDER__' ? (
+                  <div style={{ height: `${draggedCardHeight}px` }} />
+                ) : (
+                  <ActivityCard
+                    activity={activity}
+                    onToggleDone={handleToggleDone}
+                    onEdit={handleEdit}
+                    draggable={isDesktop}
+                    isDragging={draggingId === activity.id}
+                    disableHover={draggingId !== null}
+                    onDragStart={(e) => handleDragStart(e, activity)}
+                    onDragEnd={handleDragEnd}
+                    onTouchStart={(e) => handleTouchStart(e, activity)}
+                    onTouchMove={(e) => handleTouchMove(e, activity.id)}
+                    onTouchEnd={() => handleTouchEnd(activity.id)}
+                  />
+                )}
               </div>
             ))}
             {/* Drop zone at the end */}

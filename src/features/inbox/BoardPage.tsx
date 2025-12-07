@@ -45,6 +45,7 @@ const BoardPage = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [activityBeingEdited, setActivityBeingEdited] = useState<Activity | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [draggedCardHeight, setDraggedCardHeight] = useState<number>(72);
   const [previewInbox, setPreviewInbox] = useState<Activity[] | null>(null);
   const [previewLater, setPreviewLater] = useState<Activity[] | null>(null);
   const dragLeaveTimeoutRef = useRef<number | null>(null);
@@ -132,6 +133,12 @@ const BoardPage = () => {
     setDraggingId(activity.id);
     setPreviewInbox(null);
     setPreviewLater(null);
+    
+    // Capture the height of the card being dragged
+    const target = event.currentTarget;
+    if (target) {
+      setDraggedCardHeight(target.offsetHeight);
+    }
   };
 
   const handleDragEnd = () => {
@@ -141,7 +148,7 @@ const BoardPage = () => {
   const handleDragOver = (
     event: React.DragEvent<HTMLDivElement>,
     bucket: Extract<Bucket, "inbox" | "later">,
-    targetIndex: number
+    _targetIndex: number
   ) => {
     event.preventDefault();
     event.stopPropagation();
@@ -157,12 +164,24 @@ const BoardPage = () => {
     const draggedActivity = activities.find((a) => a.id === draggingId);
     if (!draggedActivity) return;
 
+    // Create placeholder for the gap
+    const placeholder: Activity = {
+      ...draggedActivity,
+      id: '__DRAG_PLACEHOLDER__',
+    };
+
+    // Desktop drag: show gap with placeholder
     if (bucket === "inbox") {
-      // If dragged item is in later, show it being added to inbox
       const targetList = draggedActivity.bucket === "inbox"
         ? inboxActivities
-        : [...inboxActivities, draggedActivity];
-      const newOrder = computeBucketPreviewOrder(targetList, draggingId, targetIndex);
+        : [...inboxActivities];
+      const withoutDragged = targetList.filter((a) => a.id !== draggingId);
+      const clampedIndex = Math.min(Math.max(_targetIndex, 0), withoutDragged.length);
+      const newOrder = [
+        ...withoutDragged.slice(0, clampedIndex),
+        placeholder,
+        ...withoutDragged.slice(clampedIndex),
+      ];
       setPreviewInbox(newOrder);
       // If coming from later, remove from later preview
       if (draggedActivity.bucket === "later") {
@@ -174,8 +193,14 @@ const BoardPage = () => {
       // bucket === "later"
       const targetList = draggedActivity.bucket === "later"
         ? laterActivities
-        : [...laterActivities, draggedActivity];
-      const newOrder = computeBucketPreviewOrder(targetList, draggingId, targetIndex);
+        : [...laterActivities];
+      const withoutDragged = targetList.filter((a) => a.id !== draggingId);
+      const clampedIndex = Math.min(Math.max(_targetIndex, 0), withoutDragged.length);
+      const newOrder = [
+        ...withoutDragged.slice(0, clampedIndex),
+        placeholder,
+        ...withoutDragged.slice(clampedIndex),
+      ];
       setPreviewLater(newOrder);
       // If coming from inbox, remove from inbox preview
       if (draggedActivity.bucket === "inbox") {
@@ -440,19 +465,23 @@ const BoardPage = () => {
                 onDragOver={(e) => handleDragOver(e, "inbox", index)}
                 onDrop={(e) => handleDrop(e, "inbox", index)}
               >
-                <ActivityCard
-                  activity={activity}
-                  onToggleDone={handleToggleDone}
-                  onEdit={handleEdit}
-                  draggable={isDesktop}
-                  isDragging={draggingId === activity.id}
-                  disableHover={draggingId !== null}
-                  onDragStart={(e) => handleDragStart(e, activity)}
-                  onDragEnd={handleDragEnd}
-                  onTouchStart={(e) => handleTouchStart(e, activity, "inbox")}
-                  onTouchMove={(e) => handleTouchMove(e, activity.id, "inbox")}
-                  onTouchEnd={() => handleTouchEnd(activity.id, "inbox")}
-                />
+                {activity.id === '__DRAG_PLACEHOLDER__' ? (
+                  <div style={{ height: `${draggedCardHeight}px` }} />
+                ) : (
+                  <ActivityCard
+                    activity={activity}
+                    onToggleDone={handleToggleDone}
+                    onEdit={handleEdit}
+                    draggable={isDesktop}
+                    isDragging={draggingId === activity.id}
+                    disableHover={draggingId !== null}
+                    onDragStart={(e) => handleDragStart(e, activity)}
+                    onDragEnd={handleDragEnd}
+                    onTouchStart={(e) => handleTouchStart(e, activity, "inbox")}
+                    onTouchMove={(e) => handleTouchMove(e, activity.id, "inbox")}
+                    onTouchEnd={() => handleTouchEnd(activity.id, "inbox")}
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -486,19 +515,23 @@ const BoardPage = () => {
                 onDragOver={(e) => handleDragOver(e, "later", index)}
                 onDrop={(e) => handleDrop(e, "later", index)}
               >
-                <ActivityCard
-                  activity={activity}
-                  onToggleDone={handleToggleDone}
-                  onEdit={handleEdit}
-                  draggable={isDesktop}
-                  isDragging={draggingId === activity.id}
-                  disableHover={draggingId !== null}
-                  onDragStart={(e) => handleDragStart(e, activity)}
-                  onDragEnd={handleDragEnd}
-                  onTouchStart={(e) => handleTouchStart(e, activity, "later")}
-                  onTouchMove={(e) => handleTouchMove(e, activity.id, "later")}
-                  onTouchEnd={() => handleTouchEnd(activity.id, "later")}
-                />
+                {activity.id === '__DRAG_PLACEHOLDER__' ? (
+                  <div style={{ height: `${draggedCardHeight}px` }} />
+                ) : (
+                  <ActivityCard
+                    activity={activity}
+                    onToggleDone={handleToggleDone}
+                    onEdit={handleEdit}
+                    draggable={isDesktop}
+                    isDragging={draggingId === activity.id}
+                    disableHover={draggingId !== null}
+                    onDragStart={(e) => handleDragStart(e, activity)}
+                    onDragEnd={handleDragEnd}
+                    onTouchStart={(e) => handleTouchStart(e, activity, "later")}
+                    onTouchMove={(e) => handleTouchMove(e, activity.id, "later")}
+                    onTouchEnd={() => handleTouchEnd(activity.id, "later")}
+                  />
+                )}
               </div>
             ))}
           </div>
