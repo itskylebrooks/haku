@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useCallback } from "react";
+import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import ActivityCard from "../day/ActivityCard";
 import {
   useActivitiesStore,
@@ -7,6 +7,8 @@ import {
 } from "../../shared/store/activitiesStore";
 import type { Activity, Bucket } from "../../shared/types/activity";
 import AddActivityModal from "../../shared/components/AddActivityModal";
+import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
+import { TouchDragOverlay } from "../../shared/components/TouchDragOverlay";
 
 /**
  * Computes a preview order for bucket activities when dragging.
@@ -52,6 +54,23 @@ const InboxPage = () => {
   const touchStartXRef = useRef(0);
   const isTouchDraggingRef = useRef(false);
   const touchDragBucketRef = useRef<Extract<Bucket, "inbox" | "later"> | null>(null);
+
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isTouchDrag, setIsTouchDrag] = useState(false);
+
+  useEffect(() => {
+    if (isTouchDrag) {
+      const preventDefault = (e: TouchEvent) => {
+        e.preventDefault();
+      };
+      document.addEventListener("touchmove", preventDefault, { passive: false });
+      return () => {
+        document.removeEventListener("touchmove", preventDefault);
+      };
+    }
+  }, [isTouchDrag]);
 
   const inboxActivities = useMemo(
     () => getInboxActivities(activities),
@@ -249,6 +268,10 @@ const InboxPage = () => {
     bucket: Extract<Bucket, "inbox" | "later">
   ) => {
     const touch = event.touches[0];
+    const rect = event.currentTarget.getBoundingClientRect();
+    const offsetX = touch.clientX - rect.left;
+    const offsetY = touch.clientY - rect.top;
+
     touchStartYRef.current = touch.clientY;
     touchStartXRef.current = touch.clientX;
     isTouchDraggingRef.current = false;
@@ -259,6 +282,9 @@ const InboxPage = () => {
     longPressTimerRef.current = window.setTimeout(() => {
       isTouchDraggingRef.current = true;
       setDraggingId(activity.id);
+      setIsTouchDrag(true);
+      setDragOffset({ x: offsetX, y: offsetY });
+      setDragPosition({ x: touch.clientX - offsetX, y: touch.clientY - offsetY });
       setPreviewInbox(null);
       setPreviewLater(null);
       document.body.style.overflow = "hidden";
@@ -284,6 +310,12 @@ const InboxPage = () => {
     }
 
     event.preventDefault();
+    
+    setDragPosition({
+      x: touch.clientX - dragOffset.x,
+      y: touch.clientY - dragOffset.y
+    });
+
     const targetIndex = getTargetIndexFromY(touch.clientY, bucket);
     
     const draggedActivity = activities.find((a) => a.id === activityId);
@@ -308,7 +340,7 @@ const InboxPage = () => {
         setPreviewInbox(inboxActivities.filter((a) => a.id !== activityId));
       }
     }
-  }, [clearLongPressTimer, getTargetIndexFromY, activities, inboxActivities, laterActivities]);
+  }, [clearLongPressTimer, getTargetIndexFromY, activities, inboxActivities, laterActivities, dragOffset]);
 
   const handleTouchEnd = useCallback((
     activityId: string,
@@ -339,6 +371,8 @@ const InboxPage = () => {
 
     isTouchDraggingRef.current = false;
     touchDragBucketRef.current = null;
+    setIsTouchDrag(false);
+    setDragPosition(null);
     document.body.style.overflow = "";
     document.body.style.touchAction = "";
     resetDragState();
@@ -376,7 +410,7 @@ const InboxPage = () => {
                     activity={activity}
                     onToggleDone={handleToggleDone}
                     onEdit={handleEdit}
-                    draggable
+                    draggable={isDesktop}
                     isDragging={draggingId === activity.id}
                     disableHover={draggingId !== null}
                     onDragStart={(e) => handleDragStart(e, activity)}
@@ -418,7 +452,7 @@ const InboxPage = () => {
                     activity={activity}
                     onToggleDone={handleToggleDone}
                     onEdit={handleEdit}
-                    draggable
+                    draggable={isDesktop}
                     isDragging={draggingId === activity.id}
                     disableHover={draggingId !== null}
                     onDragStart={(e) => handleDragStart(e, activity)}
@@ -448,6 +482,29 @@ const InboxPage = () => {
         onDelete={handleDeleteActivity}
         onUpdate={updateActivity}
       />
+
+      {/* Touch Drag Overlay */}
+      {isTouchDrag && draggingId && dragPosition && (
+        <TouchDragOverlay x={dragPosition.x} y={dragPosition.y}>
+          <div className="w-[calc(100vw-32px)] max-w-xl pointer-events-none">
+            {(() => {
+              const activity = activities.find((a) => a.id === draggingId);
+              if (!activity) return null;
+              return (
+                <div className="shadow-xl rounded-xl bg-[var(--color-surface)]">
+                  <ActivityCard
+                    activity={activity}
+                    onToggleDone={() => {}}
+                    onEdit={() => {}}
+                    disableHover
+                    forceHover
+                  />
+                </div>
+              );
+            })()}
+          </div>
+        </TouchDragOverlay>
+      )}
     </>
   );
 };

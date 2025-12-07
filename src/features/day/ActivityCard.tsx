@@ -14,6 +14,7 @@ interface ActivityCardProps {
   onTouchMove?: (event: React.TouchEvent<HTMLDivElement>) => void;
   onTouchEnd?: (event: React.TouchEvent<HTMLDivElement>) => void;
   disableHover?: boolean;
+  forceHover?: boolean;
 }
 
 /**
@@ -69,6 +70,7 @@ const ActivityCard = ({
   onTouchMove,
   onTouchEnd,
   disableHover = false,
+  forceHover = false,
 }: ActivityCardProps) => {
   const { id, title, time, durationMinutes, repeat, note, isDone } = activity;
 
@@ -77,12 +79,16 @@ const ActivityCard = ({
   const hoverClasses = !disableHover && !isDone
     ? "hover:bg-[var(--color-card-hover)] hover:shadow-sm"
     : "";
+  const activeHoverClasses = forceHover && !isDone
+    ? "bg-[var(--color-card-hover)] shadow-sm"
+    : "";
 
   return (
     <div
-      className={`group flex cursor-pointer rounded-xl transition ${
+      className={`group flex cursor-pointer rounded-xl transition select-none ${
         isDone ? "" : hoverClasses
-      } ${draggable ? "cursor-grab active:cursor-grabbing" : ""} ${isDragging ? "opacity-50" : ""}`}
+      } ${activeHoverClasses} ${draggable ? "cursor-grab active:cursor-grabbing" : ""} ${isDragging ? "opacity-50" : ""}`}
+      style={{ WebkitTouchCallout: "none" }}
       onClick={() => onEdit(activity)}
       draggable={draggable}
       onDragStart={onDragStart}

@@ -1,5 +1,5 @@
 import type React from "react";
-import { useMemo, useRef, useState, useCallback } from "react";
+import { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import { CirclePlus } from "lucide-react";
 import ActivityCard from "../day/ActivityCard";
 import { useActivitiesStore, getInboxActivities, getLaterActivities } from "../../shared/store/activitiesStore";
@@ -12,6 +12,8 @@ import {
   getWeekStartDate,
 } from "./weekSelectors";
 import { distributeIntoTwoColumns } from "./columnDistribution";
+import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
+import { TouchDragOverlay } from "../../shared/components/TouchDragOverlay";
 
 interface WeekPageProps {
   activeDate: string;
@@ -106,6 +108,23 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
   const touchStartXRef = useRef(0);
   const isTouchDraggingRef = useRef(false);
   const touchDragDateRef = useRef<string | null>(null);
+
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isTouchDrag, setIsTouchDrag] = useState(false);
+
+  useEffect(() => {
+    if (isTouchDrag) {
+      const preventDefault = (e: TouchEvent) => {
+        e.preventDefault();
+      };
+      document.addEventListener("touchmove", preventDefault, { passive: false });
+      return () => {
+        document.removeEventListener("touchmove", preventDefault);
+      };
+    }
+  }, [isTouchDrag]);
 
   const weekStartDate = useMemo(
     () => getWeekStartDate(activeDate),
@@ -526,6 +545,10 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
     date: string
   ) => {
     const touch = event.touches[0];
+    const rect = event.currentTarget.getBoundingClientRect();
+    const offsetX = touch.clientX - rect.left;
+    const offsetY = touch.clientY - rect.top;
+
     touchStartYRef.current = touch.clientY;
     touchStartXRef.current = touch.clientX;
     isTouchDraggingRef.current = false;
@@ -536,6 +559,9 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
     longPressTimerRef.current = window.setTimeout(() => {
       isTouchDraggingRef.current = true;
       setDraggingId(activity.id);
+      setIsTouchDrag(true);
+      setDragOffset({ x: offsetX, y: offsetY });
+      setDragPosition({ x: touch.clientX - offsetX, y: touch.clientY - offsetY });
       setMobilePreviewOrder({});
       document.body.style.overflow = "hidden";
       document.body.style.touchAction = "none";
@@ -560,11 +586,17 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
     }
 
     event.preventDefault();
+    
+    setDragPosition({
+      x: touch.clientX - dragOffset.x,
+      y: touch.clientY - dragOffset.y
+    });
+
     const targetIndex = getMobileTargetIndexFromY(touch.clientY, date);
     const activitiesForDay = weekActivities[date] ?? [];
     const newOrder = computeMobilePreviewOrder(activitiesForDay, activityId, targetIndex);
     setMobilePreviewOrder((prev) => ({ ...prev, [date]: newOrder }));
-  }, [clearLongPressTimer, getMobileTargetIndexFromY, weekActivities]);
+  }, [clearLongPressTimer, getMobileTargetIndexFromY, weekActivities, dragOffset]);
 
   const handleMobileTouchEnd = useCallback((
     _activityId: string,
@@ -579,6 +611,8 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
 
     isTouchDraggingRef.current = false;
     touchDragDateRef.current = null;
+    setIsTouchDrag(false);
+    setDragPosition(null);
     document.body.style.overflow = "";
     document.body.style.touchAction = "";
     resetDragState();
@@ -784,7 +818,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                               activity={activity}
                               onToggleDone={handleToggleDone}
                               onEdit={handleEdit}
-                              draggable
+                              draggable={isDesktop}
                               isDragging={draggingId === activity.id}
                               disableHover={draggingId !== null}
                               onDragStart={(e) => handleDragStart(e, activity)}
@@ -1106,6 +1140,29 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
         initialPlacement={newActivityPlacement}
         defaultDate={newActivityDate ?? activeDate}
       />
+
+      {/* Touch Drag Overlay */}
+      {isTouchDrag && draggingId && dragPosition && (
+        <TouchDragOverlay x={dragPosition.x} y={dragPosition.y}>
+          <div className="w-[calc(100vw-32px)] max-w-xl pointer-events-none">
+            {(() => {
+              const activity = activities.find((a) => a.id === draggingId);
+              if (!activity) return null;
+              return (
+                <div className="shadow-xl rounded-xl bg-[var(--color-surface)]">
+                  <ActivityCard
+                    activity={activity}
+                    onToggleDone={() => {}}
+                    onEdit={() => {}}
+                    disableHover
+                    forceHover
+                  />
+                </div>
+              );
+            })()}
+          </div>
+        </TouchDragOverlay>
+      )}
     </>
   );
 };

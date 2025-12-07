@@ -1,9 +1,11 @@
-import { useMemo, useState, useRef, useCallback } from "react";
+import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { useActivitiesStore } from "../../shared/store/activitiesStore";
 import type { Activity } from "../../shared/types/activity";
 import ActivityCard from "./ActivityCard";
 import { getDayViewData } from "./daySelectors";
 import AddActivityModal from "../../shared/components/AddActivityModal";
+import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
+import { TouchDragOverlay } from "../../shared/components/TouchDragOverlay";
 
 interface DayPageProps {
   activeDate: string;
@@ -63,6 +65,23 @@ const DayPage = ({ activeDate }: DayPageProps) => {
   const touchStartYRef = useRef(0);
   const touchStartXRef = useRef(0);
   const isTouchDraggingRef = useRef(false);
+
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isTouchDrag, setIsTouchDrag] = useState(false);
+
+  useEffect(() => {
+    if (isTouchDrag) {
+      const preventDefault = (e: TouchEvent) => {
+        e.preventDefault();
+      };
+      document.addEventListener("touchmove", preventDefault, { passive: false });
+      return () => {
+        document.removeEventListener("touchmove", preventDefault);
+      };
+    }
+  }, [isTouchDrag]);
 
   const { overdue, todayAnchored, todayFlexible } = useMemo(
     () => getDayViewData(activities, activeDate),
@@ -193,6 +212,10 @@ const DayPage = ({ activeDate }: DayPageProps) => {
 
   const handleTouchStart = useCallback((event: React.TouchEvent<HTMLDivElement>, activity: Activity) => {
     const touch = event.touches[0];
+    const rect = event.currentTarget.getBoundingClientRect();
+    const offsetX = touch.clientX - rect.left;
+    const offsetY = touch.clientY - rect.top;
+
     touchStartYRef.current = touch.clientY;
     touchStartXRef.current = touch.clientX;
     isTouchDraggingRef.current = false;
@@ -202,6 +225,9 @@ const DayPage = ({ activeDate }: DayPageProps) => {
     longPressTimerRef.current = window.setTimeout(() => {
       isTouchDraggingRef.current = true;
       setDraggingId(activity.id);
+      setIsTouchDrag(true);
+      setDragOffset({ x: offsetX, y: offsetY });
+      setDragPosition({ x: touch.clientX - offsetX, y: touch.clientY - offsetY });
       setPreviewOrder(null);
       document.body.style.overflow = "hidden";
       document.body.style.touchAction = "none";
@@ -222,10 +248,16 @@ const DayPage = ({ activeDate }: DayPageProps) => {
     }
 
     event.preventDefault();
+    
+    setDragPosition({
+      x: touch.clientX - dragOffset.x,
+      y: touch.clientY - dragOffset.y
+    });
+
     const targetIndex = getTargetIndexFromY(touch.clientY);
     const newOrder = computePreviewOrder(todayActivities, activityId, targetIndex);
     setPreviewOrder(newOrder);
-  }, [clearLongPressTimer, getTargetIndexFromY, todayActivities]);
+  }, [clearLongPressTimer, getTargetIndexFromY, todayActivities, dragOffset]);
 
   const handleTouchEnd = useCallback((_activityId: string) => {
     clearLongPressTimer();
@@ -236,6 +268,8 @@ const DayPage = ({ activeDate }: DayPageProps) => {
     }
 
     isTouchDraggingRef.current = false;
+    setIsTouchDrag(false);
+    setDragPosition(null);
     document.body.style.overflow = "";
     document.body.style.touchAction = "";
     resetDragState();
@@ -295,7 +329,7 @@ const DayPage = ({ activeDate }: DayPageProps) => {
                   activity={activity}
                   onToggleDone={handleToggleDone}
                   onEdit={handleEdit}
-                  draggable
+                  draggable={isDesktop}
                   isDragging={draggingId === activity.id}
                   disableHover={draggingId !== null}
                   onDragStart={(e) => handleDragStart(e, activity)}
@@ -326,6 +360,29 @@ const DayPage = ({ activeDate }: DayPageProps) => {
         onUpdate={updateActivity}
         defaultDate={activeDate}
       />
+
+      {/* Touch Drag Overlay */}
+      {isTouchDrag && draggingId && dragPosition && (
+        <TouchDragOverlay x={dragPosition.x} y={dragPosition.y}>
+          <div className="w-[calc(100vw-32px)] max-w-xl pointer-events-none">
+            {(() => {
+              const activity = activities.find((a) => a.id === draggingId);
+              if (!activity) return null;
+              return (
+                <div className="shadow-xl rounded-xl bg-[var(--color-surface)]">
+                  <ActivityCard
+                    activity={activity}
+                    onToggleDone={() => {}}
+                    onEdit={() => {}}
+                    disableHover
+                    forceHover
+                  />
+                </div>
+              );
+            })()}
+          </div>
+        </TouchDragOverlay>
+      )}
     </>
   );
 };
