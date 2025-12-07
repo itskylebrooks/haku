@@ -84,10 +84,6 @@ const BoardPage = () => {
   const displayInbox = previewInbox ?? inboxActivities;
   const displayLater = previewLater ?? laterActivities;
 
-  const hasInbox = inboxActivities.length > 0 || (previewInbox && previewInbox.length > 0);
-  const hasLater = laterActivities.length > 0 || (previewLater && previewLater.length > 0);
-  const isEmpty = !hasInbox && !hasLater;
-
   const handleToggleDone = (id: string) => {
     toggleDone(id);
   };
@@ -105,6 +101,14 @@ const BoardPage = () => {
   const handleDeleteActivity = (id: string) => {
     deleteActivity(id);
     handleCloseEditModal();
+  };
+
+  const getBucketOrderedIds = (
+    bucket: Extract<Bucket, "inbox" | "later">,
+    excludeId?: string
+  ): string[] => {
+    const items = bucket === "inbox" ? inboxActivities : laterActivities;
+    return items.filter((activity) => activity.id !== excludeId).map((activity) => activity.id);
   };
 
   const resetDragState = () => {
@@ -222,13 +226,10 @@ const BoardPage = () => {
       }
     }
 
-    // Compute final order
-    const currentList = bucket === "inbox" ? inboxActivities : laterActivities;
-    const targetList = draggedActivity.bucket === bucket
-      ? currentList
-      : [...currentList, draggedActivity];
-    const finalOrder = computeBucketPreviewOrder(targetList, droppedId, targetIndex);
-    const orderedIds = finalOrder.map((a) => a.id);
+    // Compute final order (exclude the dropped item first, then insert)
+    const orderedIds = getBucketOrderedIds(bucket, droppedId);
+    const clampedIndex = Math.min(Math.max(targetIndex, 0), orderedIds.length);
+    orderedIds.splice(clampedIndex, 0, droppedId);
     reorderInBucket(bucket, orderedIds);
 
     resetDragState();
@@ -381,97 +382,97 @@ const BoardPage = () => {
   return (
     <>
       <div className="mx-auto w-full max-w-xl px-4 pt-4 md:pt-0">
-        {isEmpty && (
-          <div className="py-16 text-center">
-            <p className="text-sm text-[var(--color-text-subtle)]">
-              No activities on your board yet.
-            </p>
-          </div>
-        )}
-
-        {hasInbox && (
+        {/* Inbox Section - Always Visible */}
+        <div
+          ref={inboxContainerRef}
+          className="mb-6"
+          onDragLeave={handleDragLeave}
+        >
+          <span className="mb-2 block text-center text-xs font-medium uppercase tracking-wide text-[var(--color-text-subtle)]">
+            Inbox
+          </span>
           <div
-            ref={inboxContainerRef}
-            className="mb-6"
-            onDragLeave={handleDragLeave}
+            className="min-h-20 relative"
+            onDragOver={(e) => handleDragOver(e, "inbox", displayInbox.length)}
+            onDrop={(e) => handleDrop(e, "inbox", displayInbox.length)}
           >
-            <span className="mb-2 block text-center text-xs font-medium uppercase tracking-wide text-[var(--color-text-subtle)]">
-              Inbox
-            </span>
-            <div>
-              {displayInbox.map((activity, index) => (
-                <div
-                  key={activity.id}
-                  data-activity-id={activity.id}
-                  onDragOver={(e) => handleDragOver(e, "inbox", index)}
-                  onDrop={(e) => handleDrop(e, "inbox", index)}
-                >
-                  <ActivityCard
-                    activity={activity}
-                    onToggleDone={handleToggleDone}
-                    onEdit={handleEdit}
-                    draggable={isDesktop}
-                    isDragging={draggingId === activity.id}
-                    disableHover={draggingId !== null}
-                    onDragStart={(e) => handleDragStart(e, activity)}
-                    onDragEnd={handleDragEnd}
-                    onTouchStart={(e) => handleTouchStart(e, activity, "inbox")}
-                    onTouchMove={(e) => handleTouchMove(e, activity.id, "inbox")}
-                    onTouchEnd={() => handleTouchEnd(activity.id, "inbox")}
-                  />
-                </div>
-              ))}
-              {/* Drop zone at the end of inbox */}
+            {displayInbox.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <p className="text-sm text-[var(--color-text-subtle)]">
+                  Nothing here yet
+                </p>
+              </div>
+            )}
+            {displayInbox.map((activity, index) => (
               <div
-                className="h-4"
-                onDragOver={(e) => handleDragOver(e, "inbox", displayInbox.length)}
-                onDrop={(e) => handleDrop(e, "inbox", displayInbox.length)}
-              />
-            </div>
+                key={activity.id}
+                data-activity-id={activity.id}
+                onDragOver={(e) => handleDragOver(e, "inbox", index)}
+                onDrop={(e) => handleDrop(e, "inbox", index)}
+              >
+                <ActivityCard
+                  activity={activity}
+                  onToggleDone={handleToggleDone}
+                  onEdit={handleEdit}
+                  draggable={isDesktop}
+                  isDragging={draggingId === activity.id}
+                  disableHover={draggingId !== null}
+                  onDragStart={(e) => handleDragStart(e, activity)}
+                  onDragEnd={handleDragEnd}
+                  onTouchStart={(e) => handleTouchStart(e, activity, "inbox")}
+                  onTouchMove={(e) => handleTouchMove(e, activity.id, "inbox")}
+                  onTouchEnd={() => handleTouchEnd(activity.id, "inbox")}
+                />
+              </div>
+            ))}
           </div>
-        )}
+        </div>
 
-        {hasLater && (
+        {/* Later Section - Always Visible */}
+        <div
+          ref={laterContainerRef}
+          className="mb-4"
+          onDragLeave={handleDragLeave}
+        >
+          <span className="mb-2 block text-center text-xs font-medium uppercase tracking-wide text-[var(--color-text-subtle)]">
+            Later
+          </span>
           <div
-            ref={laterContainerRef}
-            className="mb-4"
-            onDragLeave={handleDragLeave}
+            className="min-h-20 relative"
+            onDragOver={(e) => handleDragOver(e, "later", displayLater.length)}
+            onDrop={(e) => handleDrop(e, "later", displayLater.length)}
           >
-            <span className="mb-2 block text-center text-xs font-medium uppercase tracking-wide text-[var(--color-text-subtle)]">
-              Later
-            </span>
-            <div>
-              {displayLater.map((activity, index) => (
-                <div
-                  key={activity.id}
-                  data-activity-id={activity.id}
-                  onDragOver={(e) => handleDragOver(e, "later", index)}
-                  onDrop={(e) => handleDrop(e, "later", index)}
-                >
-                  <ActivityCard
-                    activity={activity}
-                    onToggleDone={handleToggleDone}
-                    onEdit={handleEdit}
-                    draggable={isDesktop}
-                    isDragging={draggingId === activity.id}
-                    disableHover={draggingId !== null}
-                    onDragStart={(e) => handleDragStart(e, activity)}
-                    onDragEnd={handleDragEnd}
-                    onTouchStart={(e) => handleTouchStart(e, activity, "later")}
-                    onTouchMove={(e) => handleTouchMove(e, activity.id, "later")}
-                    onTouchEnd={() => handleTouchEnd(activity.id, "later")}
-                  />
-                </div>
-              ))}
-              {/* Drop zone at the end of later */}
+            {displayLater.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <p className="text-sm text-[var(--color-text-subtle)]">
+                  Nothing here yet
+                </p>
+              </div>
+            )}
+            {displayLater.map((activity, index) => (
               <div
-                className="h-4"
-                onDragOver={(e) => handleDragOver(e, "later", displayLater.length)}
-                onDrop={(e) => handleDrop(e, "later", displayLater.length)}
-              />
-            </div>
+                key={activity.id}
+                data-activity-id={activity.id}
+                onDragOver={(e) => handleDragOver(e, "later", index)}
+                onDrop={(e) => handleDrop(e, "later", index)}
+              >
+                <ActivityCard
+                  activity={activity}
+                  onToggleDone={handleToggleDone}
+                  onEdit={handleEdit}
+                  draggable={isDesktop}
+                  isDragging={draggingId === activity.id}
+                  disableHover={draggingId !== null}
+                  onDragStart={(e) => handleDragStart(e, activity)}
+                  onDragEnd={handleDragEnd}
+                  onTouchStart={(e) => handleTouchStart(e, activity, "later")}
+                  onTouchMove={(e) => handleTouchMove(e, activity.id, "later")}
+                  onTouchEnd={() => handleTouchEnd(activity.id, "later")}
+                />
+              </div>
+            ))}
           </div>
-        )}
+        </div>
       </div>
 
       <AddActivityModal
