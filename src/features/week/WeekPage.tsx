@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { CirclePlus } from "lucide-react";
 import ActivityCard from "../day/ActivityCard";
 import { useActivitiesStore } from "../../shared/store/activitiesStore";
 import type { Activity } from "../../shared/types/activity";
@@ -13,21 +14,6 @@ import {
 interface WeekPageProps {
   activeDate: string;
 }
-
-const PLACEHOLDER_ACTIVITY: Activity = {
-  id: "placeholder",
-  title: "Placeholder",
-  bucket: "scheduled",
-  date: null,
-  time: null,
-  durationMinutes: null,
-  repeat: "none",
-  note: null,
-  isDone: false,
-  orderIndex: null,
-  createdAt: "",
-  updatedAt: "",
-};
 
 const formatMobileDayLabel = (isoDate: string): { weekday: string; monthDay: string } => {
   const date = new Date(`${isoDate}T00:00:00Z`);
@@ -63,6 +49,8 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [activityBeingEdited, setActivityBeingEdited] = useState<Activity | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newActivityDate, setNewActivityDate] = useState<string | null>(null);
 
   const weekStartDate = useMemo(
     () => getWeekStartDate(activeDate),
@@ -95,13 +83,32 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
       <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
     </div>
   );
-  const PlaceholderRow = () => (
-    <div className="invisible pointer-events-none select-none" aria-hidden>
-      <WeekActivityRow
-        activity={PLACEHOLDER_ACTIVITY}
-        onToggleDone={() => {}}
-        onEdit={() => {}}
-      />
+  
+  const EmptySlot = ({ date }: { date: string }) => (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => {
+        setNewActivityDate(date);
+        setIsCreateModalOpen(true);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          setNewActivityDate(date);
+          setIsCreateModalOpen(true);
+        }
+      }}
+      className="group/empty flex min-h-[38px] items-center rounded-lg px-1.5 py-1 cursor-pointer transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
+    >
+      <div className="flex min-w-0 flex-1">
+        <p className="truncate text-[13px] font-semibold text-[var(--color-text-meta)] opacity-0 group-hover/empty:opacity-100 transition-opacity">
+          New activity
+        </p>
+      </div>
+      <div className="flex-shrink-0 opacity-0 group-hover/empty:opacity-100 transition-opacity">
+        <CirclePlus className="h-4 w-4 text-[var(--color-text-meta)]" />
+      </div>
     </div>
   );
 
@@ -122,6 +129,11 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
   const handleDeleteActivity = (id: string) => {
     deleteActivity(id);
     handleCloseEditModal();
+  };
+
+  const handleCloseCreateModal = () => {
+    setIsCreateModalOpen(false);
+    setNewActivityDate(null);
   };
 
   return (
@@ -207,7 +219,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                           {Array.from({ length: placeholderCount }).map((_, idx) => (
                             <div key={`placeholder-${idx}`}>
                               <Divider />
-                              <PlaceholderRow />
+                              {idx === 0 ? <EmptySlot date={date} /> : <div className="min-h-[38px]" />}
                             </div>
                           ))}
                         </>
@@ -251,7 +263,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                               {Array.from({ length: placeholderCount }).map((_, idx) => (
                                 <div key={`sunday-placeholder-${idx}`}>
                                   <Divider />
-                                  <PlaceholderRow />
+                                  {idx === 0 ? <EmptySlot date={sundayDate} /> : <div className="min-h-[38px]" />}
                                 </div>
                               ))}
                             </>
@@ -276,6 +288,15 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
         onDelete={handleDeleteActivity}
         onUpdate={updateActivity}
         defaultDate={activeDate}
+      />
+
+      {/* Create Modal */}
+      <AddActivityModal
+        isOpen={isCreateModalOpen}
+        onClose={handleCloseCreateModal}
+        mode="create"
+        initialPlacement="scheduled"
+        defaultDate={newActivityDate ?? activeDate}
       />
     </>
   );
