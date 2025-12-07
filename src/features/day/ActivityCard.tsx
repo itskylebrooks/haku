@@ -1,4 +1,4 @@
-import { Circle, CheckCircle2, EllipsisVertical } from "lucide-react";
+import { Circle, CheckCircle2 } from "lucide-react";
 import type { Activity, RepeatPattern } from "../../shared/types/activity";
 
 interface ActivityCardProps {
@@ -60,26 +60,15 @@ const ActivityCard = ({
 
   return (
     <div
-      className={`group flex rounded-xl transition ${
+      className={`group flex cursor-pointer rounded-xl transition ${
         isDone
           ? ""
           : "hover:bg-[var(--color-card-hover)] hover:shadow-sm"
       }`}
+      onClick={() => onEdit(activity)}
     >
-      {/* Left: Edit button column - always visible, rounded left corners */}
-      <button
-        type="button"
-        onClick={() => onEdit(activity)}
-        className={`flex w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-l-xl transition hover:bg-[var(--color-card-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[var(--color-border)] md:w-8 ${
-          isDone ? "text-[var(--color-text-faint)]" : "text-[var(--color-text-meta)]"
-        }`}
-        aria-label="Edit activity"
-      >
-        <EllipsisVertical className="h-4 w-4 md:h-[18px] md:w-[18px]" />
-      </button>
-
-      {/* Middle: Content block */}
-      <div className="flex-1 pl-2.5 pr-3 py-3 md:pl-3 md:pr-4 md:py-2.5">
+      {/* Content block - click anywhere here to edit */}
+      <div className="flex-1 pl-3 pr-3 py-3 md:pl-3 md:pr-4 md:py-2.5">
         {/* Meta row: time + metadata */}
         {hasMetaRow && (
           <div className="mb-1 flex items-center gap-1 text-xs md:text-[0.7rem]">
@@ -151,7 +140,10 @@ const ActivityCard = ({
       {/* Right: Check circle gutter - vertically centered */}
       <button
         type="button"
-        onClick={() => onToggleDone(id)}
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggleDone(id);
+        }}
         className="flex w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-r-xl transition hover:bg-[var(--color-card-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[var(--color-border)] md:w-11"
         aria-label={isDone ? "Mark as not done" : "Mark as done"}
       >
