@@ -65,11 +65,11 @@ const DayPage = ({ activeDate }: DayPageProps) => {
 
         {/* Overdue section */}
         {hasOverdue && (
-          <div className="mb-6">
+          <div className="mb-4">
             <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-[var(--color-text-subtle)]">
               Overdue
             </span>
-            <div className="space-y-2 md:space-y-3">
+            <div className="space-y-1.5">
               {overdue.map((activity) => (
                 <ActivityCard
                   key={activity.id}
@@ -80,7 +80,7 @@ const DayPage = ({ activeDate }: DayPageProps) => {
               ))}
             </div>
             {/* Separator - short centered line */}
-            <div className="mt-6 flex justify-center">
+            <div className="mt-4 flex justify-center">
               <div className="w-16 border-t border-[var(--color-border-divider)]" />
             </div>
           </div>
@@ -88,7 +88,7 @@ const DayPage = ({ activeDate }: DayPageProps) => {
 
         {/* Today section */}
         {hasTodayActivities && (
-          <div className="space-y-2 md:space-y-3">
+          <div className="space-y-1.5">
             {todayActivities.map((activity) => (
               <ActivityCard
                 key={activity.id}

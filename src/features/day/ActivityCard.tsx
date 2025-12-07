@@ -75,14 +75,14 @@ const ActivityCard = ({
         }`}
         aria-label="Edit activity"
       >
-        <EllipsisVertical className="h-5 w-5" />
+        <EllipsisVertical className="h-4 w-4 md:h-[18px] md:w-[18px]" />
       </button>
 
       {/* Middle: Content block */}
-      <div className="flex-1 px-3 py-3 md:px-4 md:py-3">
+      <div className="flex-1 pl-2.5 pr-3 py-3 md:pl-3 md:pr-4 md:py-2.5">
         {/* Meta row: time + metadata */}
         {hasMetaRow && (
-          <div className="mb-2 flex items-center gap-1 text-xs">
+          <div className="mb-1 flex items-center gap-1 text-xs md:text-[0.7rem]">
             <span
               className={`${
                 isDone
@@ -125,7 +125,7 @@ const ActivityCard = ({
 
         {/* Title - allow wrapping, no truncation */}
         <h3
-          className={`text-sm font-semibold leading-snug md:text-base ${
+          className={`text-sm font-semibold leading-snug md:text-sm ${
             isDone
               ? "text-[var(--color-text-faint)] line-through decoration-[var(--color-strike)]"
               : "text-[var(--color-text-primary)]"
@@ -137,7 +137,7 @@ const ActivityCard = ({
         {/* Note - allow wrapping, no truncation */}
         {note && (
           <p
-            className={`mt-1 text-xs leading-relaxed md:text-sm ${
+            className={`mt-1 text-xs leading-relaxed md:text-xs ${
               isDone
                 ? "text-[var(--color-text-faint)]"
                 : "text-[var(--color-text-subtle)]"
@@ -156,9 +156,9 @@ const ActivityCard = ({
         aria-label={isDone ? "Mark as not done" : "Mark as done"}
       >
         {isDone ? (
-          <CheckCircle2 className="h-6 w-6 text-[var(--color-text-faint)] md:h-7 md:w-7" />
+          <CheckCircle2 className="h-5 w-5 text-[var(--color-text-faint)] md:h-6 md:w-6" />
         ) : (
-          <Circle className="h-6 w-6 text-[var(--color-text-meta)] md:h-7 md:w-7" />
+          <Circle className="h-5 w-5 text-[var(--color-text-meta)] md:h-6 md:w-6" />
         )}
       </button>
     </div>
