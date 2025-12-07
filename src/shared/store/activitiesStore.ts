@@ -35,6 +35,7 @@ export interface ActivitiesState {
   ) => void;
   toggleDone: (id: string) => void;
   reorderInDay: (date: string, orderedIds: string[]) => void;
+  reorderInBucket: (bucket: Extract<Bucket, "inbox" | "later">, orderedIds: string[]) => void;
 }
 
 const generateActivityId = (() => {
@@ -388,17 +389,70 @@ export const useActivitiesStore = create<ActivitiesState>((set) => ({
       return changed ? { activities } : state;
     });
   },
+  reorderInBucket: (bucket, orderedIds) => {
+    set((state) => {
+      const orderMap = new Map<string, number>();
+      orderedIds.forEach((activityId, index) => {
+        orderMap.set(activityId, index);
+      });
+
+      const now = nowIsoString();
+      let changed = false;
+
+      const activities = state.activities.map((activity): Activity => {
+        if (activity.bucket !== bucket) {
+          return activity;
+        }
+
+        const nextOrderIndex = orderMap.get(activity.id);
+        if (nextOrderIndex === undefined || activity.orderIndex === nextOrderIndex) {
+          return activity;
+        }
+
+        changed = true;
+        return {
+          ...activity,
+          orderIndex: nextOrderIndex,
+          updatedAt: now,
+        };
+      });
+
+      return changed ? { activities } : state;
+    });
+  },
 }));
 
 export const getInboxActivities = (activities: Activity[]): Activity[] =>
   activities
     .filter((activity) => activity.bucket === "inbox")
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    .sort((a, b) => {
+      if (a.orderIndex !== null && b.orderIndex !== null) {
+        return a.orderIndex - b.orderIndex;
+      }
+      if (a.orderIndex !== null) {
+        return -1;
+      }
+      if (b.orderIndex !== null) {
+        return 1;
+      }
+      return a.createdAt.localeCompare(b.createdAt);
+    });
 
 export const getLaterActivities = (activities: Activity[]): Activity[] =>
   activities
     .filter((activity) => activity.bucket === "later")
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    .sort((a, b) => {
+      if (a.orderIndex !== null && b.orderIndex !== null) {
+        return a.orderIndex - b.orderIndex;
+      }
+      if (a.orderIndex !== null) {
+        return -1;
+      }
+      if (b.orderIndex !== null) {
+        return 1;
+      }
+      return a.createdAt.localeCompare(b.createdAt);
+    });
 
 export const getActivitiesForDate = (
   activities: Activity[],

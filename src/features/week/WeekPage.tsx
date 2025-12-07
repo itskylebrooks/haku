@@ -1,3 +1,4 @@
+import type React from "react";
 import { useMemo, useState } from "react";
 import { CirclePlus } from "lucide-react";
 import ActivityCard from "../day/ActivityCard";
@@ -47,12 +48,19 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
   const toggleDone = useActivitiesStore((state) => state.toggleDone);
   const deleteActivity = useActivitiesStore((state) => state.deleteActivity);
   const updateActivity = useActivitiesStore((state) => state.updateActivity);
+  const moveToInbox = useActivitiesStore((state) => state.moveToInbox);
+  const moveToLater = useActivitiesStore((state) => state.moveToLater);
+  const scheduleActivity = useActivitiesStore((state) => state.scheduleActivity);
+  const reorderInDay = useActivitiesStore((state) => state.reorderInDay);
+  const reorderInBucket = useActivitiesStore((state) => state.reorderInBucket);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [activityBeingEdited, setActivityBeingEdited] = useState<Activity | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newActivityDate, setNewActivityDate] = useState<string | null>(null);
   const [newActivityPlacement, setNewActivityPlacement] = useState<Bucket>("scheduled");
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
 
   const weekStartDate = useMemo(
     () => getWeekStartDate(activeDate),
@@ -96,12 +104,41 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
     return Math.max(5, maxCount);
   }, [weekActivities, weekDatesWithoutSunday]);
 
-  const Divider = () => (
-    <div className="flex h-[2px] items-center px-1">
-      <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
+  const Divider = ({
+    isActive = false,
+    onDragOver,
+    onDragLeave,
+    onDrop,
+  }: {
+    isActive?: boolean;
+    onDragOver?: (event: React.DragEvent<HTMLDivElement>) => void;
+    onDragLeave?: () => void;
+    onDrop?: (event: React.DragEvent<HTMLDivElement>) => void;
+  }) => (
+    <div
+      className="flex h-[2px] items-center px-1"
+      onDragOver={(event) => {
+        if (onDragOver) {
+          event.preventDefault();
+          onDragOver(event);
+        }
+      }}
+      onDragLeave={onDragLeave}
+      onDrop={(event) => {
+        if (onDrop) {
+          event.preventDefault();
+          onDrop(event);
+        }
+      }}
+    >
+      <div
+        className={`h-px w-full rounded-full transition-colors ${
+          isActive ? "bg-[var(--color-text-primary)]" : "bg-[var(--color-border-divider)]"
+        }`}
+      />
     </div>
   );
-  
+
   const EmptySlot = ({ onClick, label = "New activity" }: { onClick: () => void; label?: string }) => (
     <div
       role="button"
@@ -163,18 +200,178 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
     setIsCreateModalOpen(true);
   };
 
+  const makeDayDropKey = (date: string, flexibleIndex: number) =>
+    `day-${date}-${flexibleIndex}`;
+  const makeDayZoneKey = (date: string, zoneIndex: number) => `day-zone-${date}-${zoneIndex}`;
+  const makeDayAppendKey = (date: string) => `day-append-${date}`;
+  const makeBucketZoneKey = (bucket: Extract<Bucket, "inbox" | "later">, zoneIndex: number) =>
+    `bucket-${bucket}-zone-${zoneIndex}`;
+
+  const findActivityById = (id: string | null): Activity | null =>
+    id ? activities.find((activity) => activity.id === id) ?? null : null;
+
+  const resetDragState = () => {
+    setDraggingId(null);
+    setDragOverKey(null);
+  };
+
+  const getBucketOrderedIds = (
+    bucket: Extract<Bucket, "inbox" | "later">,
+    excludeId?: string
+  ): string[] => {
+    const items = bucket === "inbox" ? inboxActivities : laterActivities;
+    return items.filter((activity) => activity.id !== excludeId).map((activity) => activity.id);
+  };
+
+  const handleDragStart = (event: React.DragEvent<HTMLDivElement>, activity: Activity) => {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", activity.id);
+    setDraggingId(activity.id);
+    setDragOverKey(null);
+  };
+
+  const handleDragEnd = () => {
+    resetDragState();
+  };
+
+  const handleDragOverZone = (event: React.DragEvent<HTMLElement>, key: string) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "move";
+    if (dragOverKey !== key) {
+      setDragOverKey(key);
+    }
+  };
+
+  const handleDragLeaveZone = (key: string) => {
+    if (dragOverKey === key) {
+      setDragOverKey(null);
+    }
+  };
+
+  const getFlexibleIdsForDate = (date: string, excludeId?: string): string[] => {
+    const itemsForDay = weekActivities[date] ?? [];
+    return itemsForDay
+      .filter((activity) => activity.time === null && activity.id !== excludeId)
+      .map((activity) => activity.id);
+  };
+
+  const handleDropOnDay = (
+    event: React.DragEvent<HTMLDivElement>,
+    date: string,
+    flexibleIndex: number
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const droppedId = draggingId ?? event.dataTransfer.getData("text/plain");
+    const activity = findActivityById(droppedId);
+
+    if (!activity) {
+      resetDragState();
+      return;
+    }
+
+    const sourceDate = activity.bucket === "scheduled" ? activity.date : null;
+    const isFlexible = activity.time === null;
+
+    if (activity.bucket !== "scheduled" || activity.date !== date) {
+      scheduleActivity(activity.id, date);
+    }
+
+    if (isFlexible) {
+      const targetIds = getFlexibleIdsForDate(date, activity.id);
+      const clampedIndex = Math.min(Math.max(flexibleIndex, 0), targetIds.length);
+      targetIds.splice(clampedIndex, 0, activity.id);
+      reorderInDay(date, targetIds);
+
+      if (sourceDate && sourceDate !== date) {
+        const remainingSource = getFlexibleIdsForDate(sourceDate, activity.id);
+        reorderInDay(sourceDate, remainingSource);
+      }
+    } else if (sourceDate && sourceDate !== date) {
+      const remainingSource = getFlexibleIdsForDate(sourceDate, activity.id);
+      if (remainingSource.length > 0) {
+        reorderInDay(sourceDate, remainingSource);
+      }
+    }
+
+    resetDragState();
+  };
+
+  const handleDropToBucket = (
+    event: React.DragEvent<HTMLElement>,
+    bucket: Extract<Bucket, "inbox" | "later">,
+    targetIndex: number
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const droppedId = draggingId ?? event.dataTransfer.getData("text/plain");
+    const activity = findActivityById(droppedId);
+
+    if (!activity) {
+      resetDragState();
+      return;
+    }
+
+    const sourceDate = activity.bucket === "scheduled" ? activity.date : null;
+    const isFlexibleScheduled = activity.bucket === "scheduled" && activity.time === null;
+
+    if (bucket === "inbox") {
+      moveToInbox(activity.id);
+    } else {
+      moveToLater(activity.id);
+    }
+
+    const orderedIds = getBucketOrderedIds(bucket, activity.id);
+    const clampedIndex = Math.min(Math.max(targetIndex, 0), orderedIds.length);
+    orderedIds.splice(clampedIndex, 0, activity.id);
+    reorderInBucket(bucket, orderedIds);
+
+    if (isFlexibleScheduled && sourceDate) {
+      const remainingSource = getFlexibleIdsForDate(sourceDate, activity.id);
+      reorderInDay(sourceDate, remainingSource);
+    }
+
+    resetDragState();
+  };
+
   const renderBucketColumn = (
     label: string,
     bucketActivities: Activity[],
-    placement: Bucket,
+    placement: Extract<Bucket, "inbox" | "later">,
     showLabel: boolean,
-    totalCount: number
+    totalCount: number,
+    startIndex: number,
+    columnIndex: number
   ) => {
     const COLUMN_HEIGHT = 5;
     const placeholderCount = Math.max(COLUMN_HEIGHT - bucketActivities.length, 0);
+    let zoneIndex = startIndex;
+    const isPrimaryColumn = columnIndex === 0;
+    const columnHasItems = bucketActivities.length > 0;
+    const isSecondaryEmpty = !isPrimaryColumn && !columnHasItems;
+    const appendKey = makeBucketZoneKey(placement, totalCount);
+    const ownsAppendHighlight = appendKey !== null && isPrimaryColumn;
+    const interactionsEnabled = isPrimaryColumn || columnHasItems || isSecondaryEmpty;
 
     return (
-      <div className="flex min-h-64 flex-col gap-2 px-1 py-3">
+      <div
+        className="flex min-h-64 flex-col gap-2 px-1 py-3"
+        onDragOver={
+          interactionsEnabled
+            ? (event) => handleDragOverZone(event, appendKey)
+            : undefined
+        }
+        onDragLeave={
+          interactionsEnabled ? () => handleDragLeaveZone(appendKey) : undefined
+        }
+        onDrop={
+          interactionsEnabled
+            ? (event) =>
+                handleDropToBucket(event, placement, startIndex + bucketActivities.length)
+            : undefined
+        }
+      >
         <div className="flex items-baseline justify-between gap-2 px-1">
           <div
             className={`text-sm font-semibold text-[var(--color-text-primary)] ${
@@ -194,26 +391,106 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
         </div>
         <div>
           {bucketActivities.map((activity) => (
-            <div key={activity.id}>
-              <Divider />
-              <WeekActivityRow
-                activity={activity}
-                onToggleDone={handleToggleDone}
-                onEdit={handleEdit}
-              />
-            </div>
+            (() => {
+              const dropIndex = zoneIndex;
+              const zoneKey = makeBucketZoneKey(placement, dropIndex);
+              zoneIndex += 1;
+              const isAppendHighlight =
+                ownsAppendHighlight &&
+                dragOverKey === appendKey &&
+                dropIndex === totalCount;
+              const dividerActive =
+                !isSecondaryEmpty && (dragOverKey === zoneKey || isAppendHighlight);
+              return (
+                <div key={activity.id}>
+                  <Divider
+                    isActive={dividerActive}
+                    onDragOver={(event) => handleDragOverZone(event, zoneKey)}
+                    onDragLeave={() => handleDragLeaveZone(zoneKey)}
+                    onDrop={(event) => handleDropToBucket(event, placement, dropIndex)}
+                  />
+                  <WeekActivityRow
+                    activity={activity}
+                    onToggleDone={handleToggleDone}
+                    onEdit={handleEdit}
+                    draggable
+                    onDragStart={(event) => handleDragStart(event, activity)}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={(event) => handleDragOverZone(event, zoneKey)}
+                    onDragLeave={() => handleDragLeaveZone(zoneKey)}
+                    onDrop={(event) => handleDropToBucket(event, placement, dropIndex)}
+                  />
+                </div>
+              );
+            })()
           ))}
           {Array.from({ length: placeholderCount }).map((_, idx) => (
             <div key={`${placement}-placeholder-${idx}`}>
-              <Divider />
-              {idx === 0 ? (
-                <EmptySlot
-                  label={`Add to ${label}`}
-                  onClick={() => handleOpenCreateModal({ placement })}
-                />
-              ) : (
-                <div className="min-h-[38px]" />
-              )}
+              {(() => {
+                const dropIndex = zoneIndex;
+                const zoneKey = makeBucketZoneKey(placement, dropIndex);
+                zoneIndex += 1;
+                const isPrimaryDrop = idx === 0;
+                const isAppendHighlight =
+                  ownsAppendHighlight &&
+                  dragOverKey === appendKey &&
+                  dropIndex === totalCount;
+                const activeKey = isSecondaryEmpty ? null : isPrimaryDrop ? appendKey : zoneKey;
+                const handlerKey = isSecondaryEmpty ? appendKey : activeKey;
+                if (!interactionsEnabled) {
+                  return (
+                    <>
+                      <Divider />
+                      <div className="min-h-[38px]" />
+                    </>
+                  );
+                }
+                return isPrimaryDrop ? (
+                  <>
+                    <Divider
+                      isActive={
+                        activeKey !== null &&
+                        !isSecondaryEmpty &&
+                        (dragOverKey === activeKey || isAppendHighlight)
+                      }
+                      onDragOver={
+                        handlerKey ? (event) => handleDragOverZone(event, handlerKey) : undefined
+                      }
+                      onDragLeave={
+                        handlerKey ? () => handleDragLeaveZone(handlerKey) : undefined
+                      }
+                      onDrop={
+                        handlerKey
+                          ? (event) => handleDropToBucket(event, placement, dropIndex)
+                          : undefined
+                      }
+                    />
+                    <div
+                      onDragOver={
+                        handlerKey ? (event) => handleDragOverZone(event, handlerKey) : undefined
+                      }
+                      onDragLeave={
+                        handlerKey ? () => handleDragLeaveZone(handlerKey) : undefined
+                      }
+                      onDrop={
+                        handlerKey
+                          ? (event) => handleDropToBucket(event, placement, dropIndex)
+                          : undefined
+                      }
+                    >
+                      <EmptySlot
+                        label={`Add to ${label}`}
+                        onClick={() => handleOpenCreateModal({ placement })}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Divider />
+                    <div className="min-h-[38px]" />
+                  </>
+                );
+              })()}
             </div>
           ))}
         </div>
@@ -270,6 +547,9 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
             {weekDatesWithoutSunday.map((date) => {
               const activitiesForDay = weekActivities[date] ?? [];
               const { weekday, monthDay } = formatDesktopDayLabel(date);
+              let flexibleIndex = 0;
+              let zoneIndex = 0;
+              const appendKey = makeDayAppendKey(date);
 
               return (
                 <div
@@ -282,7 +562,11 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                     </div>
                     <div className="text-sm text-[var(--color-text-meta)]">{monthDay}</div>
                   </div>
-                  <div>
+                  <div
+                    onDragOver={(event) => handleDragOverZone(event, appendKey)}
+                    onDragLeave={() => handleDragLeaveZone(appendKey)}
+                    onDrop={(event) => handleDropOnDay(event, date, flexibleIndex)}
+                  >
                     {(() => {
                       const placeholderCount = Math.max(
                         desktopMaxDividerCount - activitiesForDay.length,
@@ -293,26 +577,75 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
 
                       return (
                         <>
-                          {activitiesForDay.map((activity) => (
-                            <div key={activity.id}>
-                              <Divider />
-                              <WeekActivityRow
-                                activity={activity}
-                                onToggleDone={handleToggleDone}
-                                onEdit={handleEdit}
-                              />
-                            </div>
-                          ))}
-                          {Array.from({ length: totalSlots }).map((_, idx) => (
-                            <div key={`placeholder-${idx}`}>
-                              <Divider />
-                              {idx === 0 ? (
-                                <EmptySlot onClick={() => handleOpenCreateModal({ date })} />
-                              ) : (
-                                <div className="min-h-[38px]" />
-                              )}
-                            </div>
-                          ))}
+                          {activitiesForDay.map((activity) => {
+                            const dropIndex = flexibleIndex;
+                            const dropKey = makeDayDropKey(date, dropIndex);
+                            const zoneKey = makeDayZoneKey(date, zoneIndex);
+                            const isFlexible = activity.time === null;
+
+                            if (isFlexible) {
+                              flexibleIndex += 1;
+                            }
+                            zoneIndex += 1;
+
+                            return (
+                              <div key={activity.id}>
+                                <Divider
+                                  isActive={dragOverKey === zoneKey}
+                                  onDragOver={(event) => handleDragOverZone(event, zoneKey)}
+                                  onDragLeave={() => handleDragLeaveZone(zoneKey)}
+                                  onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
+                                />
+                                <WeekActivityRow
+                                  activity={activity}
+                                  onToggleDone={handleToggleDone}
+                                  onEdit={handleEdit}
+                                  draggable
+                                  isDragging={draggingId === activity.id}
+                                  onDragStart={(event) => handleDragStart(event, activity)}
+                                  onDragEnd={handleDragEnd}
+                                  onDragOver={(event) => handleDragOverZone(event, zoneKey)}
+                                  onDragLeave={() => handleDragLeaveZone(zoneKey)}
+                                  onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
+                                />
+                              </div>
+                            );
+                          })}
+                          {Array.from({ length: totalSlots }).map((_, idx) => {
+                            const dropIndex = flexibleIndex;
+                            const zoneKey = makeDayZoneKey(date, zoneIndex);
+
+                            zoneIndex += 1;
+
+                            const isPrimaryDrop = idx === 0;
+                            const activeKey = isPrimaryDrop ? appendKey : zoneKey;
+                            return (
+                              <div key={`placeholder-${idx}`}>
+                                {isPrimaryDrop ? (
+                                  <>
+                                    <Divider
+                                      isActive={dragOverKey === activeKey}
+                                      onDragOver={(event) => handleDragOverZone(event, activeKey)}
+                                      onDragLeave={() => handleDragLeaveZone(activeKey)}
+                                      onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
+                                    />
+                                    <div
+                                      onDragOver={(event) => handleDragOverZone(event, activeKey)}
+                                      onDragLeave={() => handleDragLeaveZone(activeKey)}
+                                      onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
+                                    >
+                                      <EmptySlot onClick={() => handleOpenCreateModal({ date })} />
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Divider />
+                                    <div className="min-h-[38px]" />
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })}
                         </>
                       );
                     })()}
@@ -324,22 +657,57 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
           {sundayDate && (
             <div className="mt-10 grid grid-cols-6 gap-0">
               <div>
-                {renderBucketColumn("Inbox", inboxPrimary, "inbox", true, inboxActivities.length)}
+                {renderBucketColumn(
+                  "Inbox",
+                  inboxPrimary,
+                  "inbox",
+                  true,
+                  inboxActivities.length,
+                  0,
+                  0
+                )}
               </div>
               <div>
-                {renderBucketColumn("Inbox", inboxSecondary, "inbox", false, inboxActivities.length)}
+                {renderBucketColumn(
+                  "Inbox",
+                  inboxSecondary,
+                  "inbox",
+                  false,
+                  inboxActivities.length,
+                  inboxPrimary.length,
+                  1
+                )}
               </div>
               <div>
-                {renderBucketColumn("Later", laterPrimary, "later", true, laterActivities.length)}
+                {renderBucketColumn(
+                  "Later",
+                  laterPrimary,
+                  "later",
+                  true,
+                  laterActivities.length,
+                  0,
+                  0
+                )}
               </div>
               <div>
-                {renderBucketColumn("Later", laterSecondary, "later", false, laterActivities.length)}
+                {renderBucketColumn(
+                  "Later",
+                  laterSecondary,
+                  "later",
+                  false,
+                  laterActivities.length,
+                  laterPrimary.length,
+                  1
+                )}
               </div>
               <div className="min-h-64" aria-hidden />
               <div>
                 {(() => {
                   const activitiesForDay = weekActivities[sundayDate] ?? [];
                   const { weekday, monthDay } = formatDesktopDayLabel(sundayDate);
+                  let flexibleIndex = 0;
+                  let zoneIndex = 0;
+                  const appendKey = makeDayAppendKey(sundayDate);
                   return (
                     <div className="flex min-h-64 flex-col gap-2 px-1 py-3">
                       <div className="flex items-baseline justify-between gap-2 px-1">
@@ -348,7 +716,11 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                         </div>
                         <div className="text-sm text-[var(--color-text-meta)]">{monthDay}</div>
                       </div>
-                      <div>
+                      <div
+                        onDragOver={(event) => handleDragOverZone(event, appendKey)}
+                        onDragLeave={() => handleDragLeaveZone(appendKey)}
+                        onDrop={(event) => handleDropOnDay(event, sundayDate, flexibleIndex)}
+                      >
                         {(() => {
                           const placeholderCount = Math.max(5 - activitiesForDay.length, 0);
                           // Ensure at least 1 slot for "Add activity" even if list is full
@@ -356,28 +728,85 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
 
                           return (
                             <>
-                              {activitiesForDay.map((activity) => (
-                                <div key={activity.id}>
-                                  <Divider />
-                                  <WeekActivityRow
-                                    activity={activity}
-                                    onToggleDone={handleToggleDone}
-                                    onEdit={handleEdit}
-                                  />
-                                </div>
-                              ))}
-                              {Array.from({ length: totalSlots }).map((_, idx) => (
-                                <div key={`sunday-placeholder-${idx}`}>
-                                  <Divider />
-                                  {idx === 0 ? (
-                                    <EmptySlot
-                                      onClick={() => handleOpenCreateModal({ date: sundayDate })}
+                              {activitiesForDay.map((activity) => {
+                                const dropIndex = flexibleIndex;
+                                const dropKey = makeDayDropKey(sundayDate, dropIndex);
+                                const zoneKey = makeDayZoneKey(sundayDate, zoneIndex);
+                                const isFlexible = activity.time === null;
+
+                                if (isFlexible) {
+                                  flexibleIndex += 1;
+                                }
+                                zoneIndex += 1;
+
+                                return (
+                                  <div key={activity.id}>
+                                    <Divider
+                                      isActive={dragOverKey === zoneKey}
+                                      onDragOver={(event) => handleDragOverZone(event, zoneKey)}
+                                      onDragLeave={() => handleDragLeaveZone(zoneKey)}
+                                      onDrop={(event) =>
+                                        handleDropOnDay(event, sundayDate, dropIndex)
+                                      }
                                     />
-                                  ) : (
-                                    <div className="min-h-[38px]" />
-                                  )}
-                                </div>
-                              ))}
+                                    <WeekActivityRow
+                                      activity={activity}
+                                      onToggleDone={handleToggleDone}
+                                      onEdit={handleEdit}
+                                      draggable
+                                      isDragging={draggingId === activity.id}
+                                      onDragStart={(event) => handleDragStart(event, activity)}
+                                      onDragEnd={handleDragEnd}
+                                      onDragOver={(event) => handleDragOverZone(event, zoneKey)}
+                                      onDragLeave={() => handleDragLeaveZone(zoneKey)}
+                                      onDrop={(event) =>
+                                        handleDropOnDay(event, sundayDate, dropIndex)
+                                      }
+                                    />
+                                  </div>
+                                );
+                              })}
+                              {Array.from({ length: totalSlots }).map((_, idx) => {
+                                const dropIndex = flexibleIndex;
+                                const zoneKey = makeDayZoneKey(sundayDate, zoneIndex);
+
+                                zoneIndex += 1;
+
+                                const isPrimaryDrop = idx === 0;
+                                const activeKey = isPrimaryDrop ? appendKey : zoneKey;
+                                return (
+                                  <div key={`sunday-placeholder-${idx}`}>
+                                    {isPrimaryDrop ? (
+                                      <>
+                                        <Divider
+                                          isActive={dragOverKey === activeKey}
+                                          onDragOver={(event) => handleDragOverZone(event, activeKey)}
+                                          onDragLeave={() => handleDragLeaveZone(activeKey)}
+                                          onDrop={(event) =>
+                                            handleDropOnDay(event, sundayDate, dropIndex)
+                                          }
+                                        />
+                                        <div
+                                          onDragOver={(event) => handleDragOverZone(event, activeKey)}
+                                          onDragLeave={() => handleDragLeaveZone(activeKey)}
+                                          onDrop={(event) =>
+                                            handleDropOnDay(event, sundayDate, dropIndex)
+                                          }
+                                        >
+                                          <EmptySlot
+                                            onClick={() => handleOpenCreateModal({ date: sundayDate })}
+                                          />
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Divider />
+                                        <div className="min-h-[38px]" />
+                                      </>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </>
                           );
                         })()}

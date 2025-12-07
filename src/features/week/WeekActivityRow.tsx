@@ -6,6 +6,12 @@ interface WeekActivityRowProps {
   activity: Activity;
   onToggleDone: (id: string) => void;
   onEdit: (activity: Activity) => void;
+  draggable?: boolean;
+  onDragStart?: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDragEnd?: () => void;
+  onDragOver?: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDragLeave?: () => void;
+  onDrop?: (event: React.DragEvent<HTMLDivElement>) => void;
 }
 
 const formatTimeWithAmPm = (time: string): string => {
@@ -40,7 +46,17 @@ const getRepeatLabel = (repeat: RepeatPattern): string | null => {
   }
 };
 
-const WeekActivityRow = ({ activity, onToggleDone, onEdit }: WeekActivityRowProps) => {
+const WeekActivityRow = ({
+  activity,
+  onToggleDone,
+  onEdit,
+  draggable = false,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+}: WeekActivityRowProps) => {
   const { id, title, time, durationMinutes, repeat, isDone } = activity;
 
   const repeatLabel = getRepeatLabel(repeat);
@@ -76,9 +92,15 @@ const WeekActivityRow = ({ activity, onToggleDone, onEdit }: WeekActivityRowProp
       tabIndex={0}
       onClick={() => onEdit(activity)}
       onKeyDown={handleKeyDown}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
       className={`group flex min-h-[38px] items-stretch rounded-lg px-1.5 py-1 transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
         isDone ? "bg-transparent" : ""
-      }`}
+      } ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
     >
       <div
         className={`flex min-w-0 flex-1 flex-col ${
