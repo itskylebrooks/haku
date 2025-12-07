@@ -56,6 +56,7 @@ const WeekActivityRow = ({ activity, onToggleDone, onEdit }: WeekActivityRowProp
   }
 
   const hasMeta = metaParts.length > 0;
+  const centerTitleOnly = !hasMeta;
 
   const handleToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
@@ -75,11 +76,15 @@ const WeekActivityRow = ({ activity, onToggleDone, onEdit }: WeekActivityRowProp
       tabIndex={0}
       onClick={() => onEdit(activity)}
       onKeyDown={handleKeyDown}
-      className={`group flex items-stretch rounded-lg px-1.5 py-1 transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
+      className={`group flex min-h-[38px] items-stretch rounded-lg px-1.5 py-1 transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
         isDone ? "bg-transparent" : ""
       }`}
     >
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div
+        className={`flex min-w-0 flex-1 flex-col ${
+          centerTitleOnly ? "justify-center" : ""
+        }`}
+      >
         <div className="flex min-w-0 items-center">
           <p
             className={`flex-1 min-w-0 line-clamp-1 text-[13px] font-semibold leading-tight ${
@@ -95,7 +100,7 @@ const WeekActivityRow = ({ activity, onToggleDone, onEdit }: WeekActivityRowProp
         <p
           className={`mt-0 text-[10px] leading-snug h-3.5 ${
             isDone ? "text-[var(--color-text-faint)]" : "text-[var(--color-text-subtle)]"
-          } ${hasMeta ? "" : "invisible"}`}
+          } ${hasMeta ? "" : "hidden"}`}
         >
           {hasMeta ? metaParts.join(" · ") : " "}
         </p>
