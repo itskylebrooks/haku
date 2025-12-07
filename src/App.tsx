@@ -3,8 +3,10 @@ import AddActivityModal from "./shared/components/AddActivityModal";
 import AppShell from "./features/app-shell/AppShell";
 import DayPage from "./features/day/DayPage";
 import WeekPage from "./features/week/WeekPage";
+import InboxPage from "./features/inbox/InboxPage";
 
 type ViewMode = "day" | "week";
+type ActiveTab = "inbox" | "day" | "week";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -22,6 +24,7 @@ const shiftDate = (isoDate: string, mode: ViewMode, direction: 1 | -1) => {
 
 function App() {
   const [mode, setMode] = useState<ViewMode>("day");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("day");
   const [currentDate, setCurrentDate] = useState<string>(todayIso());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -30,8 +33,15 @@ function App() {
   const handleNext = () =>
     setCurrentDate((date) => shiftDate(date, mode, 1));
   const handleResetToday = () => setCurrentDate(todayIso());
-  const handleToggleInbox = () => {
-    // Placeholder for future inbox toggle.
+  const handleTabChange = (tab: ActiveTab) => {
+    setActiveTab(tab);
+    if (tab === "day") {
+      setMode("day");
+    } else if (tab === "week") {
+      setMode("week");
+    } else if (tab === "inbox") {
+      setCurrentDate(todayIso());
+    }
   };
   const handleOpenSettings = () => {
     // Placeholder for future settings action.
@@ -48,16 +58,19 @@ function App() {
       >
         <AppShell
           mode={mode}
+          activeTab={activeTab}
           currentDate={currentDate}
           onModeChange={setMode}
-        onPrev={handlePrev}
-        onNext={handleNext}
-        onResetToday={handleResetToday}
-        onToggleInbox={handleToggleInbox}
-        onOpenSettings={handleOpenSettings}
-        onOpenAdd={handleOpenAddModal}
-      >
-          {mode === "day" ? (
+          onTabChange={handleTabChange}
+          onPrev={handlePrev}
+          onNext={handleNext}
+          onResetToday={handleResetToday}
+          onOpenSettings={handleOpenSettings}
+          onOpenAdd={handleOpenAddModal}
+        >
+          {activeTab === "inbox" ? (
+            <InboxPage />
+          ) : mode === "day" ? (
             <DayPage activeDate={currentDate} />
           ) : (
             <WeekPage activeDate={currentDate} />

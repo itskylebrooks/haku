@@ -1,4 +1,3 @@
-import { useState } from "react";
 import DesktopHeader from "./DesktopHeader";
 import MobileHeader from "./MobileHeader";
 import MobileTabBar from "./MobileTabBar";
@@ -8,12 +7,13 @@ type ActiveTab = "inbox" | "day" | "week";
 
 interface AppShellProps {
   mode: ViewMode;
+  activeTab: ActiveTab;
   currentDate: string;
   onModeChange: (mode: ViewMode) => void;
+  onTabChange: (tab: ActiveTab) => void;
   onPrev: () => void;
   onNext: () => void;
   onResetToday: () => void;
-  onToggleInbox: () => void;
   onOpenSettings: () => void;
   onOpenAdd: () => void;
   children: React.ReactNode;
@@ -21,36 +21,24 @@ interface AppShellProps {
 
 const AppShell = ({
   mode,
+  activeTab,
   currentDate,
   onModeChange,
+  onTabChange,
   onPrev,
   onNext,
   onResetToday,
-  onToggleInbox,
   onOpenSettings,
   onOpenAdd,
   children,
 }: AppShellProps) => {
-  const [activeTab, setActiveTab] = useState<ActiveTab>("day");
-
-  const handleTabChange = (tab: ActiveTab) => {
-    setActiveTab(tab);
-    if (tab === "day") {
-      onModeChange("day");
-    } else if (tab === "week") {
-      onModeChange("week");
-    } else if (tab === "inbox") {
-      onToggleInbox();
-    }
-  };
-
-  // Calculate prev/next based on active tab and mode
-  const handleMobilePrev = () => {
+  // Calculate prev/next based on active tab
+  const handlePrev = () => {
     if (activeTab === "inbox") return;
     onPrev();
   };
 
-  const handleMobileNext = () => {
+  const handleNext = () => {
     if (activeTab === "inbox") return;
     onNext();
   };
@@ -62,9 +50,9 @@ const AppShell = ({
         mode={mode}
         activeTab={activeTab}
         currentDate={currentDate}
-        onTabChange={handleTabChange}
-        onPrev={onPrev}
-        onNext={onNext}
+        onTabChange={onTabChange}
+        onPrev={handlePrev}
+        onNext={handleNext}
         onResetToday={onResetToday}
         onOpenSettings={onOpenSettings}
         onOpenAdd={onOpenAdd}
@@ -74,8 +62,8 @@ const AppShell = ({
       <MobileHeader
         activeTab={activeTab}
         currentDate={currentDate}
-        onPrev={handleMobilePrev}
-        onNext={handleMobileNext}
+        onPrev={handlePrev}
+        onNext={handleNext}
         onOpenSettings={onOpenSettings}
         onResetToday={onResetToday}
       />
@@ -86,7 +74,7 @@ const AppShell = ({
       {/* Mobile Tab Bar - hidden on desktop */}
       <MobileTabBar
         activeTab={activeTab}
-        onTabChange={handleTabChange}
+        onTabChange={onTabChange}
         onAdd={onOpenAdd}
       />
     </>

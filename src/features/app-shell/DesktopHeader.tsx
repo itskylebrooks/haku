@@ -56,6 +56,7 @@ const DesktopHeader = ({
 }: DesktopHeaderProps) => {
   const formattedDate = useMemo(() => formatDate(currentDate), [currentDate]);
   const selectedTab: ActiveTab = activeTab === "inbox" ? "inbox" : mode;
+  const chevronsDisabled = selectedTab === "inbox";
 
   return (
     <header className="sticky top-6 z-40 hidden bg-[var(--color-surface)] pb-1 pt-0 text-sm text-[var(--color-text-primary)] lg:block">
@@ -69,19 +70,25 @@ const DesktopHeader = ({
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                onClick={onPrev}
-                className={iconButton}
+                onClick={chevronsDisabled ? undefined : onPrev}
+                className={`${iconButton} ${
+                  chevronsDisabled ? "cursor-default opacity-40" : ""
+                }`}
                 aria-label="Previous"
                 title="Previous"
+                disabled={chevronsDisabled}
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <button
                 type="button"
-                onClick={onNext}
-                className={iconButton}
+                onClick={chevronsDisabled ? undefined : onNext}
+                className={`${iconButton} ${
+                  chevronsDisabled ? "cursor-default opacity-40" : ""
+                }`}
                 aria-label="Next"
                 title="Next"
+                disabled={chevronsDisabled}
               >
                 <ChevronRight className="h-5 w-5" />
               </button>
