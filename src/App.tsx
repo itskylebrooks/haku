@@ -33,9 +33,6 @@ function App() {
   const handleToggleInbox = () => {
     // Placeholder for future inbox toggle.
   };
-  const handleToggleLater = () => {
-    // Placeholder for future later toggle.
-  };
   const handleOpenSettings = () => {
     // Placeholder for future settings action.
   };
@@ -53,14 +50,13 @@ function App() {
           mode={mode}
           currentDate={currentDate}
           onModeChange={setMode}
-          onPrev={handlePrev}
-          onNext={handleNext}
-          onResetToday={handleResetToday}
-          onToggleInbox={handleToggleInbox}
-          onToggleLater={handleToggleLater}
-          onOpenSettings={handleOpenSettings}
-          onOpenAdd={handleOpenAddModal}
-        >
+        onPrev={handlePrev}
+        onNext={handleNext}
+        onResetToday={handleResetToday}
+        onToggleInbox={handleToggleInbox}
+        onOpenSettings={handleOpenSettings}
+        onOpenAdd={handleOpenAddModal}
+      >
           {mode === "day" ? (
             <DayPage activeDate={currentDate} />
           ) : (

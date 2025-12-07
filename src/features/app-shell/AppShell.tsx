@@ -14,7 +14,6 @@ interface AppShellProps {
   onNext: () => void;
   onResetToday: () => void;
   onToggleInbox: () => void;
-  onToggleLater: () => void;
   onOpenSettings: () => void;
   onOpenAdd: () => void;
   children: React.ReactNode;
@@ -28,7 +27,6 @@ const AppShell = ({
   onNext,
   onResetToday,
   onToggleInbox,
-  onToggleLater,
   onOpenSettings,
   onOpenAdd,
   children,
@@ -41,8 +39,9 @@ const AppShell = ({
       onModeChange("day");
     } else if (tab === "week") {
       onModeChange("week");
+    } else if (tab === "inbox") {
+      onToggleInbox();
     }
-    // For "inbox", mode remains unchanged
   };
 
   // Calculate prev/next based on active tab and mode
@@ -61,13 +60,12 @@ const AppShell = ({
       {/* Desktop Header - hidden on mobile */}
       <DesktopHeader
         mode={mode}
+        activeTab={activeTab}
         currentDate={currentDate}
-        onModeChange={onModeChange}
+        onTabChange={handleTabChange}
         onPrev={onPrev}
         onNext={onNext}
         onResetToday={onResetToday}
-        onToggleInbox={onToggleInbox}
-        onToggleLater={onToggleLater}
         onOpenSettings={onOpenSettings}
         onOpenAdd={onOpenAdd}
       />

@@ -1,5 +1,4 @@
 import {
-  Archive,
   ChevronLeft,
   ChevronRight,
   Grid2x2,
@@ -10,16 +9,16 @@ import {
 import { useMemo } from "react";
 
 type ViewMode = "day" | "week";
+type ActiveTab = "inbox" | "day" | "week";
 
 interface DesktopHeaderProps {
   mode: ViewMode;
+  activeTab: ActiveTab;
   currentDate: string;
-  onModeChange: (mode: ViewMode) => void;
+  onTabChange: (tab: ActiveTab) => void;
   onPrev: () => void;
   onNext: () => void;
   onResetToday: () => void;
-  onToggleInbox: () => void;
-  onToggleLater: () => void;
   onOpenSettings: () => void;
   onOpenAdd: () => void;
 }
@@ -46,17 +45,17 @@ const iconButton =
 
 const DesktopHeader = ({
   mode,
+  activeTab,
   currentDate,
-  onModeChange,
+  onTabChange,
   onPrev,
   onNext,
   onResetToday,
-  onToggleInbox,
-  onToggleLater,
   onOpenSettings,
   onOpenAdd,
 }: DesktopHeaderProps) => {
   const formattedDate = useMemo(() => formatDate(currentDate), [currentDate]);
+  const selectedTab: ActiveTab = activeTab === "inbox" ? "inbox" : mode;
 
   return (
     <header className="sticky top-6 z-40 hidden bg-[var(--color-surface)] pb-1 pt-0 text-sm text-[var(--color-text-primary)] lg:block">
@@ -67,15 +66,6 @@ const DesktopHeader = ({
       <div className="mx-auto w-full max-w-xl px-4 pt-4 md:pt-0">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
           <div className="flex items-center justify-start gap-2">
-            <button
-              type="button"
-              onClick={onToggleInbox}
-              className={iconButton}
-              aria-label="Toggle Inbox"
-              title="Inbox"
-            >
-              <Inbox className="h-5 w-5" />
-            </button>
             <div className="flex items-center gap-1">
               <button
                 type="button"
@@ -100,25 +90,23 @@ const DesktopHeader = ({
 
           <div className="flex items-center justify-center">
             <div className="inline-flex h-10 items-center gap-1 rounded-full border border-[var(--color-border)] bg-transparent px-1 text-sm font-medium shadow-none transition">
-              {(["day", "week"] as ViewMode[]).map((value) => {
-                const isActive = mode === value;
+              {(["inbox", "day", "week"] as ActiveTab[]).map((value) => {
+                const isActive = selectedTab === value;
                 return (
                   <button
                     key={value}
                     type="button"
                     aria-pressed={isActive}
-                    onClick={() => onModeChange(value)}
+                    onClick={() => onTabChange(value)}
                     className={`inline-flex h-8 w-11 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
                       isActive
                         ? "bg-[var(--color-surface-strong)] text-[var(--color-text-contrast)] font-semibold shadow-sm"
                         : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
                     }`}
                     >
-                    {value === "day" ? (
-                      <Square className="h-5 w-5" aria-hidden />
-                    ) : (
-                      <Grid2x2 className="h-5 w-5" aria-hidden />
-                    )}
+                    {value === "inbox" && <Inbox className="h-5 w-5" aria-hidden />}
+                    {value === "day" && <Square className="h-5 w-5" aria-hidden />}
+                    {value === "week" && <Grid2x2 className="h-5 w-5" aria-hidden />}
                     <span className="sr-only">{value}</span>
                   </button>
                 );
@@ -135,15 +123,6 @@ const DesktopHeader = ({
               title="Settings"
             >
               <Settings className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              onClick={onToggleLater}
-              className={iconButton}
-              aria-label="Toggle Later"
-              title="Later"
-            >
-              <Archive className="h-5 w-5" />
             </button>
           </div>
         </div>
