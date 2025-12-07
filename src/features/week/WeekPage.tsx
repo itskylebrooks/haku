@@ -664,6 +664,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                     onToggleDone={handleToggleDone}
                     onEdit={handleEdit}
                     draggable
+                    disableHover={draggingId !== null}
                     onDragStart={(event) => handleDragStart(event, activity)}
                     onDragEnd={handleDragEnd}
                     onDragOver={(event) => handleDragOverZone(event, zoneKey)}
@@ -785,6 +786,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                               onEdit={handleEdit}
                               draggable
                               isDragging={draggingId === activity.id}
+                              disableHover={draggingId !== null}
                               onDragStart={(e) => handleDragStart(e, activity)}
                               onDragEnd={handleDragEnd}
                               onTouchStart={(e) => handleMobileTouchStart(e, activity, date)}
@@ -872,6 +874,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                                   onEdit={handleEdit}
                                   draggable
                                   isDragging={draggingId === activity.id}
+                                  disableHover={draggingId !== null}
                                   onDragStart={(event) => handleDragStart(event, activity)}
                                   onDragEnd={handleDragEnd}
                                   onDragOver={(event) => handleDragOverZone(event, zoneKey)}
@@ -1018,6 +1021,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                                       onEdit={handleEdit}
                                       draggable
                                       isDragging={draggingId === activity.id}
+                                      disableHover={draggingId !== null}
                                       onDragStart={(event) => handleDragStart(event, activity)}
                                       onDragEnd={handleDragEnd}
                                       onDragOver={(event) => handleDragOverZone(event, zoneKey)}

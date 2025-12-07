@@ -378,6 +378,7 @@ const InboxPage = () => {
                     onEdit={handleEdit}
                     draggable
                     isDragging={draggingId === activity.id}
+                    disableHover={draggingId !== null}
                     onDragStart={(e) => handleDragStart(e, activity)}
                     onDragEnd={handleDragEnd}
                     onTouchStart={(e) => handleTouchStart(e, activity, "inbox")}
@@ -419,6 +420,7 @@ const InboxPage = () => {
                     onEdit={handleEdit}
                     draggable
                     isDragging={draggingId === activity.id}
+                    disableHover={draggingId !== null}
                     onDragStart={(e) => handleDragStart(e, activity)}
                     onDragEnd={handleDragEnd}
                     onTouchStart={(e) => handleTouchStart(e, activity, "later")}

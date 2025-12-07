@@ -13,6 +13,7 @@ interface ActivityCardProps {
   onTouchStart?: (event: React.TouchEvent<HTMLDivElement>) => void;
   onTouchMove?: (event: React.TouchEvent<HTMLDivElement>) => void;
   onTouchEnd?: (event: React.TouchEvent<HTMLDivElement>) => void;
+  disableHover?: boolean;
 }
 
 /**
@@ -67,18 +68,20 @@ const ActivityCard = ({
   onTouchStart,
   onTouchMove,
   onTouchEnd,
+  disableHover = false,
 }: ActivityCardProps) => {
   const { id, title, time, durationMinutes, repeat, note, isDone } = activity;
 
   const hasMetaRow = time !== null;
   const repeatLabel = getRepeatLabel(repeat);
+  const hoverClasses = !disableHover && !isDone
+    ? "hover:bg-[var(--color-card-hover)] hover:shadow-sm"
+    : "";
 
   return (
     <div
       className={`group flex cursor-pointer rounded-xl transition ${
-        isDone
-          ? ""
-          : "hover:bg-[var(--color-card-hover)] hover:shadow-sm"
+        isDone ? "" : hoverClasses
       } ${draggable ? "cursor-grab active:cursor-grabbing" : ""} ${isDragging ? "opacity-50" : ""}`}
       onClick={() => onEdit(activity)}
       draggable={draggable}

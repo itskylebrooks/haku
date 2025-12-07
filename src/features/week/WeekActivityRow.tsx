@@ -13,6 +13,7 @@ interface WeekActivityRowProps {
   onDragOver?: (event: React.DragEvent<HTMLDivElement>) => void;
   onDragLeave?: (event: React.DragEvent<HTMLDivElement>) => void;
   onDrop?: (event: React.DragEvent<HTMLDivElement>) => void;
+  disableHover?: boolean;
 }
 
 const formatTimeWithAmPm = (time: string): string => {
@@ -58,6 +59,7 @@ const WeekActivityRow = ({
   onDragOver,
   onDragLeave,
   onDrop,
+  disableHover = false,
 }: WeekActivityRowProps) => {
   const { id, title, time, durationMinutes, repeat, isDone } = activity;
 
@@ -88,6 +90,10 @@ const WeekActivityRow = ({
     }
   };
 
+  const hoverClasses = !disableHover && !isDone
+    ? "hover:bg-[var(--color-surface-hover)]"
+    : "";
+
   return (
     <div
       role="button"
@@ -100,9 +106,9 @@ const WeekActivityRow = ({
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
-      className={`group flex min-h-[38px] items-stretch rounded-lg px-1.5 py-1 transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
+      className={`group flex min-h-[38px] items-stretch rounded-lg px-1.5 py-1 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
         isDone ? "bg-transparent" : ""
-      } ${draggable ? "cursor-grab active:cursor-grabbing" : ""} ${isDragging ? "opacity-50" : ""}`}
+      } ${hoverClasses} ${draggable ? "cursor-grab active:cursor-grabbing" : ""} ${isDragging ? "opacity-50" : ""}`}
     >
       <div
         className={`flex min-w-0 flex-1 flex-col ${
