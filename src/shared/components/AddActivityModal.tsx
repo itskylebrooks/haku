@@ -66,6 +66,7 @@ const AddActivityModal = ({
   const addActivity = useActivitiesStore((state) => state.addActivity);
 
   const isEditMode = mode === "edit" && activityToEdit !== undefined;
+  const isPlacementLocked = Boolean(isEditMode && activityToEdit?.isDone);
 
   // Derive initial placement from activity being edited or use defaults
   const getInitialPlacement = (): PlacementOption => {
@@ -277,10 +278,12 @@ const AddActivityModal = ({
             <div className="flex items-center gap-2">
               {placementLabels.map(({ key, label }) => {
                 const isActive = placement === key;
+                const isDisabled = isPlacementLocked && key !== "date";
                 return (
                   <button
                     key={key}
                     type="button"
+                    disabled={isDisabled}
                     onClick={() => {
                       setPlacement(key);
                       if (key !== "date") {
@@ -292,7 +295,7 @@ const AddActivityModal = ({
                       isActive
                         ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] shadow-sm"
                         : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-subtle)]"
-                    }`}
+                    } ${isDisabled ? "cursor-not-allowed opacity-50" : ""}`}
                   >
                     {label}
                   </button>

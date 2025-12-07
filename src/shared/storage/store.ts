@@ -186,7 +186,14 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
           return activity;
         }
 
-        const nextBucket = restUpdates.bucket ?? activity.bucket;
+        const requestedBucket = restUpdates.bucket ?? activity.bucket;
+        const nextIsDone =
+          restUpdates.isDone !== undefined ? restUpdates.isDone : activity.isDone;
+        const nextBucket =
+          nextIsDone && requestedBucket !== "scheduled"
+            ? "scheduled"
+            : requestedBucket;
+
         const nextDate =
           nextBucket === "scheduled" ? restUpdates.date ?? activity.date : null;
 
@@ -210,8 +217,6 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
         const nextTitle = restUpdates.title ?? activity.title;
         const nextNote =
           restUpdates.note !== undefined ? restUpdates.note : activity.note;
-        const nextIsDone =
-          restUpdates.isDone !== undefined ? restUpdates.isDone : activity.isDone;
         const nextOrderIndex =
           restUpdates.orderIndex !== undefined
             ? restUpdates.orderIndex
@@ -265,6 +270,9 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
         if (activity.id !== id) {
           return activity;
         }
+        if (activity.isDone) {
+          return activity;
+        }
         const needsUpdate =
           activity.bucket !== "inbox" ||
           activity.date !== null ||
@@ -293,6 +301,9 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
       let changed = false;
       const activities = state.activities.map((activity): Activity => {
         if (activity.id !== id) {
+          return activity;
+        }
+        if (activity.isDone) {
           return activity;
         }
         const needsUpdate =
@@ -346,6 +357,9 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
       let changed = false;
       const activities = state.activities.map((activity): Activity => {
         if (activity.id !== id) {
+          return activity;
+        }
+        if (activity.isDone) {
           return activity;
         }
         const needsUpdate =
