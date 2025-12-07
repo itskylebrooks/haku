@@ -101,6 +101,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
   const [mobilePreviewOrder, setMobilePreviewOrder] = useState<Record<string, Activity[]>>({});
+  const [mobileDragOverDate, setMobileDragOverDate] = useState<string | null>(null);
   const dragLeaveTimeoutRef = useRef<number | null>(null);
   const mobileContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const longPressTimerRef = useRef<number | null>(null);
@@ -539,6 +540,25 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
     return targetIndex;
   }, []);
 
+  const getDateAtPosition = useCallback((clientX: number, clientY: number): string | null => {
+    // Check all date containers to see which one contains the touch point
+    for (const date of weekDates) {
+      const container = mobileContainerRefs.current[date];
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        if (
+          clientX >= rect.left &&
+          clientX <= rect.right &&
+          clientY >= rect.top &&
+          clientY <= rect.bottom
+        ) {
+          return date;
+        }
+      }
+    }
+    return null;
+  }, [weekDates]);
+
   const handleMobileTouchStart = useCallback((
     event: React.TouchEvent<HTMLDivElement>,
     activity: Activity,
@@ -570,8 +590,8 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
 
   const handleMobileTouchMove = useCallback((
     event: React.TouchEvent<HTMLDivElement>,
-    activityId: string,
-    date: string
+    _activityId: string,
+    _originalDate: string
   ) => {
     const touch = event.touches[0];
 
@@ -592,32 +612,47 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
       y: touch.clientY - dragOffset.y
     });
 
-    const targetIndex = getMobileTargetIndexFromY(touch.clientY, date);
-    const activitiesForDay = weekActivities[date] ?? [];
-    const newOrder = computeMobilePreviewOrder(activitiesForDay, activityId, targetIndex);
-    setMobilePreviewOrder((prev) => ({ ...prev, [date]: newOrder }));
-  }, [clearLongPressTimer, getMobileTargetIndexFromY, weekActivities, dragOffset]);
+    // Update which date we're over
+    const targetDate = getDateAtPosition(touch.clientX, touch.clientY);
+    if (targetDate) {
+      touchDragDateRef.current = targetDate;
+      setMobileDragOverDate(targetDate);
+    }
+  }, [clearLongPressTimer, getDateAtPosition, dragOffset]);
 
   const handleMobileTouchEnd = useCallback((
-    _activityId: string,
-    date: string
+    activityId: string,
+    originalDate: string
   ) => {
     clearLongPressTimer();
 
-    if (isTouchDraggingRef.current && mobilePreviewOrder[date]) {
-      const orderedIds = mobilePreviewOrder[date].map((a) => a.id);
-      reorderInDay(date, orderedIds);
+    if (isTouchDraggingRef.current) {
+      const activity = findActivityById(activityId);
+      const targetDate = touchDragDateRef.current || originalDate;
+      
+      if (activity) {
+        const sourceDate = activity.bucket === "scheduled" ? activity.date : null;
+        
+        // If moving to a different date, schedule the activity
+        if (sourceDate !== targetDate) {
+          scheduleActivity(activityId, targetDate);
+        }
+        
+        // For same-date reordering, keep current order
+        // The activity stays in its position since we're not computing previews
+      }
     }
 
     isTouchDraggingRef.current = false;
     touchDragDateRef.current = null;
     setIsTouchDrag(false);
     setDragPosition(null);
+    setMobileDragOverDate(null);
     document.body.style.overflow = "";
     document.body.style.touchAction = "";
     resetDragState();
     setMobilePreviewOrder({});
-  }, [clearLongPressTimer, mobilePreviewOrder, reorderInDay]);
+  }, [clearLongPressTimer, findActivityById, scheduleActivity]);
 
   const renderBucketColumn = (
     label: string,
@@ -790,7 +825,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
         <div className="space-y-8 px-4 pt-4 pb-6">
           {weekDates.map((date) => {
             const activitiesForDay = weekActivities[date] ?? [];
-            const hasActivities = activitiesForDay.length > 0;
+            const displayActivities = mobilePreviewOrder[date] ?? activitiesForDay;
             const mobileLabel = formatMobileDayLabel(date);
 
             return (
@@ -799,54 +834,43 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
                   <span className="text-[var(--color-text-primary)]">{mobileLabel.weekday}</span>
                   <span className="text-[var(--color-text-meta)]">· {mobileLabel.monthDay}</span>
                 </div>
-                {hasActivities ? (
-                  (() => {
-                    const displayActivities = mobilePreviewOrder[date] ?? activitiesForDay;
-                    return (
-                      <div
-                        ref={(el) => { mobileContainerRefs.current[date] = el; }}
-                        onDragLeave={(e) => handleMobileDragLeave(e, date)}
-                      >
-                        {displayActivities.map((activity, index) => (
-                          <div
-                            key={activity.id}
-                            data-activity-id={activity.id}
-                            onDragOver={(e) => handleMobileDragOver(e, date, index)}
-                            onDrop={(e) => handleMobileDrop(e, date, index)}
-                          >
-                            <ActivityCard
-                              activity={activity}
-                              onToggleDone={handleToggleDone}
-                              onEdit={handleEdit}
-                              draggable={isDesktop}
-                              isDragging={draggingId === activity.id}
-                              disableHover={draggingId !== null}
-                              onDragStart={(e) => handleDragStart(e, activity)}
-                              onDragEnd={handleDragEnd}
-                              onTouchStart={(e) => handleMobileTouchStart(e, activity, date)}
-                              onTouchMove={(e) => handleMobileTouchMove(e, activity.id, date)}
-                              onTouchEnd={() => handleMobileTouchEnd(activity.id, date)}
-                            />
-                          </div>
-                        ))}
-                        {/* Drop zone at the end */}
-                        <div
-                          className="h-8"
-                          onDragOver={(e) => handleMobileDragOver(e, date, displayActivities.length)}
-                          onDrop={(e) => handleMobileDrop(e, date, displayActivities.length)}
-                        />
-                      </div>
-                    );
-                  })()
-                ) : (
-                  <div className="space-y-2 pt-4 pb-3">
-                    {Array.from({ length: 5 }).map((_, idx) => (
-                      <div key={idx} className="flex h-7 items-center">
-                        <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div
+                  ref={(el) => { mobileContainerRefs.current[date] = el; }}
+                  className="min-h-20 relative"
+                  onDragLeave={(e) => handleMobileDragLeave(e, date)}
+                  onDragOver={(e) => handleMobileDragOver(e, date, displayActivities.length)}
+                  onDrop={(e) => handleMobileDrop(e, date, displayActivities.length)}
+                >
+                  {displayActivities.length === 0 && mobileDragOverDate !== date && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <p className="text-sm text-[var(--color-text-subtle)]">
+                        Nothing for this day
+                      </p>
+                    </div>
+                  )}
+                  {displayActivities.map((activity, index) => (
+                    <div
+                      key={activity.id}
+                      data-activity-id={activity.id}
+                      onDragOver={(e) => handleMobileDragOver(e, date, index)}
+                      onDrop={(e) => handleMobileDrop(e, date, index)}
+                    >
+                      <ActivityCard
+                        activity={activity}
+                        onToggleDone={handleToggleDone}
+                        onEdit={handleEdit}
+                        draggable={isDesktop}
+                        isDragging={draggingId === activity.id}
+                        disableHover={draggingId !== null}
+                        onDragStart={(e) => handleDragStart(e, activity)}
+                        onDragEnd={handleDragEnd}
+                        onTouchStart={(e) => handleMobileTouchStart(e, activity, date)}
+                        onTouchMove={(e) => handleMobileTouchMove(e, activity.id, date)}
+                        onTouchEnd={() => handleMobileTouchEnd(activity.id, date)}
+                      />
+                    </div>
+                  ))}
+                </div>
               </section>
             );
           })}
