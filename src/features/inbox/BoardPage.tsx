@@ -9,6 +9,7 @@ import type { Activity, Bucket } from "../../shared/types/activity";
 import AddActivityModal from "../../shared/components/AddActivityModal";
 import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
 import { TouchDragOverlay } from "../../shared/components/TouchDragOverlay";
+import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
 
 /**
  * Computes a preview order for bucket activities when dragging.
@@ -54,6 +55,8 @@ const BoardPage = () => {
   const touchStartXRef = useRef(0);
   const isTouchDraggingRef = useRef(false);
   const touchDragBucketRef = useRef<Extract<Bucket, "inbox" | "later"> | null>(null);
+
+  const { startAutoScroll, stopAutoScroll } = useAutoScroll();
 
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
@@ -354,7 +357,10 @@ const BoardPage = () => {
       touchDragBucketRef.current = targetBucket;
       setTouchDragOverBucket(targetBucket);
     }
-  }, [clearLongPressTimer, getBucketAtPosition, dragOffset]);
+
+    // Auto-scroll when near edges
+    startAutoScroll(touch.clientY);
+  }, [clearLongPressTimer, getBucketAtPosition, dragOffset, startAutoScroll]);
 
   const handleTouchEnd = useCallback((
     activityId: string,
@@ -383,6 +389,7 @@ const BoardPage = () => {
     setTouchDragOverBucket(null);
     document.body.style.overflow = "";
     document.body.style.touchAction = "";
+    stopAutoScroll();
     resetDragState();
   }, [clearLongPressTimer, activities, moveToInbox, moveToLater]);
 

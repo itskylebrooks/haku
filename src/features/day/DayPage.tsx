@@ -6,6 +6,7 @@ import { getDayViewData } from "./daySelectors";
 import AddActivityModal from "../../shared/components/AddActivityModal";
 import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
 import { TouchDragOverlay } from "../../shared/components/TouchDragOverlay";
+import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
 
 interface DayPageProps {
   activeDate: string;
@@ -70,6 +71,8 @@ const DayPage = ({ activeDate }: DayPageProps) => {
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isTouchDrag, setIsTouchDrag] = useState(false);
+
+  const { startAutoScroll, stopAutoScroll } = useAutoScroll();
 
   useEffect(() => {
     if (isTouchDrag) {
@@ -257,7 +260,10 @@ const DayPage = ({ activeDate }: DayPageProps) => {
     const targetIndex = getTargetIndexFromY(touch.clientY);
     const newOrder = computePreviewOrder(todayActivities, activityId, targetIndex);
     setPreviewOrder(newOrder);
-  }, [clearLongPressTimer, getTargetIndexFromY, todayActivities, dragOffset]);
+
+    // Auto-scroll when near edges
+    startAutoScroll(touch.clientY);
+  }, [clearLongPressTimer, getTargetIndexFromY, todayActivities, dragOffset, startAutoScroll]);
 
   const handleTouchEnd = useCallback((_activityId: string) => {
     clearLongPressTimer();
@@ -272,8 +278,9 @@ const DayPage = ({ activeDate }: DayPageProps) => {
     setDragPosition(null);
     document.body.style.overflow = "";
     document.body.style.touchAction = "";
+    stopAutoScroll();
     resetDragState();
-  }, [clearLongPressTimer, previewOrder, reorderInDay, activeDate]);
+  }, [clearLongPressTimer, previewOrder, reorderInDay, activeDate, stopAutoScroll]);
 
   return (
     <>

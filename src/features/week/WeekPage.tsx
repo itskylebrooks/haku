@@ -14,6 +14,7 @@ import {
 import { distributeIntoTwoColumns } from "./columnDistribution";
 import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
 import { TouchDragOverlay } from "../../shared/components/TouchDragOverlay";
+import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
 
 interface WeekPageProps {
   activeDate: string;
@@ -109,6 +110,8 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
   const touchStartXRef = useRef(0);
   const isTouchDraggingRef = useRef(false);
   const touchDragDateRef = useRef<string | null>(null);
+
+  const { startAutoScroll, stopAutoScroll } = useAutoScroll();
 
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
@@ -618,7 +621,10 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
       touchDragDateRef.current = targetDate;
       setMobileDragOverDate(targetDate);
     }
-  }, [clearLongPressTimer, getDateAtPosition, dragOffset]);
+
+    // Auto-scroll when near edges
+    startAutoScroll(touch.clientY);
+  }, [clearLongPressTimer, getDateAtPosition, dragOffset, startAutoScroll]);
 
   const handleMobileTouchEnd = useCallback((
     activityId: string,
@@ -650,6 +656,7 @@ const WeekPage = ({ activeDate }: WeekPageProps) => {
     setMobileDragOverDate(null);
     document.body.style.overflow = "";
     document.body.style.touchAction = "";
+    stopAutoScroll();
     resetDragState();
     setMobilePreviewOrder({});
   }, [clearLongPressTimer, findActivityById, scheduleActivity]);
