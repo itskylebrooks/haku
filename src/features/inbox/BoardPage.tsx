@@ -32,7 +32,7 @@ const computeBucketPreviewOrder = (
   ];
 };
 
-const InboxPage = () => {
+const BoardPage = () => {
   const activities = useActivitiesStore((state) => state.activities);
   const toggleDone = useActivitiesStore((state) => state.toggleDone);
   const deleteActivity = useActivitiesStore((state) => state.deleteActivity);
@@ -509,4 +509,4 @@ const InboxPage = () => {
   );
 };
 
-export default InboxPage;
+export default BoardPage;

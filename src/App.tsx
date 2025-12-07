@@ -3,7 +3,7 @@ import AddActivityModal from "./shared/components/AddActivityModal";
 import AppShell from "./features/app-shell/AppShell";
 import DayPage from "./features/day/DayPage";
 import WeekPage from "./features/week/WeekPage";
-import InboxPage from "./features/inbox/InboxPage";
+import BoardPage from "./features/inbox/BoardPage";
 
 type ViewMode = "day" | "week";
 type ActiveTab = "board" | "day" | "week";
@@ -69,7 +69,7 @@ function App() {
           onOpenAdd={handleOpenAddModal}
         >
           {activeTab === "board" ? (
-            <InboxPage />
+            <BoardPage />
           ) : mode === "day" ? (
             <DayPage activeDate={currentDate} />
           ) : (
