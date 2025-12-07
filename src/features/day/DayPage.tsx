@@ -79,16 +79,15 @@ const DayPage = ({ activeDate }: DayPageProps) => {
                 />
               ))}
             </div>
-            {/* Separator - short centered line */}
-            <div className="mt-4 flex justify-center">
-              <div className="w-16 border-t border-[var(--color-border-divider)]" />
-            </div>
           </div>
         )}
 
         {/* Today section */}
         {hasTodayActivities && (
           <div className="space-y-1.5">
+            <span className="mb-2 block text-center text-xs font-medium uppercase tracking-wide text-[var(--color-text-subtle)]">
+              Today
+            </span>
             {todayActivities.map((activity) => (
               <ActivityCard
                 key={activity.id}
