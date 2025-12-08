@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AddActivityModal from "./shared/components/AddActivityModal";
+import type { Bucket } from "./shared/types/activity";
 import AppShell from "./features/app-shell/AppShell";
 import DayPage from "./features/day/DayPage";
 import WeekPage from "./features/week/WeekPage";
@@ -29,6 +30,7 @@ function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("day");
   const [currentDate, setCurrentDate] = useState<string>(todayIso());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [addModalInitialPlacement, setAddModalInitialPlacement] = useState<Bucket | undefined>(undefined);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   // Get settings from persisted store
@@ -55,9 +57,39 @@ function App() {
     }
   };
   const handleOpenSettings = () => setIsSettingsOpen(true);
-  const handleOpenAddModal = () => setIsAddModalOpen(true);
-  const handleCloseAddModal = () => setIsAddModalOpen(false);
+  const handleOpenAddModal = (placement?: Bucket) => {
+    // If a placement override provided, use it. Otherwise derive from current tab.
+    if (placement) {
+      setAddModalInitialPlacement(placement);
+    } else {
+      if (activeTab === "board") {
+        setAddModalInitialPlacement("inbox");
+      } else {
+        // day/week -> schedule for today's date
+        setAddModalInitialPlacement("scheduled");
+      }
+    }
+    setIsAddModalOpen(true);
+  };
+
+  const handleCloseAddModal = () => {
+    setIsAddModalOpen(false);
+    setAddModalInitialPlacement(undefined);
+  };
   const handleCloseSettings = () => setIsSettingsOpen(false);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl+K to open add activity (context-sensitive)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        handleOpenAddModal();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [activeTab]);
 
   // Apply theme to document root
   useEffect(() => {
@@ -117,6 +149,7 @@ function App() {
       <AddActivityModal
         isOpen={isAddModalOpen}
         onClose={handleCloseAddModal}
+        initialPlacement={addModalInitialPlacement}
         defaultDate={currentDate}
       />
       <SettingsModal

@@ -261,6 +261,31 @@ const AddActivityModal = ({
     }
   };
 
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      // Close on Escape
+      if (e.key === "Escape") {
+        e.preventDefault();
+        handleClose();
+        return;
+      }
+
+      // Accept on Enter (but not when typing in a textarea)
+      if (e.key === "Enter") {
+        const target = e.target as HTMLElement | null;
+        if (target instanceof HTMLTextAreaElement) return;
+        if (!canSubmit) return;
+        e.preventDefault();
+        handleSubmit();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, canSubmit, handleClose, handleSubmit]);
+
   if (!isOpen) {
     return null;
   }
