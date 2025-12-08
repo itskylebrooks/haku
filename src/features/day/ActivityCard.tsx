@@ -178,9 +178,9 @@ const ActivityCard = ({
         aria-label={isDone ? "Mark as not done" : "Mark as done"}
       >
         {isDone ? (
-          <CheckCircle2 className="h-5 w-5 text-[var(--color-text-faint)] md:h-6 md:w-6" />
+          <CheckCircle2 className="h-5 w-5 text-[var(--color-text-faint)]" />
         ) : (
-          <Circle className="h-5 w-5 text-[var(--color-text-meta)] md:h-6 md:w-6" />
+          <Circle className="h-5 w-5 text-[var(--color-text-meta)]" />
         )}
       </button>
     </div>
