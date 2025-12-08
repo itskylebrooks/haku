@@ -292,7 +292,7 @@ const AddActivityModal = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-[var(--color-overlay)] px-4 pt-[20vh] backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-[var(--color-overlay)] px-4 pt-[8vh] lg:pt-[20vh] backdrop-blur-sm"
       onClick={handleClose}
       role="dialog"
       aria-modal="true"
