@@ -377,7 +377,7 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
   return (
     <>
       <div className="mx-auto w-full max-w-xl px-4 pt-4 md:pt-0">
-        <h1 className="mb-0 hidden lg:mb-2 lg:block">
+        <h1 className="mb-0 hidden lg:mb-2 lg:block text-center">
           <button
             type="button"
             onClick={onResetToday}
