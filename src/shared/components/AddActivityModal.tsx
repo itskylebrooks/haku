@@ -100,6 +100,7 @@ const AddActivityModal = ({
   const [showNote, setShowNote] = useState<boolean>(false);
   const durationContainerRef = useRef<HTMLDivElement>(null);
   const repeatContainerRef = useRef<HTMLDivElement>(null);
+  const noteRef = useRef<HTMLTextAreaElement | null>(null);
 
   const trimmedTitle = useMemo(() => title.trim(), [title]);
   const isDatePlacement = placement === "date";
@@ -175,6 +176,18 @@ const AddActivityModal = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isDurationMenuOpen, isRepeatMenuOpen]);
+
+  useEffect(() => {
+    if (showNote) {
+      // Focus the textarea when it becomes visible
+      // Use a small timeout to ensure the element is mounted
+      const id = window.setTimeout(() => {
+        noteRef.current?.focus();
+      }, 0);
+      return () => window.clearTimeout(id);
+    }
+    return undefined;
+  }, [showNote]);
 
   const handleClose = () => {
     resetForm();
@@ -415,6 +428,7 @@ const AddActivityModal = ({
           <div className="space-y-2">
             {showNote ? (
               <textarea
+                ref={noteRef}
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
                 rows={3}
