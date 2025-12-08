@@ -44,7 +44,7 @@ const MobileHeader = ({
   const chevronsDisabled = activeTab === "board";
 
   return (
-    <header className="sticky top-6 z-40 block w-full bg-[var(--color-surface)] py-2 text-[var(--color-text-primary)] md:hidden">
+    <header className="sticky top-6 z-40 block w-full bg-[var(--color-surface)] py-2 text-[var(--color-text-primary)] lg:hidden">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 -top-6 h-6 bg-[var(--color-surface)]"

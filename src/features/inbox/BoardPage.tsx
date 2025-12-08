@@ -42,7 +42,7 @@ const BoardPage = () => {
 
   const { startAutoScroll, stopAutoScroll } = useAutoScroll();
 
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isTouchDrag, setIsTouchDrag] = useState(false);
@@ -453,7 +453,7 @@ const BoardPage = () => {
 
   return (
     <>
-      <div className="mx-auto w-full max-w-xl px-4 pt-4 md:pt-0">
+      <div className="mx-auto w-full max-w-xl px-4 pt-4 lg:pt-0">
         {/* top date header removed per design: no date at top of Board page */}
         {/* Inbox Section - Always Visible */}
         <div
@@ -512,7 +512,7 @@ const BoardPage = () => {
             {/* Desktop placeholder for adding new activity */}
             {isDesktop && !draggingId && (
               <div
-                className="hidden md:block"
+                className="hidden lg:block"
                 onMouseEnter={() => setHoveredCreatePlacement("inbox")}
                 onMouseLeave={() => setHoveredCreatePlacement(null)}
               >
@@ -582,7 +582,7 @@ const BoardPage = () => {
             {/* Desktop placeholder for adding new activity */}
             {isDesktop && !draggingId && (
               <div
-                className="hidden md:block"
+                className="hidden lg:block"
                 onMouseEnter={() => setHoveredCreatePlacement("later")}
                 onMouseLeave={() => setHoveredCreatePlacement(null)}
               >

@@ -66,7 +66,7 @@ const AppShell = ({
       />
 
       {/* Main content area */}
-      <main className="flex-1 pb-24 md:pb-0">{children}</main>
+      <main className="flex-1 pb-24 lg:pb-0">{children}</main>
 
       {/* Mobile Tab Bar - hidden on desktop */}
       <MobileTabBar

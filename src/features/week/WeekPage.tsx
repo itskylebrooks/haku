@@ -116,7 +116,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
 
   const { startAutoScroll, stopAutoScroll } = useAutoScroll();
 
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isTouchDrag, setIsTouchDrag] = useState(false);
@@ -858,7 +858,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
   return (
     <>
       {/* Mobile stacked week */}
-      <div className="md:hidden">
+      <div className="lg:hidden">
         <div className="space-y-8 px-4 pt-4 pb-6">
           {weekDates.map((date) => {
             const activitiesForDay = weekActivities[date] ?? [];
@@ -918,7 +918,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
       </div>
 
       {/* Desktop grid with Sunday + Inbox/Later row */}
-      <div className="hidden md:block">
+      <div className="hidden lg:block">
         <h1 className="sticky top-[calc(1.5rem+48px)] z-30 mx-auto w-full bg-[var(--color-surface)] px-3 pb-3 pl-4">
           <button
             type="button"

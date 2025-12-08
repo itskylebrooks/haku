@@ -113,7 +113,7 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
   const touchStartXRef = useRef(0);
   const isTouchDraggingRef = useRef(false);
 
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isTouchDrag, setIsTouchDrag] = useState(false);
@@ -411,7 +411,7 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
 
   return (
     <>
-      <div className="mx-auto w-full max-w-xl px-4 pt-4 md:pt-0">
+      <div className="mx-auto w-full max-w-xl px-4 pt-4 lg:pt-0">
         {/* top date header removed per design: no date at top of Day page */}
         {/* Overdue section */}
         {hasOverdue && (
@@ -484,7 +484,7 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
                 onDrop={(e) => handleDrop(e, displayActivities.length)}
               >
                 {canShowDesktopAddSlot ? (
-                  <div className="hidden md:block">
+                  <div className="hidden lg:block">
                     <EmptySlot label="Add to Today" onClick={handleOpenCreateModal} />
                   </div>
                 ) : (
@@ -505,7 +505,7 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
                 </p>
 
                 {canShowDesktopAddSlot && (
-                  <div className="absolute inset-0 flex items-center md:block opacity-0 pointer-events-none transition-opacity duration-150 group-hover/quiet:opacity-100 group-hover/quiet:pointer-events-auto">
+                  <div className="absolute inset-0 flex items-center lg:block opacity-0 pointer-events-none transition-opacity duration-150 group-hover/quiet:opacity-100 group-hover/quiet:pointer-events-auto">
                     <EmptySlot label="Add to Today" onClick={handleOpenCreateModal} />
                   </div>
                 )}
