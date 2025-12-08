@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
+import { CirclePlus } from "lucide-react";
 import ActivityCard from "../day/ActivityCard";
 import {
   useActivitiesStore,
@@ -26,6 +27,9 @@ const BoardPage = ({ onResetToday }: BoardPageProps = {}) => {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [activityBeingEdited, setActivityBeingEdited] = useState<Activity | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newActivityPlacement, setNewActivityPlacement] = useState<Extract<Bucket, "inbox" | "later">>("inbox");
+  const [hoveredCreatePlacement, setHoveredCreatePlacement] = useState<Extract<Bucket, "inbox" | "later"> | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [draggedCardHeight, setDraggedCardHeight] = useState<number>(72);
   const [previewInbox, setPreviewInbox] = useState<Activity[] | null>(null);
@@ -89,6 +93,15 @@ const BoardPage = ({ onResetToday }: BoardPageProps = {}) => {
   const handleDeleteActivity = (id: string) => {
     deleteActivity(id);
     handleCloseEditModal();
+  };
+
+  const handleOpenCreateModal = (placement: Extract<Bucket, "inbox" | "later">) => {
+    setNewActivityPlacement(placement);
+    setIsCreateModalOpen(true);
+  };
+
+  const handleCloseCreateModal = () => {
+    setIsCreateModalOpen(false);
   };
 
   const getBucketOrderedIds = (
@@ -416,6 +429,30 @@ const BoardPage = ({ onResetToday }: BoardPageProps = {}) => {
     resetDragState();
   }, [clearLongPressTimer, activities, moveToInbox, moveToLater, getBucketOrderedIds, getTargetIndexFromY, reorderInBucket, stopAutoScroll]);
 
+  const EmptySlot = ({ onClick, label = "New activity" }: { onClick: () => void; label?: string }) => (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className="group/empty flex min-h-[44px] items-center rounded-xl px-3 py-1 cursor-pointer transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
+    >
+      <div className="flex min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-[var(--color-text-meta)] opacity-0 group-hover/empty:opacity-100 transition-opacity">
+          {label}
+        </p>
+      </div>
+      <div className="flex-shrink-0 opacity-0 group-hover/empty:opacity-100 transition-opacity">
+        <CirclePlus className="h-5 w-5 text-[var(--color-text-meta)]" />
+      </div>
+    </div>
+  );
+
   const formattedDate = useMemo(() => {
     const date = new Date();
     return date.toLocaleDateString(undefined, {
@@ -448,15 +485,19 @@ const BoardPage = ({ onResetToday }: BoardPageProps = {}) => {
           </div>
           <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
           <div
-            className="min-h-20 relative mb-6"
+            className="min-h-20 relative mb-6 group/section"
             onDragOver={(e) => handleDragOver(e, "inbox", displayInbox.length)}
             onDrop={(e) => handleDrop(e, "inbox", displayInbox.length)}
           >
             {displayInbox.length === 0 && touchDragOverBucket !== "inbox" && (
-              <div className="absolute inset-0 flex items-start justify-center pointer-events-none">
-                <div className="w-full pt-6">
+              <div
+                className={`absolute inset-0 flex items-start justify-center pointer-events-none transition-opacity ${
+                  isDesktop && hoveredCreatePlacement === "inbox" ? "opacity-0" : "opacity-100"
+                }`}
+              >
+                <div className="w-full pt-[20px]">
                   <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
-                  <div className="h-[32px]" />
+                  <div className="h-[30px]" />
                   <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
                 </div>
               </div>
@@ -487,6 +528,19 @@ const BoardPage = ({ onResetToday }: BoardPageProps = {}) => {
                 )}
               </div>
             ))}
+            {/* Desktop placeholder for adding new activity */}
+            {isDesktop && !draggingId && (
+              <div
+                className="hidden md:block"
+                onMouseEnter={() => setHoveredCreatePlacement("inbox")}
+                onMouseLeave={() => setHoveredCreatePlacement(null)}
+              >
+                <EmptySlot
+                  label="Add to Inbox"
+                  onClick={() => handleOpenCreateModal("inbox")}
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -501,15 +555,19 @@ const BoardPage = ({ onResetToday }: BoardPageProps = {}) => {
           </div>
           <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
           <div
-            className="min-h-20 relative mb-4"
+            className="min-h-20 relative mb-4 group/section"
             onDragOver={(e) => handleDragOver(e, "later", displayLater.length)}
             onDrop={(e) => handleDrop(e, "later", displayLater.length)}
           >
             {displayLater.length === 0 && touchDragOverBucket !== "later" && (
-              <div className="absolute inset-0 flex items-start justify-center pointer-events-none">
-                <div className="w-full pt-6">
+              <div
+                className={`absolute inset-0 flex items-start justify-center pointer-events-none transition-opacity ${
+                  isDesktop && hoveredCreatePlacement === "later" ? "opacity-0" : "opacity-100"
+                }`}
+              >
+                <div className="w-full pt-[20px]">
                   <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
-                  <div className="h-[32px]" />
+                  <div className="h-[30px]" />
                   <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
                 </div>
               </div>
@@ -540,6 +598,19 @@ const BoardPage = ({ onResetToday }: BoardPageProps = {}) => {
                 )}
               </div>
             ))}
+            {/* Desktop placeholder for adding new activity */}
+            {isDesktop && !draggingId && (
+              <div
+                className="hidden md:block"
+                onMouseEnter={() => setHoveredCreatePlacement("later")}
+                onMouseLeave={() => setHoveredCreatePlacement(null)}
+              >
+                <EmptySlot
+                  label="Add to Later"
+                  onClick={() => handleOpenCreateModal("later")}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -551,6 +622,14 @@ const BoardPage = ({ onResetToday }: BoardPageProps = {}) => {
         activityToEdit={activityBeingEdited ?? undefined}
         onDelete={handleDeleteActivity}
         onUpdate={updateActivity}
+      />
+
+      {/* Create Modal */}
+      <AddActivityModal
+        isOpen={isCreateModalOpen}
+        onClose={handleCloseCreateModal}
+        mode="create"
+        initialPlacement={newActivityPlacement}
       />
 
       {/* Touch Drag Overlay */}
