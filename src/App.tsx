@@ -31,6 +31,7 @@ function App() {
   const [currentDate, setCurrentDate] = useState<string>(todayIso());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [addModalInitialPlacement, setAddModalInitialPlacement] = useState<Bucket | undefined>(undefined);
+  const [addModalDefaultDate, setAddModalDefaultDate] = useState<string | undefined>(undefined);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   // Get settings from persisted store
@@ -61,12 +62,15 @@ function App() {
     // If a placement override provided, use it. Otherwise derive from current tab.
     if (placement) {
       setAddModalInitialPlacement(placement);
+      setAddModalDefaultDate(placement === "scheduled" ? todayIso() : undefined);
     } else {
       if (activeTab === "board") {
         setAddModalInitialPlacement("inbox");
+        setAddModalDefaultDate(undefined);
       } else {
         // day/week -> schedule for today's date
         setAddModalInitialPlacement("scheduled");
+        setAddModalDefaultDate(todayIso());
       }
     }
     setIsAddModalOpen(true);
@@ -75,6 +79,7 @@ function App() {
   const handleCloseAddModal = () => {
     setIsAddModalOpen(false);
     setAddModalInitialPlacement(undefined);
+    setAddModalDefaultDate(undefined);
   };
   const handleCloseSettings = () => setIsSettingsOpen(false);
 
@@ -150,7 +155,7 @@ function App() {
         isOpen={isAddModalOpen}
         onClose={handleCloseAddModal}
         initialPlacement={addModalInitialPlacement}
-        defaultDate={currentDate}
+        defaultDate={addModalDefaultDate ?? currentDate}
       />
       <SettingsModal
         open={isSettingsOpen}
