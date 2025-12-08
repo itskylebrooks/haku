@@ -1,6 +1,7 @@
 import DesktopHeader from "./DesktopHeader";
 import MobileHeader from "./MobileHeader";
 import MobileTabBar from "./MobileTabBar";
+import type { Bucket } from "../../shared/types/activity";
 
 type ViewMode = "day" | "week";
 type ActiveTab = "board" | "day" | "week";
@@ -15,7 +16,7 @@ interface AppShellProps {
   onNext: () => void;
   onResetToday: () => void;
   onOpenSettings: () => void;
-  onOpenAdd: () => void;
+  onOpenAdd: (placement?: Bucket) => void;
   children: React.ReactNode;
 }
 

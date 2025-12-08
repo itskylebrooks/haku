@@ -1,11 +1,12 @@
 import { Circle, Grid2x2, Plus, Square } from "lucide-react";
+import type { Bucket } from "../../shared/types/activity";
 
 type ActiveTab = "board" | "day" | "week";
 
 interface MobileTabBarProps {
   activeTab: ActiveTab;
   onTabChange: (tab: ActiveTab) => void;
-  onAdd: () => void;
+  onAdd: (placement?: Bucket) => void;
 }
 
 const tabs: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
@@ -57,9 +58,14 @@ const MobileTabBar = ({ activeTab, onTabChange, onAdd }: MobileTabBarProps) => {
         <div className="h-8 w-px bg-[var(--color-surface-divider)]" />
         <button
           type="button"
-          onClick={onAdd}
-          aria-label="Add activity"
-          className="inline-flex h-10 items-center justify-center rounded-full bg-[var(--color-surface-strong)] px-4 text-[var(--color-text-contrast)] font-semibold shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99]"
+          onClick={() => {
+            const placement: Bucket = activeTab === "board" ? "inbox" : "scheduled";
+            onAdd(placement);
+          }}
+          aria-label={`Add activity (${activeTab === "board" ? "Inbox" : "Date"})`}
+          className={`inline-flex h-10 items-center justify-center rounded-full px-4 text-[var(--color-text-contrast)] font-semibold shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99] ${
+            activeTab === "board" ? "bg-[var(--color-emphasis-bg)]" : "bg-[var(--color-surface-strong)]"
+          }`}
         >
           <Plus className="h-5 w-5" />
         </button>
