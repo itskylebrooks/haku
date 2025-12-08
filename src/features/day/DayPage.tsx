@@ -413,30 +413,12 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
     <>
       <div className="mx-auto w-full max-w-xl px-4 pt-4 lg:pt-0">
         {/* top date header removed per design: no date at top of Day page */}
-        {/* Overdue section */}
-        {hasOverdue && (
-          <div className="mb-4">
-            <div className="mb-2 text-base font-semibold text-[var(--color-text-primary)]">
-              Overdue
-            </div>
-            <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
-            <div>
-              {overdue.map((activity) => (
-                <ActivityCard
-                  key={activity.id}
-                  activity={activity}
-                  onToggleDone={handleToggleDone}
-                  onEdit={handleEdit}
-                />
-              ))}
-            </div>
-          </div>
-        )}
+        {/* NOTE: Overdue section intentionally moved below Today's section */}
 
         {/* Today section */}
         <div
           ref={containerRef}
-          className={`${hasOverdue ? "mt-3" : "mt-0"} md:mt-5 lg:mt-0`}
+          className={`mt-0 md:mt-5 lg:mt-0`}
           onDragLeave={handleDragLeave}
         >
           <div className="mb-2">
@@ -514,6 +496,26 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
           )}
         </div>
       </div>
+
+      {/* Overdue section (moved to below Today's section) */}
+      {hasOverdue && (
+        <div className="mt-3 mb-4 mx-auto w-full max-w-xl px-4">
+          <div className="mb-2 text-base font-semibold text-[var(--color-text-primary)]">
+            Overdue
+          </div>
+          <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
+          <div>
+            {overdue.map((activity) => (
+              <ActivityCard
+                key={activity.id}
+                activity={activity}
+                onToggleDone={handleToggleDone}
+                onEdit={handleEdit}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Edit Modal */}
       <AddActivityModal
