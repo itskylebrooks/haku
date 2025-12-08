@@ -108,7 +108,7 @@ function App() {
           ) : mode === "day" ? (
             <DayPage activeDate={currentDate} onResetToday={handleResetToday} />
           ) : (
-            <WeekPage activeDate={currentDate} weekStart={weekStart} />
+            <WeekPage activeDate={currentDate} weekStart={weekStart} onResetToday={handleResetToday} />
           )}
         </AppShell>
       </div>

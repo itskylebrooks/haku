@@ -19,6 +19,7 @@ import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
 interface WeekPageProps {
   activeDate: string;
   weekStart: "monday" | "sunday";
+  onResetToday?: () => void;
 }
 
 const formatMobileDayLabel = (isoDate: string): { weekday: string; monthDay: string } => {
@@ -84,7 +85,7 @@ const computeMobilePreviewOrder = (
   });
 };
 
-const WeekPage = ({ activeDate, weekStart }: WeekPageProps) => {
+const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
   const activities = useActivitiesStore((state) => state.activities);
   const toggleDone = useActivitiesStore((state) => state.toggleDone);
   const deleteActivity = useActivitiesStore((state) => state.deleteActivity);
@@ -844,6 +845,16 @@ const WeekPage = ({ activeDate, weekStart }: WeekPageProps) => {
     );
   };
 
+  const formattedMonthYear = useMemo(() => {
+    if (!activeDate) return "";
+    const date = new Date(`${activeDate}T00:00:00Z`);
+    if (Number.isNaN(date.getTime())) return activeDate;
+    return date.toLocaleDateString(undefined, {
+      month: "long",
+      year: "numeric",
+    });
+  }, [activeDate]);
+
   return (
     <>
       {/* Mobile stacked week */}
@@ -908,7 +919,16 @@ const WeekPage = ({ activeDate, weekStart }: WeekPageProps) => {
 
       {/* Desktop grid with Sunday + Inbox/Later row */}
       <div className="hidden md:block">
-        <div className="mx-auto w-full px-3 pt-4">
+        <h1 className="sticky top-[calc(1.5rem+48px)] z-30 mx-auto w-full bg-[var(--color-surface)] px-3 pb-3 pl-4">
+          <button
+            type="button"
+            onClick={onResetToday}
+            className="text-xl font-semibold text-[var(--color-text-primary)] transition-colors hover:text-[var(--color-text-secondary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
+          >
+            {formattedMonthYear}
+          </button>
+        </h1>
+        <div className="mx-auto w-full px-3 pt-0">
           <div className="grid grid-cols-6 gap-0">
             {weekDatesWithoutSunday.map((date) => {
               const activitiesForDay = weekActivities[date] ?? [];
