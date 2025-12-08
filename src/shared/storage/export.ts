@@ -67,7 +67,7 @@ export function createDownloadForJson(filename: string, jsonString: string): voi
  * @param filename - Optional custom filename (defaults to haku-backup-{date}.json)
  */
 export function downloadStateAsJson(filename?: string): void {
-  const defaultFilename = `haku-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  const defaultFilename = `Haku-backup-${new Date().toISOString().slice(0, 10)}.json`;
   const json = exportStateToJson();
   createDownloadForJson(filename ?? defaultFilename, json);
 }
