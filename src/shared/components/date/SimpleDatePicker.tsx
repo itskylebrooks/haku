@@ -149,26 +149,14 @@ const SimpleDatePicker = ({
   );
 
   return (
-    <div ref={containerRef} className="relative inline-block">
+    <div ref={containerRef} className="relative w-full">
       {/* Trigger Button */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text-primary)] transition hover:border-[var(--color-border-hover)] focus:border-[var(--color-border-focus)] focus:outline-none"
+        className="w-full flex items-center justify-between gap-2 rounded-lg border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text-primary)] transition hover:border-[var(--color-border-hover)] focus:border-[var(--color-border-focus)] focus:outline-none"
       >
-        <svg
-          className="h-4 w-4 text-[var(--color-text-subtle)]"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-          />
-        </svg>
+        <span className="text-[var(--color-text-subtle)]">Date:</span>
         <span>{value ? formatDisplayDate(value) : "Pick a date"}</span>
       </button>
 

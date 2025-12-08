@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Circle, Square, Diamond } from "lucide-react";
 import type { Activity, Bucket, RepeatPattern } from "../types/activity";
 import { useActivitiesStore } from "../store/activitiesStore";
 import SimpleDatePicker from "./date/SimpleDatePicker";
@@ -275,7 +276,7 @@ const AddActivityModal = ({
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {placementLabels.map(({ key, label }) => {
                 const isActive = placement === key;
                 const isDisabled = isPlacementLocked && key !== "date";
@@ -291,13 +292,18 @@ const AddActivityModal = ({
                         setIsRepeatMenuOpen(false);
                       }
                     }}
-                    className={`inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
+                    className={`w-full h-10 flex items-center justify-center rounded-lg px-3 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
                       isActive
-                        ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] shadow-sm"
-                        : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-subtle)]"
+                        ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] shadow-sm border-0"
+                        : "border border-[var(--color-border)] bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-surface-subtle)]"
                     } ${isDisabled ? "cursor-not-allowed opacity-50" : ""}`}
                   >
-                    {label}
+                    {key === "inbox" && <Circle className="w-4 h-4" />}
+                    {key === "date" && <Square className="w-4 h-4" />}
+                    {key === "later" && <Diamond className="w-4 h-4" />}
+                    <span className="sr-only">{label}</span>
+                    <span className="hidden">&nbsp;</span>
+                    <span className="ml-1">{label}</span>
                   </button>
                 );
               })}
@@ -305,34 +311,38 @@ const AddActivityModal = ({
 
             {isDatePlacement && (
               <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-3">
-                  <SimpleDatePicker
-                    value={scheduledDate}
-                    onChange={setScheduledDate}
-                  />
-                  <SimpleTimePicker
-                    value={scheduledTime}
-                    onChange={setScheduledTime}
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="w-full">
+                    <SimpleDatePicker
+                      value={scheduledDate}
+                      onChange={setScheduledDate}
+                    />
+                  </div>
+                  <div className="w-full">
+                    <SimpleTimePicker
+                      value={scheduledTime}
+                      onChange={setScheduledTime}
+                    />
+                  </div>
                 </div>
 
                 {showDurationAndRepeat && (
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div ref={durationContainerRef} className="relative">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div ref={durationContainerRef} className="relative w-full">
                       <button
                         type="button"
                         onClick={() => {
                           setIsDurationMenuOpen((prev) => !prev);
                           setIsRepeatMenuOpen(false);
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text-primary)] transition hover:border-[var(--color-border-hover)] focus:border-[var(--color-border-focus)] focus:outline-none"
+                        className="w-full h-10 flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-transparent px-3 text-sm text-[var(--color-text-primary)] transition hover:border-[var(--color-border-hover)] focus:border-[var(--color-border-focus)] focus:outline-none"
                       >
                         <span className="text-[var(--color-text-subtle)]">Duration:</span>
                         <span>{formatDurationLabel(durationMinutes)}</span>
                       </button>
 
                       {isDurationMenuOpen && (
-                        <div className="absolute left-0 top-full z-50 mt-2 w-48 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-lg">
+                        <div className="absolute left-0 top-full z-50 mt-2 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-lg">
                           <div className="max-h-56 space-y-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                             {durationOptions.map((option) => {
                               const isSelected = durationMinutes === option;
@@ -356,14 +366,14 @@ const AddActivityModal = ({
                       )}
                     </div>
 
-                    <div ref={repeatContainerRef} className="relative">
+                    <div ref={repeatContainerRef} className="relative w-full">
                       <button
                         type="button"
                         onClick={() => {
                           setIsRepeatMenuOpen((prev) => !prev);
                           setIsDurationMenuOpen(false);
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text-primary)] transition hover:border-[var(--color-border-hover)] focus:border-[var(--color-border-focus)] focus:outline-none"
+                        className="w-full h-10 flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-transparent px-3 text-sm text-[var(--color-text-primary)] transition hover:border-[var(--color-border-hover)] focus:border-[var(--color-border-focus)] focus:outline-none"
                       >
                         <span className="text-[var(--color-text-subtle)]">Repeat:</span>
                         <span>
@@ -373,7 +383,7 @@ const AddActivityModal = ({
                       </button>
 
                       {isRepeatMenuOpen && (
-                        <div className="absolute left-0 top-full z-50 mt-2 w-40 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-lg">
+                        <div className="absolute left-0 top-full z-50 mt-2 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-lg">
                           <div className="max-h-56 space-y-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                             {repeatOptions.map(({ value, label }) => {
                               const isSelected = repeat === value;
@@ -416,7 +426,7 @@ const AddActivityModal = ({
               <button
                 type="button"
                 onClick={() => setShowNote(true)}
-                className="inline-flex items-center rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-subtle)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
+                className="w-full flex items-center justify-center rounded-lg h-10 px-3 text-sm font-medium border border-[var(--color-border)] text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-subtle)]"
               >
                 Add note
               </button>

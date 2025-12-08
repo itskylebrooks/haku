@@ -73,12 +73,12 @@ const SimpleTimePicker = ({ value, onChange }: SimpleTimePickerProps) => {
   };
 
   return (
-    <div ref={containerRef} className="relative inline-block">
+    <div ref={containerRef} className="relative w-full">
       {/* Trigger Button */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text-primary)] transition hover:border-[var(--color-border-hover)] focus:border-[var(--color-border-focus)] focus:outline-none"
+        className="w-full flex items-center justify-between gap-2 rounded-lg border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text-primary)] transition hover:border-[var(--color-border-hover)] focus:border-[var(--color-border-focus)] focus:outline-none"
       >
         <span className="text-[var(--color-text-subtle)]">Time:</span>
         <span>{value ? formatDisplayTime(value) : "None"}</span>
