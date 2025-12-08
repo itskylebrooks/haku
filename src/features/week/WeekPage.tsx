@@ -141,14 +141,12 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
     () => getWeekDates(weekStartDate),
     [weekStartDate]
   );
-  const weekDatesWithoutSunday = useMemo(
-    () => weekDates.filter((date) => new Date(`${date}T00:00:00Z`).getUTCDay() !== 0),
-    [weekDates]
-  );
-  const sundayDate = useMemo(
-    () => weekDates.find((date) => new Date(`${date}T00:00:00Z`).getUTCDay() === 0),
-    [weekDates]
-  );
+  // The layout displays 6 columns in the primary row and one extra column in the
+  // secondary row. Instead of hard-coding Sunday as the extra column, use the
+  // 7th item from `weekDates` so the UI adapts when the first day of the week
+  // (weekStart) changes.
+  const topWeekDates = useMemo(() => weekDates.slice(0, 6), [weekDates]);
+  const extraDate = useMemo(() => weekDates.length === 7 ? weekDates[6] : null, [weekDates]);
   const weekActivities = useMemo(
     () => getWeekActivities(activities, weekStartDate),
     [activities, weekStartDate]
@@ -170,10 +168,10 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
     [laterActivities]
   );
   const desktopMaxDividerCount = useMemo(() => {
-    const counts = weekDatesWithoutSunday.map((date) => weekActivities[date]?.length ?? 0);
+    const counts = topWeekDates.map((date) => weekActivities[date]?.length ?? 0);
     const maxCount = counts.length > 0 ? Math.max(...counts) : 0;
     return Math.max(5, maxCount);
-  }, [weekActivities, weekDatesWithoutSunday]);
+  }, [weekActivities, topWeekDates]);
 
   const Divider = ({
     isActive = false,
@@ -930,7 +928,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
         </h1>
         <div className="mx-auto w-full px-3 pt-0">
           <div className="grid grid-cols-6 gap-0">
-            {weekDatesWithoutSunday.map((date) => {
+            {topWeekDates.map((date) => {
               const activitiesForDay = weekActivities[date] ?? [];
               const { weekday, monthDay } = formatDesktopDayLabel(date);
               const isToday = date === activeDate;
@@ -1036,7 +1034,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
               );
             })}
           </div>
-          {sundayDate && (
+          {extraDate && (
             <div className="mt-10 grid grid-cols-6 gap-0">
               <div>
                 {renderBucketColumn(
@@ -1085,11 +1083,11 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
               <div className="min-h-64" aria-hidden />
               <div>
                 {(() => {
-                  const activitiesForDay = weekActivities[sundayDate] ?? [];
-                  const { weekday, monthDay } = formatDesktopDayLabel(sundayDate);
-                  const isToday = sundayDate === activeDate;
+                  const activitiesForDay = weekActivities[extraDate!] ?? [];
+                  const { weekday, monthDay } = formatDesktopDayLabel(extraDate!);
+                  const isToday = extraDate === activeDate;
                   let zoneIndex = 0;
-                  const appendKey = makeDayAppendKey(sundayDate);
+                  const appendKey = makeDayAppendKey(extraDate!);
                   return (
                     <div className="flex min-h-64 flex-col gap-2 px-1 py-3">
                       <div className="flex items-baseline justify-between gap-2 px-1">
@@ -1102,7 +1100,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
                       <div
                         onDragOver={(event) => handleDragOverZone(event, appendKey)}
                         onDragLeave={(event) => handleDragLeaveZone(event, appendKey)}
-                        onDrop={(event) => handleDropOnDay(event, sundayDate, zoneIndex)}
+                        onDrop={(event) => handleDropOnDay(event, extraDate!, zoneIndex)}
                       >
                         {(() => {
                           const placeholderCount = Math.max(5 - activitiesForDay.length, 0);
@@ -1113,7 +1111,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
                             <>
                               {activitiesForDay.map((activity) => {
                                 const dropIndex = zoneIndex;
-                                const zoneKey = makeDayZoneKey(sundayDate, zoneIndex);
+                                const zoneKey = makeDayZoneKey(extraDate!, zoneIndex);
                                 zoneIndex += 1;
 
                                 return (
@@ -1123,7 +1121,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
                                       onDragOver={(event) => handleDragOverZone(event, zoneKey)}
                                       onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
                                       onDrop={(event) =>
-                                        handleDropOnDay(event, sundayDate, dropIndex)
+                                        handleDropOnDay(event, extraDate!, dropIndex)
                                       }
                                     />
                                     <WeekActivityRow
@@ -1138,7 +1136,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
                                       onDragOver={(event) => handleDragOverZone(event, zoneKey)}
                                       onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
                                       onDrop={(event) =>
-                                        handleDropOnDay(event, sundayDate, dropIndex)
+                                        handleDropOnDay(event, extraDate!, dropIndex)
                                       }
                                     />
                                   </div>
@@ -1146,7 +1144,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
                               })}
                               {Array.from({ length: totalSlots }).map((_, idx) => {
                                 const dropIndex = zoneIndex;
-                                const zoneKey = makeDayZoneKey(sundayDate, zoneIndex);
+                                const zoneKey = makeDayZoneKey(extraDate!, zoneIndex);
 
                                 zoneIndex += 1;
 
@@ -1161,18 +1159,18 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
                                           onDragOver={(event) => handleDragOverZone(event, activeKey)}
                                           onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
                                           onDrop={(event) =>
-                                            handleDropOnDay(event, sundayDate, dropIndex)
+                                            handleDropOnDay(event, extraDate!, dropIndex)
                                           }
                                         />
                                         <div
                                           onDragOver={(event) => handleDragOverZone(event, activeKey)}
                                           onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
                                           onDrop={(event) =>
-                                            handleDropOnDay(event, sundayDate, dropIndex)
+                                            handleDropOnDay(event, extraDate!, dropIndex)
                                           }
                                         >
                                           <EmptySlot
-                                            onClick={() => handleOpenCreateModal({ date: sundayDate })}
+                                            onClick={() => handleOpenCreateModal({ date: extraDate! })}
                                           />
                                         </div>
                                       </>
