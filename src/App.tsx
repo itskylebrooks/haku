@@ -104,9 +104,9 @@ function App() {
           onOpenAdd={handleOpenAddModal}
         >
           {activeTab === "board" ? (
-            <BoardPage />
+            <BoardPage onResetToday={handleResetToday} />
           ) : mode === "day" ? (
-            <DayPage activeDate={currentDate} />
+            <DayPage activeDate={currentDate} onResetToday={handleResetToday} />
           ) : (
             <WeekPage activeDate={currentDate} weekStart={weekStart} />
           )}

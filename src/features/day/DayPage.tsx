@@ -10,6 +10,7 @@ import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
 
 interface DayPageProps {
   activeDate: string;
+  onResetToday?: () => void;
 }
 
 /**
@@ -91,7 +92,7 @@ const computeDesktopPreviewOrder = (
   });
 };
 
-const DayPage = ({ activeDate }: DayPageProps) => {
+const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
   const activities = useActivitiesStore((state) => state.activities);
   const toggleDone = useActivitiesStore((state) => state.toggleDone);
   const deleteActivity = useActivitiesStore((state) => state.deleteActivity);
@@ -362,9 +363,29 @@ const DayPage = ({ activeDate }: DayPageProps) => {
     resetDragState();
   }, [clearLongPressTimer, previewOrder, reorderInDay, activeDate, stopAutoScroll]);
 
+  const formattedDate = useMemo(() => {
+    if (!activeDate) return "";
+    const date = new Date(`${activeDate}T00:00:00Z`);
+    if (Number.isNaN(date.getTime())) return activeDate;
+    return date.toLocaleDateString(undefined, {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+  }, [activeDate]);
+
   return (
     <>
       <div className="mx-auto w-full max-w-xl px-4 pt-4 md:pt-0">
+        <h1 className="mb-0 hidden lg:mb-2 lg:block">
+          <button
+            type="button"
+            onClick={onResetToday}
+            className="text-xl font-semibold text-[var(--color-text-primary)] transition-colors hover:text-[var(--color-text-secondary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
+          >
+            {formattedDate}
+          </button>
+        </h1>
         {/* Empty state */}
         {isEmpty && (
           <div className="py-16 text-center">
@@ -397,7 +418,7 @@ const DayPage = ({ activeDate }: DayPageProps) => {
         {hasTodayActivities && (
           <div
             ref={containerRef}
-            className={!hasOverdue ? "mt-3 md:mt-5" : ""}
+            className={!hasOverdue ? "mt-3 md:mt-5 lg:mt-0" : ""}
             onDragLeave={handleDragLeave}
           >
             {hasOverdue && (

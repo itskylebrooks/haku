@@ -7,7 +7,6 @@ import {
   Square,
   Plus,
 } from "lucide-react";
-import { useMemo } from "react";
 
 type ViewMode = "day" | "week";
 type ActiveTab = "board" | "day" | "week";
@@ -15,31 +14,12 @@ type ActiveTab = "board" | "day" | "week";
 interface DesktopHeaderProps {
   mode: ViewMode;
   activeTab: ActiveTab;
-  currentDate: string;
   onTabChange: (tab: ActiveTab) => void;
   onPrev: () => void;
   onNext: () => void;
-  onResetToday: () => void;
   onOpenSettings: () => void;
   onOpenAdd: () => void;
 }
-
-const formatDate = (isoDate: string): string => {
-  if (!isoDate) {
-    return "";
-  }
-
-  const date = new Date(`${isoDate}T00:00:00Z`);
-  if (Number.isNaN(date.getTime())) {
-    return isoDate;
-  }
-
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-};
 
 const iconButton =
   "inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-transparent text-[var(--color-text-primary)] transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]";
@@ -47,20 +27,17 @@ const iconButton =
 const DesktopHeader = ({
   mode,
   activeTab,
-  currentDate,
   onTabChange,
   onPrev,
   onNext,
-  onResetToday,
   onOpenSettings,
   onOpenAdd,
 }: DesktopHeaderProps) => {
-  const formattedDate = useMemo(() => formatDate(currentDate), [currentDate]);
   const selectedTab: ActiveTab = activeTab === "board" ? "board" : mode;
   const chevronsDisabled = selectedTab === "board";
 
   return (
-    <header className="sticky top-6 z-40 hidden bg-[var(--color-surface)] pb-1 pt-0 text-sm text-[var(--color-text-primary)] lg:block">
+    <header className="sticky top-6 z-40 hidden bg-[var(--color-surface)] pb-4 pt-0 text-sm text-[var(--color-text-primary)] lg:block">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 -top-6 h-6 bg-[var(--color-surface)]"
@@ -145,29 +122,6 @@ const DesktopHeader = ({
             </button>
           </div>
         </div>
-
-        {(selectedTab === "day" || selectedTab === "board") && (
-          <div className="mt-2 grid grid-cols-[auto_1fr_auto] items-center gap-4">
-            <button
-              type="button"
-              onClick={onResetToday}
-              className="inline-flex items-center rounded-md px-3 py-2 text-base font-semibold text-[var(--color-text-primary)] transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99]"
-              aria-label="Reset to today"
-            >
-              {formattedDate}
-            </button>
-            <span aria-hidden />
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={onOpenAdd}
-                className="inline-flex items-center rounded-md px-3 py-2 text-base font-semibold text-[var(--color-text-primary)] transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99]"
-              >
-                Add activity
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </header>
   );
