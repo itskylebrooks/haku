@@ -398,9 +398,10 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
         {/* Overdue section */}
         {hasOverdue && (
           <div className="mb-4">
-            <span className="mb-2 block text-center text-xs font-medium uppercase tracking-wide text-[var(--color-text-subtle)]">
+            <div className="mb-2 text-sm font-semibold text-[var(--color-text-subtle)] md:text-[var(--color-text-primary)]">
               Overdue
-            </span>
+            </div>
+            <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
             <div>
               {overdue.map((activity) => (
                 <ActivityCard
@@ -422,9 +423,12 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
             onDragLeave={handleDragLeave}
           >
             {hasOverdue && (
-              <span className="mb-2 block text-center text-xs font-medium uppercase tracking-wide text-[var(--color-text-subtle)]">
-                Today
-              </span>
+              <>
+                <div className="mb-2 text-sm font-semibold text-[var(--color-text-subtle)] md:text-[var(--color-text-primary)]">
+                  Today
+                </div>
+                <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
+              </>
             )}
             {displayActivities.map((activity, index) => (
               <div
