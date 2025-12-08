@@ -461,7 +461,7 @@ const BoardPage = () => {
           className="mb-6"
           onDragLeave={handleDragLeave}
         >
-          <div className="mb-2 text-sm font-semibold text-[var(--color-text-primary)]">
+          <div className="mb-2 text-base font-semibold text-[var(--color-text-primary)]">
             Inbox
           </div>
           <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
@@ -531,7 +531,7 @@ const BoardPage = () => {
           className="mb-4"
           onDragLeave={handleDragLeave}
         >
-          <div className="mb-2 text-sm font-semibold text-[var(--color-text-primary)]">
+          <div className="mb-2 text-base font-semibold text-[var(--color-text-primary)]">
             Later
           </div>
           <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />

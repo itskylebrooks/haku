@@ -416,7 +416,7 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
         {/* Overdue section */}
         {hasOverdue && (
           <div className="mb-4">
-            <div className="mb-2 text-sm font-semibold text-[var(--color-text-subtle)] md:text-[var(--color-text-primary)]">
+            <div className="mb-2 text-base font-semibold text-[var(--color-text-primary)]">
               Overdue
             </div>
             <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
@@ -436,14 +436,14 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
         {/* Today section */}
         <div
           ref={containerRef}
-          className="mt-3 md:mt-5 lg:mt-0"
+          className={`${hasOverdue ? "mt-3" : "mt-0"} md:mt-5 lg:mt-0`}
           onDragLeave={handleDragLeave}
         >
           <div className="mb-2">
             <button
               type="button"
               onClick={onResetToday}
-              className="text-sm font-semibold text-[var(--color-text-subtle)] md:text-[var(--color-text-primary)] transition-colors hover:text-[var(--color-text-secondary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
+              className="text-base font-semibold text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
               aria-label="Go to today"
             >
               {isDesktop ? formattedDate : "Today"}
