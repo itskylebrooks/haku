@@ -86,7 +86,7 @@ const SimpleTimePicker = ({ value, onChange }: SimpleTimePickerProps) => {
 
       {/* Popup Time List */}
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-48 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-lg">
+        <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-lg">
           <div
             ref={listRef}
             className="max-h-56 overflow-y-auto overscroll-contain space-y-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
