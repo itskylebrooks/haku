@@ -5,6 +5,7 @@ import {
   Circle,
   Bolt,
   Square,
+  Plus,
 } from "lucide-react";
 import { useMemo } from "react";
 
@@ -96,28 +97,39 @@ const DesktopHeader = ({
           </div>
 
           <div className="flex items-center justify-center">
-            <div className="inline-flex h-10 items-center gap-1 rounded-full border border-[var(--color-border)] bg-transparent px-1 text-sm font-medium shadow-none transition">
-              {(["board", "day", "week"] as ActiveTab[]).map((value) => {
-                const isActive = selectedTab === value;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    aria-pressed={isActive}
-                    onClick={() => onTabChange(value)}
-                    className={`inline-flex h-8 w-11 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
-                      isActive
-                        ? "bg-[var(--color-surface-strong)] text-[var(--color-text-contrast)] font-semibold shadow-sm"
-                        : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
-                    }`}
-                    >
-                    {value === "board" && <Circle className="h-5 w-5" aria-hidden />}
-                    {value === "day" && <Square className="h-5 w-5" aria-hidden />}
-                    {value === "week" && <Grid2x2 className="h-5 w-5" aria-hidden />}
-                    <span className="sr-only">{value}</span>
-                  </button>
-                );
-              })}
+            <div className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-border)] bg-transparent px-1 text-sm font-medium shadow-none transition">
+              <div className="flex items-center gap-1">
+                {(["board", "day", "week"] as ActiveTab[]).map((value) => {
+                  const isActive = selectedTab === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={isActive}
+                      onClick={() => onTabChange(value)}
+                      className={`inline-flex h-8 w-11 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
+                        isActive
+                          ? "bg-[var(--color-surface-strong)] text-[var(--color-text-contrast)] font-semibold shadow-sm"
+                          : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                      }`}
+                      >
+                      {value === "board" && <Circle className="h-5 w-5" aria-hidden />}
+                      {value === "day" && <Square className="h-5 w-5" aria-hidden />}
+                      {value === "week" && <Grid2x2 className="h-5 w-5" aria-hidden />}
+                      <span className="sr-only">{value}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="h-6 w-[1.5px] bg-[var(--color-border)]" />
+              <button
+                type="button"
+                onClick={onOpenAdd}
+                aria-label="Add activity"
+                className="inline-flex h-8 items-center justify-center rounded-full bg-[var(--color-surface-strong)] px-3 text-[var(--color-text-contrast)] font-semibold shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99]"
+              >
+                <Plus className="h-5 w-5" />
+              </button>
             </div>
           </div>
 
