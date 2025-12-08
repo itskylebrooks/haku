@@ -11,28 +11,6 @@ import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
 import { TouchDragOverlay } from "../../shared/components/TouchDragOverlay";
 import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
 
-/**
- * Computes a preview order for bucket activities when dragging.
- * Bucket activities (inbox/later) have no time constraints, so order is free.
- */
-const computeBucketPreviewOrder = (
-  activities: Activity[],
-  draggedId: string,
-  targetIndex: number
-): Activity[] => {
-  const dragged = activities.find((a) => a.id === draggedId);
-  if (!dragged) return activities;
-
-  const withoutDragged = activities.filter((a) => a.id !== draggedId);
-  const clampedIndex = Math.min(Math.max(targetIndex, 0), withoutDragged.length);
-
-  return [
-    ...withoutDragged.slice(0, clampedIndex),
-    dragged,
-    ...withoutDragged.slice(clampedIndex),
-  ];
-};
-
 const BoardPage = () => {
   const activities = useActivitiesStore((state) => state.activities);
   const toggleDone = useActivitiesStore((state) => state.toggleDone);
