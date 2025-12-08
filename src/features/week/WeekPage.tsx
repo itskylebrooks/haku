@@ -867,7 +867,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
 
             return (
               <section key={date} className="space-y-2">
-                <div className="flex items-center justify-between text-sm font-semibold">
+                <div className="flex items-center justify-between text-base font-semibold">
                   <span className="text-left text-[var(--color-text-primary)]">{mobileLabel.weekday}</span>
                   <span className="text-right text-[var(--color-text-meta)]">{mobileLabel.monthDay}</span>
                 </div>
