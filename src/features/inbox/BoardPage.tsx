@@ -12,11 +12,7 @@ import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
 import { TouchDragOverlay } from "../../shared/components/TouchDragOverlay";
 import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
 
-interface BoardPageProps {
-  onResetToday?: () => void;
-}
-
-const BoardPage = ({ onResetToday }: BoardPageProps = {}) => {
+const BoardPage = () => {
   const activities = useActivitiesStore((state) => state.activities);
   const toggleDone = useActivitiesStore((state) => state.toggleDone);
   const deleteActivity = useActivitiesStore((state) => state.deleteActivity);
@@ -453,27 +449,12 @@ const BoardPage = ({ onResetToday }: BoardPageProps = {}) => {
     </div>
   );
 
-  const formattedDate = useMemo(() => {
-    const date = new Date();
-    return date.toLocaleDateString(undefined, {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
-  }, []);
+  // top date removed; no formattedDate needed
 
   return (
     <>
       <div className="mx-auto w-full max-w-xl px-4 pt-4 md:pt-0">
-        <h1 className="mb-0 hidden lg:mb-2 lg:block text-center">
-          <button
-            type="button"
-            onClick={onResetToday}
-            className="text-xl font-semibold text-[var(--color-text-primary)] transition-colors hover:text-[var(--color-text-secondary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
-          >
-            {formattedDate}
-          </button>
-        </h1>
+        {/* top date header removed per design: no date at top of Board page */}
         {/* Inbox Section - Always Visible */}
         <div
           ref={inboxContainerRef}
