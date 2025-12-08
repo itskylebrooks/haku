@@ -447,8 +447,15 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
           className="mt-3 md:mt-5 lg:mt-0"
           onDragLeave={handleDragLeave}
         >
-          <div className="mb-2 text-sm font-semibold text-[var(--color-text-subtle)] md:text-[var(--color-text-primary)]">
-            Today
+          <div className="mb-2">
+            <button
+              type="button"
+              onClick={onResetToday}
+              className="text-sm font-semibold text-[var(--color-text-subtle)] md:text-[var(--color-text-primary)] transition-colors hover:text-[var(--color-text-secondary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
+              aria-label="Go to today"
+            >
+              {isDesktop ? formattedDate : "Today"}
+            </button>
           </div>
           <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
           {hasDisplayActivities ? (
