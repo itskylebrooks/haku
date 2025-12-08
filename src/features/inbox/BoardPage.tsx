@@ -443,19 +443,22 @@ const BoardPage = ({ onResetToday }: BoardPageProps = {}) => {
           className="mb-6"
           onDragLeave={handleDragLeave}
         >
-          <span className="mb-2 block text-center text-xs font-medium uppercase tracking-wide text-[var(--color-text-subtle)]">
+          <div className="mb-2 text-sm font-semibold text-[var(--color-text-primary)]">
             Inbox
-          </span>
+          </div>
+          <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
           <div
             className="min-h-20 relative mb-6"
             onDragOver={(e) => handleDragOver(e, "inbox", displayInbox.length)}
             onDrop={(e) => handleDrop(e, "inbox", displayInbox.length)}
           >
             {displayInbox.length === 0 && touchDragOverBucket !== "inbox" && (
-              <div className="absolute inset-0 flex items-start justify-center pt-2 pointer-events-none">
-                <p className="text-sm text-[var(--color-text-subtle)]">
-                  This space is free.
-                </p>
+              <div className="absolute inset-0 flex items-start justify-center pointer-events-none">
+                <div className="w-full pt-6">
+                  <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
+                  <div className="h-[32px]" />
+                  <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
+                </div>
               </div>
             )}
             {displayInbox.map((activity, index) => (
@@ -493,19 +496,22 @@ const BoardPage = ({ onResetToday }: BoardPageProps = {}) => {
           className="mb-4"
           onDragLeave={handleDragLeave}
         >
-          <span className="mb-2 block text-center text-xs font-medium uppercase tracking-wide text-[var(--color-text-subtle)]">
+          <div className="mb-2 text-sm font-semibold text-[var(--color-text-primary)]">
             Later
-          </span>
+          </div>
+          <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
           <div
             className="min-h-20 relative mb-4"
             onDragOver={(e) => handleDragOver(e, "later", displayLater.length)}
             onDrop={(e) => handleDrop(e, "later", displayLater.length)}
           >
             {displayLater.length === 0 && touchDragOverBucket !== "later" && (
-              <div className="absolute inset-0 flex items-start justify-center pt-2 pointer-events-none">
-                <p className="text-sm text-[var(--color-text-subtle)]">
-                  This space is free.
-                </p>
+              <div className="absolute inset-0 flex items-start justify-center pointer-events-none">
+                <div className="w-full pt-6">
+                  <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
+                  <div className="h-[32px]" />
+                  <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
+                </div>
               </div>
             )}
             {displayLater.map((activity, index) => (
