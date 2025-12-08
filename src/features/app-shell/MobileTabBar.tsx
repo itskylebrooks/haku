@@ -29,7 +29,7 @@ const tabs: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
 const MobileTabBar = ({ activeTab, onTabChange, onAdd }: MobileTabBarProps) => {
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed bottom-4 left-0 right-0 z-50 flex justify-center pb-[env(safe-area-inset-bottom)] md:hidden"
       aria-label="Main navigation"
     >
       <div className="mb-1 mx-4 flex items-center justify-center gap-4 rounded-full border border-[var(--color-border-soft)] bg-[var(--color-surface)] px-3 py-1.5 shadow-lg">
