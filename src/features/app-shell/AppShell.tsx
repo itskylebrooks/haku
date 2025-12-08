@@ -50,10 +50,13 @@ const AppShell = ({
       <DesktopHeader
         mode={mode}
         activeTab={activeTab}
+        currentDate={currentDate}
         onTabChange={onTabChange}
         onPrev={handlePrev}
         onNext={handleNext}
+        onResetToday={onResetToday}
         onOpenSettings={onOpenSettings}
+        onOpenAdd={onOpenAdd}
       />
 
       {/* Mobile Header - hidden on desktop */}

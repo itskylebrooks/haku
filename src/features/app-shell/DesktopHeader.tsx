@@ -5,6 +5,7 @@ import {
   Circle,
   Bolt,
   Square,
+  Plus,
 } from "lucide-react";
 
 type ViewMode = "day" | "week";
@@ -17,6 +18,7 @@ interface DesktopHeaderProps {
   onPrev: () => void;
   onNext: () => void;
   onOpenSettings: () => void;
+  onOpenAdd: () => void;
 }
 
 const iconButton =
@@ -29,6 +31,7 @@ const DesktopHeader = ({
   onPrev,
   onNext,
   onOpenSettings,
+  onOpenAdd,
 }: DesktopHeaderProps) => {
   const selectedTab: ActiveTab = activeTab === "board" ? "board" : mode;
   const chevronsDisabled = selectedTab === "board";
@@ -71,7 +74,7 @@ const DesktopHeader = ({
           </div>
 
           <div className="flex items-center justify-center">
-            <div className="relative inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-border)] bg-transparent px-1 text-sm font-medium shadow-none transition">
+            <div className="relative inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-border)] bg-transparent px-1 text-sm font-medium shadow-none transition" style={{transform: 'translateX(30px)'}}>
               <div className="flex items-center gap-1">
                 {(["board", "day", "week"] as ActiveTab[]).map((value) => {
                   const isActive = selectedTab === value;
@@ -95,6 +98,15 @@ const DesktopHeader = ({
                   );
                 })}
               </div>
+              <div className="h-6 w-[1.5px] bg-[var(--color-border)]" />
+              <button
+                type="button"
+                onClick={onOpenAdd}
+                aria-label="Add activity"
+                className="inline-flex h-8 items-center justify-center rounded-full bg-[var(--color-surface-strong)] px-3 text-[var(--color-text-contrast)] font-semibold shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99]"
+              >
+                <Plus className="h-5 w-5" />
+              </button>
             </div>
           </div>
 
