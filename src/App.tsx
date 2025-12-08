@@ -123,10 +123,41 @@ function App() {
     };
   }, [themeMode]);
 
+  // Work around mobile browser vh variations (URL bar / toolbars) by setting
+  // a CSS variable to the actual innerHeight. This lets layout use a stable
+  // --app-height value which corresponds to the *real* viewport height so
+  // our content area can be sized without creating extra scroll space.
+  useEffect(() => {
+    const setAppHeightVar = () => {
+      document.documentElement.style.setProperty(
+        "--app-height",
+        `${window.innerHeight}px`
+      );
+    };
+
+    setAppHeightVar();
+    window.addEventListener("resize", setAppHeightVar);
+    window.addEventListener("orientationchange", setAppHeightVar);
+    // Use visualViewport when available for smoother updates on mobile
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", setAppHeightVar);
+    }
+    return () => {
+      window.removeEventListener("resize", setAppHeightVar);
+      window.removeEventListener("orientationchange", setAppHeightVar);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", setAppHeightVar);
+      }
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen bg-[var(--color-page-bg)] text-[var(--color-text-primary)]">
+    <div
+      className="bg-[var(--color-page-bg)] text-[var(--color-text-primary)]"
+      style={{ height: "var(--app-height, 100vh)" }}
+    >
       <div
-        className={`mx-auto flex min-h-screen flex-col pb-10 pt-6 ${
+        className={`mx-auto flex h-full flex-col pb-10 pt-6 ${
           mode === "week" ? "w-full max-w-none" : "max-w-6xl"
         }`}
       >

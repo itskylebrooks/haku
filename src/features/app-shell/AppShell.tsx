@@ -70,7 +70,8 @@ const AppShell = ({
       />
 
       {/* Main content area */}
-      <main className="flex-1 pb-24 lg:pb-0">{children}</main>
+      {/* Make the main content scrollable (when needed) and fill remaining height */}
+      <main className="flex-1 overflow-auto overscroll-contain pb-24 lg:pb-0">{children}</main>
 
       {/* Mobile Tab Bar - hidden on desktop */}
       <MobileTabBar

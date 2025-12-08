@@ -19,6 +19,8 @@
 }
 
 :root {
+  /* fallback value; we overwrite this dynamically in JS to handle mobile VH quirks */
+  --app-height: 100vh;
   color-scheme: light;
   --color-page-bg: #ffffff;
   --color-surface: #ffffff;
@@ -209,15 +211,23 @@ html[data-theme="dark"] {
   --color-strike: rgba(115, 115, 115, 0.5);
 }
 
+html {
+  height: 100%;
+}
+
 body {
-  @apply min-h-screen antialiased;
+  /* Use full height but avoid min-h-screen so that our app-root can control
+     the exact viewport height via --app-height. This prevents double min-
+     heights that can create extra vertical scrolling on mobile browsers. */
+  height: 100%;
+  @apply antialiased;
   background-color: var(--color-page-bg);
   color: var(--color-text-primary);
   font-family: "IBM Plex Sans", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 #root {
-  @apply min-h-screen;
+  height: 100%;
 }
 
 @media (prefers-color-scheme: dark) {
