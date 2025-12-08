@@ -869,10 +869,12 @@ const WeekPage = ({ activeDate, weekStart }: WeekPageProps) => {
                   onDrop={(e) => handleMobileDrop(e, date, displayActivities.length)}
                 >
                   {displayActivities.length === 0 && mobileDragOverDate !== date && (
-                    <div className="absolute inset-0 flex items-start justify-center pt-2 pointer-events-none">
-                      <p className="text-sm text-[var(--color-text-subtle)]">
-                        Nothing planned… yet.
-                      </p>
+                    <div className="absolute inset-0 flex items-start justify-center pointer-events-none">
+                      <div className="w-full pt-6">
+                        <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
+                        <div className="h-[32px]" />
+                        <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
+                      </div>
                     </div>
                   )}
                   {displayActivities.map((activity, index) => (
