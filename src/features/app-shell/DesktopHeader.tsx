@@ -97,7 +97,7 @@ const DesktopHeader = ({
           </div>
 
           <div className="flex items-center justify-center">
-            <div className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-border)] bg-transparent px-1 text-sm font-medium shadow-none transition">
+            <div className="relative inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-border)] bg-transparent px-1 text-sm font-medium shadow-none transition" style={{transform: 'translateX(30px)'}}>
               <div className="flex items-center gap-1">
                 {(["board", "day", "week"] as ActiveTab[]).map((value) => {
                   const isActive = selectedTab === value;
