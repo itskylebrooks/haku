@@ -46,8 +46,10 @@ function App() {
     setActiveTab(tab);
     if (tab === "day") {
       setMode("day");
+      setCurrentDate(todayIso());
     } else if (tab === "week") {
       setMode("week");
+      setCurrentDate(todayIso());
     } else if (tab === "board") {
       setCurrentDate(todayIso());
     }
@@ -104,7 +106,7 @@ function App() {
           onOpenAdd={handleOpenAddModal}
         >
           {activeTab === "board" ? (
-            <BoardPage onResetToday={handleResetToday} />
+            <BoardPage />
           ) : mode === "day" ? (
             <DayPage activeDate={currentDate} onResetToday={handleResetToday} />
           ) : (
