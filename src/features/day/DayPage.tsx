@@ -394,7 +394,7 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
           onClick();
         }
       }}
-      className="group/empty flex min-h-[44px] items-center rounded-xl px-3 py-1 cursor-pointer transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
+      className="group/empty flex min-h-[44px] items-center rounded-md px-3 py-1 cursor-pointer transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
     >
       <div className="flex min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-[var(--color-text-meta)] opacity-0 group-hover/empty:opacity-100 transition-opacity">
@@ -543,7 +543,7 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
               const activity = activities.find((a) => a.id === draggingId);
               if (!activity) return null;
               return (
-                <div className="shadow-xl rounded-xl bg-[var(--color-surface)]">
+                <div className="shadow-xl rounded-md bg-[var(--color-surface)]">
                   <ActivityCard
                     activity={activity}
                     onToggleDone={() => {}}

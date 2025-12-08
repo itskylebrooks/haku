@@ -85,7 +85,7 @@ const ActivityCard = ({
 
   return (
     <div
-      className={`group flex cursor-pointer rounded-xl transition select-none ${
+      className={`group flex cursor-pointer rounded-md transition select-none ${
         isDone ? "" : hoverClasses
       } ${activeHoverClasses} ${draggable ? "cursor-grab active:cursor-grabbing" : ""} ${isDragging ? "opacity-50" : ""}`}
       style={{ WebkitTouchCallout: "none" }}
@@ -98,7 +98,7 @@ const ActivityCard = ({
       onTouchEnd={onTouchEnd}
     >
       {/* Content block - click anywhere here to edit */}
-      <div className="flex-1 pl-3 pr-3 py-3 md:pl-3 md:pr-4 md:py-2.5">
+      <div className="flex-1 pl-2 pr-3 py-3 md:pl-2 md:pr-4 md:py-2.5">
         {/* Meta row: time + metadata */}
         {hasMetaRow && (
           <div className="mb-1 flex items-center gap-1 text-xs md:text-[0.7rem]">
@@ -174,7 +174,7 @@ const ActivityCard = ({
           event.stopPropagation();
           onToggleDone(id);
         }}
-        className="flex w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-r-xl transition hover:bg-[var(--color-card-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[var(--color-border)] md:w-11"
+        className="flex w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-r-md transition hover:bg-[var(--color-card-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[var(--color-border)] md:w-11"
         aria-label={isDone ? "Mark as not done" : "Mark as done"}
       >
         {isDone ? (
