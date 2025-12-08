@@ -186,7 +186,7 @@ const WeekPage = ({ activeDate, weekStart }: WeekPageProps) => {
     onDrop?: (event: React.DragEvent<HTMLDivElement>) => void;
   }) => (
     <div
-      className="flex h-[2px] items-center px-1"
+      className="flex h-[2px] items-center w-full"
       onDragOver={(event) => {
         if (onDragOver) {
           event.preventDefault();
@@ -855,11 +855,12 @@ const WeekPage = ({ activeDate, weekStart }: WeekPageProps) => {
             const mobileLabel = formatMobileDayLabel(date);
 
             return (
-              <section key={date} className="space-y-3">
-                <div className="flex flex-wrap items-center justify-center gap-1 text-center text-sm font-semibold">
-                  <span className="text-[var(--color-text-primary)]">{mobileLabel.weekday}</span>
-                  <span className="text-[var(--color-text-meta)]">· {mobileLabel.monthDay}</span>
+              <section key={date} className="space-y-2">
+                <div className="flex items-center justify-between text-sm font-semibold">
+                  <span className="text-left text-[var(--color-text-primary)]">{mobileLabel.weekday}</span>
+                  <span className="text-right text-[var(--color-text-meta)]">{mobileLabel.monthDay}</span>
                 </div>
+                <Divider />
                 <div
                   ref={(el) => { mobileContainerRefs.current[date] = el; }}
                   className="min-h-20 relative"
