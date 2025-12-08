@@ -98,6 +98,7 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
   const toggleDone = useActivitiesStore((state) => state.toggleDone);
   const deleteActivity = useActivitiesStore((state) => state.deleteActivity);
   const updateActivity = useActivitiesStore((state) => state.updateActivity);
+  const scheduleActivity = useActivitiesStore((state) => state.scheduleActivity);
   const reorderInDay = useActivitiesStore((state) => state.reorderInDay);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -240,10 +241,47 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
       dragLeaveTimeoutRef.current = null;
     }
 
-    if (draggingId) {
-      // Desktop drag: remove dragged card to show gap, no preview card
+    if (!draggingId) return;
+
+    const draggedActivity = activities.find((a) => a.id === draggingId);
+    if (!draggedActivity) return;
+
+    // Desktop drag from same day: show gap placeholder as before
+    if (draggedActivity.bucket === "scheduled" && draggedActivity.date === activeDate) {
       const newOrder = computeDesktopPreviewOrder(todayActivities, draggingId, targetIndex);
       setPreviewOrder(newOrder);
+      return;
+    }
+
+    // Desktop drag from Overdue (scheduled but earlier date): allow dropping into Today
+    if (draggedActivity.bucket === "scheduled" && draggedActivity.date !== activeDate) {
+      // Build placeholder based on dragged activity
+      const placeholder: Activity = {
+        ...draggedActivity,
+        id: "__DRAG_PLACEHOLDER__",
+      };
+      const withoutDragged = [...todayActivities];
+      const clampedIndex = Math.min(Math.max(targetIndex, 0), withoutDragged.length);
+      const merged = [
+        ...withoutDragged.slice(0, clampedIndex),
+        placeholder,
+        ...withoutDragged.slice(clampedIndex),
+      ];
+
+      // Maintain anchored time order
+      const anchored = merged.filter((a) => a.time !== null).sort((a, b) => {
+        if (a.time === null || b.time === null) return 0;
+        return a.time.localeCompare(b.time);
+      });
+      let anchoredPtr = 0;
+      const ordered = merged.map((item) => {
+        if (item.time !== null) {
+          return anchored[anchoredPtr++];
+        }
+        return item;
+      });
+      setPreviewOrder(ordered);
+      return;
     }
   };
 
@@ -272,8 +310,22 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
       return;
     }
 
-    const finalOrder = computePreviewOrder(todayActivities, droppedId, targetIndex);
-    const orderedIds = finalOrder.map((a) => a.id);
+    const draggedActivity = activities.find((a) => a.id === droppedId);
+    // If the dragged activity is not already scheduled for this date, schedule it for today
+    if (draggedActivity && !(draggedActivity.bucket === "scheduled" && draggedActivity.date === activeDate)) {
+      scheduleActivity(droppedId, activeDate);
+    }
+
+    // Compute final ordered IDs; use previewOrder if available
+    const finalOrder = previewOrder ?? (() => {
+      const current = [...todayActivities];
+      const clampedIndex = Math.min(Math.max(targetIndex, 0), current.length);
+      current.splice(clampedIndex, 0, activities.find((a) => a.id === droppedId) ?? ({} as Activity));
+      return current;
+    })();
+
+    // Replace placeholder id with real id if necessary
+    const orderedIds = finalOrder.map((a) => (a.id === "__DRAG_PLACEHOLDER__" ? droppedId : a.id));
     reorderInDay(activeDate, orderedIds);
 
     resetDragState();
@@ -348,8 +400,40 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
     });
 
     const targetIndex = getTargetIndexFromY(touch.clientY);
-    const newOrder = computePreviewOrder(todayActivities, activityId, targetIndex);
-    setPreviewOrder(newOrder);
+    const draggedActivity = activities.find((a) => a.id === activityId);
+    if (!draggedActivity) return;
+
+    // If dragged activity is already in today's list, use computePreviewOrder
+    if (draggedActivity.bucket === "scheduled" && draggedActivity.date === activeDate) {
+      const newOrder = computePreviewOrder(todayActivities, activityId, targetIndex);
+      setPreviewOrder(newOrder);
+    } else {
+      // External drag (from Overdue): build placeholder and insert into today's list
+      const placeholder: Activity = {
+        ...draggedActivity,
+        id: '__DRAG_PLACEHOLDER__',
+      };
+      const without = [...todayActivities];
+      const clampedIndex = Math.min(Math.max(targetIndex, 0), without.length);
+      const merged = [
+        ...without.slice(0, clampedIndex),
+        placeholder,
+        ...without.slice(clampedIndex),
+      ];
+      // Maintain anchored order
+      const anchored = merged.filter((a) => a.time !== null).sort((a, b) => {
+        if (a.time === null || b.time === null) return 0;
+        return a.time.localeCompare(b.time);
+      });
+      let anchoredPtr = 0;
+      const ordered = merged.map((item) => {
+        if (item.time !== null) {
+          return anchored[anchoredPtr++];
+        }
+        return item;
+      });
+      setPreviewOrder(ordered);
+    }
 
     // Auto-scroll when near edges
     startAutoScroll(touch.clientY);
@@ -359,8 +443,14 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
     clearLongPressTimer();
 
     if (isTouchDraggingRef.current && previewOrder) {
-      const orderedIds = previewOrder.map((a) => a.id);
-      reorderInDay(activeDate, orderedIds);
+      const droppedId = draggingId ?? _activityId;
+      const draggedActivity = activities.find((a) => a.id === droppedId);
+      if (draggedActivity && !(draggedActivity.bucket === "scheduled" && draggedActivity.date === activeDate)) {
+        scheduleActivity(droppedId, activeDate);
+      }
+
+      const finalOrderedIds = previewOrder.map((a) => (a.id === '__DRAG_PLACEHOLDER__' ? droppedId : a.id));
+      reorderInDay(activeDate, finalOrderedIds);
     }
 
     isTouchDraggingRef.current = false;
@@ -511,6 +601,14 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
                 activity={activity}
                 onToggleDone={handleToggleDone}
                 onEdit={handleEdit}
+                draggable={isDesktop}
+                isDragging={draggingId === activity.id}
+                disableHover={draggingId !== null}
+                onDragStart={(e) => handleDragStart(e, activity)}
+                onDragEnd={handleDragEnd}
+                onTouchStart={(e) => handleTouchStart(e, activity)}
+                onTouchMove={(e) => handleTouchMove(e, activity.id)}
+                onTouchEnd={() => handleTouchEnd(activity.id)}
               />
             ))}
           </div>
