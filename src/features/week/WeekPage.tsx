@@ -13,7 +13,7 @@ import {
 } from "./weekSelectors";
 import { distributeIntoTwoColumns } from "./columnDistribution";
 import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
-import { TouchDragOverlay } from "../../shared/components/TouchDragOverlay";
+import { TouchDragOverlay, type TouchDragOverlayHandle } from "../../shared/components/TouchDragOverlay";
 import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
 
 interface WeekPageProps {
@@ -119,9 +119,23 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
   const { startAutoScroll, stopAutoScroll } = useAutoScroll(scrollContainer ?? window);
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
-  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isTouchDrag, setIsTouchDrag] = useState(false);
+  const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const initialDragPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const overlayRef = useRef<TouchDragOverlayHandle>(null);
+
+  // Cleanup effect to ensure styles are always reset on unmount
+  useEffect(() => {
+    return () => {
+      if (preventDefaultTouchMoveRef.current) {
+        document.removeEventListener("touchmove", preventDefaultTouchMoveRef.current);
+        preventDefaultTouchMoveRef.current = null;
+      }
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
+      document.body.style.overscrollBehavior = "";
+    };
+  }, []);
 
   useEffect(() => {
     if (isTouchDrag && !preventDefaultTouchMoveRef.current) {
@@ -222,9 +236,8 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
       }}
     >
       <div
-        className={`h-px w-full rounded-full transition-colors ${
-          isActive ? "bg-[var(--color-text-meta)]" : "bg-[var(--color-border-divider)]"
-        }`}
+        className={`h-px w-full rounded-full transition-colors ${isActive ? "bg-[var(--color-text-meta)]" : "bg-[var(--color-border-divider)]"
+          }`}
       />
     </div>
   );
@@ -601,16 +614,19 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
       isTouchDraggingRef.current = true;
       setDraggingId(activity.id);
       setIsTouchDrag(true);
-      setDragOffset({ x: offsetX, y: offsetY });
-      setDragPosition({ x: touch.clientX - offsetX, y: touch.clientY - offsetY });
+      // Store offset in ref for imperative updates (no re-render)
+      dragOffsetRef.current = { x: offsetX, y: offsetY };
+      initialDragPosRef.current = { x: touch.clientX - offsetX, y: touch.clientY - offsetY };
       setMobilePreviewOrder({});
-      // Disable scrolling for the main scroll container (if found) or body
+      // Disable scrolling and prevent pull-to-refresh on Android
       const preventDefault = (e: TouchEvent) => e.preventDefault();
       preventDefaultTouchMoveRef.current = preventDefault;
       document.addEventListener("touchmove", preventDefault, { passive: false });
+      document.body.style.overscrollBehavior = "none";
       if (scrollContainer && scrollContainer instanceof HTMLElement) {
         scrollContainer.style.overflow = "hidden";
         scrollContainer.style.touchAction = "none";
+        scrollContainer.style.overscrollBehavior = "none";
       } else {
         document.body.style.overflow = "hidden";
         document.body.style.touchAction = "none";
@@ -636,11 +652,12 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
     }
 
     event.preventDefault();
-    
-    setDragPosition({
-      x: touch.clientX - dragOffset.x,
-      y: touch.clientY - dragOffset.y
-    });
+
+    // Update overlay position imperatively (no React re-render) for smooth 60fps
+    overlayRef.current?.updatePosition(
+      touch.clientX - dragOffsetRef.current.x,
+      touch.clientY - dragOffsetRef.current.y
+    );
 
     // Store the last touch position for computing target index on drop
     lastTouchPosRef.current = { x: touch.clientX, y: touch.clientY };
@@ -654,7 +671,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
 
     // Auto-scroll when near edges
     startAutoScroll(touch.clientY);
-  }, [clearLongPressTimer, getDateAtPosition, dragOffset, startAutoScroll]);
+  }, [clearLongPressTimer, getDateAtPosition, startAutoScroll]);
 
   const handleMobileTouchEnd = useCallback((
     activityId: string,
@@ -665,14 +682,14 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
     if (isTouchDraggingRef.current) {
       const activity = findActivityById(activityId);
       const targetDate = touchDragDateRef.current || originalDate;
-      
+
       if (activity) {
         const sourceDate = activity.bucket === "scheduled" ? activity.date : null;
-        
+
         // If moving to a different date, schedule the activity
         if (sourceDate !== targetDate) {
           scheduleActivity(activityId, targetDate);
-          
+
           // Clean up source date if it was flexible and moved
           if (sourceDate && activity.time === null) {
             const remainingSource = (weekActivities[sourceDate] ?? [])
@@ -683,7 +700,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
             }
           }
         }
-        
+
         // Always compute and apply reordering for the target date
         const targetIndex = getMobileTargetIndexFromY(lastTouchPosRef.current.y, targetDate);
         const activitiesForDay = weekActivities[targetDate] ?? [];
@@ -696,12 +713,13 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
     isTouchDraggingRef.current = false;
     touchDragDateRef.current = null;
     setIsTouchDrag(false);
-    setDragPosition(null);
     setMobileDragOverDate(null);
-    // Restore scrollability on the main container or body
+    // Reset all scroll-related styles including overscrollBehavior
+    document.body.style.overscrollBehavior = "";
     if (scrollContainer && scrollContainer instanceof HTMLElement) {
       scrollContainer.style.overflow = "";
       scrollContainer.style.touchAction = "";
+      scrollContainer.style.overscrollBehavior = "";
     } else {
       document.body.style.overflow = "";
       document.body.style.touchAction = "";
@@ -713,7 +731,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
     stopAutoScroll();
     resetDragState();
     setMobilePreviewOrder({});
-  }, [clearLongPressTimer, findActivityById, scheduleActivity, reorderInDay, weekActivities, getMobileTargetIndexFromY, computeMobilePreviewOrder, stopAutoScroll, scrollContainer]);
+  }, [clearLongPressTimer, findActivityById, scheduleActivity, reorderInDay, weekActivities, getMobileTargetIndexFromY, stopAutoScroll, scrollContainer]);
 
   const renderBucketColumn = (
     label: string,
@@ -748,15 +766,14 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
         onDrop={
           interactionsEnabled
             ? (event) =>
-                handleDropToBucket(event, placement, startIndex + bucketActivities.length)
+              handleDropToBucket(event, placement, startIndex + bucketActivities.length)
             : undefined
         }
       >
         <div className="flex items-baseline justify-between gap-2 px-1">
           <div
-            className={`text-sm font-semibold text-[var(--color-text-primary)] ${
-              showLabel ? "" : "text-transparent"
-            }`}
+            className={`text-sm font-semibold text-[var(--color-text-primary)] ${showLabel ? "" : "text-transparent"
+              }`}
             aria-hidden={!showLabel}
           >
             {showLabel ? label : "Placeholder"}
@@ -786,7 +803,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
                   <Divider
                     isActive={dividerActive}
                     onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                                  onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
+                    onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
                     onDrop={(event) => handleDropToBucket(event, placement, dropIndex)}
                   />
                   <WeekActivityRow
@@ -1012,7 +1029,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
                                 <Divider
                                   isActive={dragOverKey === zoneKey}
                                   onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                                      onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
+                                  onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
                                   onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
                                 />
                                 <WeekActivityRow
@@ -1025,7 +1042,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
                                   onDragStart={(event) => handleDragStart(event, activity)}
                                   onDragEnd={handleDragEnd}
                                   onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                                      onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
+                                  onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
                                   onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
                                 />
                               </div>
@@ -1256,9 +1273,13 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
         defaultDate={newActivityDate ?? activeDate}
       />
 
-      {/* Touch Drag Overlay */}
-      {isTouchDrag && draggingId && dragPosition && (
-        <TouchDragOverlay x={dragPosition.x} y={dragPosition.y}>
+      {/* Touch Drag Overlay - uses imperative position updates for 60fps performance */}
+      {isTouchDrag && draggingId && (
+        <TouchDragOverlay
+          ref={overlayRef}
+          initialX={initialDragPosRef.current.x}
+          initialY={initialDragPosRef.current.y}
+        >
           <div className="w-[calc(100vw-32px)] max-w-xl pointer-events-none">
             {(() => {
               const activity = activities.find((a) => a.id === draggingId);
@@ -1267,8 +1288,8 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
                 <div className="shadow-xl rounded-xl bg-[var(--color-surface)]">
                   <ActivityCard
                     activity={activity}
-                    onToggleDone={() => {}}
-                    onEdit={() => {}}
+                    onToggleDone={() => { }}
+                    onEdit={() => { }}
                     disableHover
                     forceHover
                   />

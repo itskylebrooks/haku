@@ -6,8 +6,9 @@ import ActivityCard from "./ActivityCard";
 import { getDayViewData } from "./daySelectors";
 import AddActivityModal from "../../shared/components/AddActivityModal";
 import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
-import { TouchDragOverlay } from "../../shared/components/TouchDragOverlay";
+import { TouchDragOverlay, type TouchDragOverlayHandle } from "../../shared/components/TouchDragOverlay";
 import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
+import { useThrottledCallback } from "../../shared/hooks/useThrottle";
 
 interface DayPageProps {
   activeDate: string;
@@ -117,11 +118,32 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
   const isTouchDraggingRef = useRef(false);
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
-  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isTouchDrag, setIsTouchDrag] = useState(false);
+  const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const initialDragPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const overlayRef = useRef<TouchDragOverlayHandle>(null);
 
   const { startAutoScroll, stopAutoScroll } = useAutoScroll(scrollContainer ?? window);
+
+  // Throttle preview order updates to max 30fps for better performance on Android
+  const throttledSetPreviewOrder = useThrottledCallback(
+    (order: Activity[] | null) => setPreviewOrder(order),
+    32
+  );
+
+  // Cleanup effect to ensure styles are always reset on unmount or when drag ends unexpectedly
+  useEffect(() => {
+    return () => {
+      // Cleanup on unmount
+      if (preventDefaultTouchMoveRef.current) {
+        document.removeEventListener("touchmove", preventDefaultTouchMoveRef.current);
+        preventDefaultTouchMoveRef.current = null;
+      }
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
+      document.body.style.overscrollBehavior = "";
+    };
+  }, []);
 
   useEffect(() => {
     if (isTouchDrag && !preventDefaultTouchMoveRef.current) {
@@ -157,7 +179,7 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
   const todayActivities = useMemo(() => {
     // Combine anchored and flexible activities, then sort by orderIndex
     const combined = [...todayAnchored, ...todayFlexible];
-    
+
     // Sort by orderIndex if present, maintaining time-based order for anchored activities
     combined.sort((a, b) => {
       // Both have orderIndex - use it
@@ -185,7 +207,7 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
       // Both flexible without orderIndex - sort by createdAt
       return a.createdAt.localeCompare(b.createdAt);
     });
-    
+
     return combined;
   }, [todayAnchored, todayFlexible]);
 
@@ -235,7 +257,7 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
     event.dataTransfer.setData("text/plain", activity.id);
     setDraggingId(activity.id);
     setPreviewOrder(null);
-    
+
     // Capture the height of the card being dragged
     const target = event.currentTarget;
     if (target) {
@@ -387,18 +409,23 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
       isTouchDraggingRef.current = true;
       setDraggingId(activity.id);
       setIsTouchDrag(true);
-      setDragOffset({ x: offsetX, y: offsetY });
-      setDragPosition({ x: touch.clientX - offsetX, y: touch.clientY - offsetY });
+      // Store offset in ref for imperative updates (no re-render)
+      dragOffsetRef.current = { x: offsetX, y: offsetY };
+      initialDragPosRef.current = { x: touch.clientX - offsetX, y: touch.clientY - offsetY };
       setPreviewOrder(null);
       const preventDefault = (e: TouchEvent) => e.preventDefault();
       preventDefaultTouchMoveRef.current = preventDefault;
       document.addEventListener("touchmove", preventDefault, { passive: false });
+      // Prevent pull-to-refresh on Android
+      document.body.style.overscrollBehavior = "none";
       if (scrollContainer && scrollContainer instanceof HTMLElement) {
         scrollContainer.style.overflow = "hidden";
         scrollContainer.style.touchAction = "none";
+        scrollContainer.style.overscrollBehavior = "none";
       } else if (containerRef.current) {
         containerRef.current.style.overflow = "hidden";
         containerRef.current.style.touchAction = "none";
+        containerRef.current.style.overscrollBehavior = "none";
       } else {
         document.body.style.overflow = "hidden";
         document.body.style.touchAction = "none";
@@ -420,11 +447,12 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
     }
 
     event.preventDefault();
-    
-    setDragPosition({
-      x: touch.clientX - dragOffset.x,
-      y: touch.clientY - dragOffset.y
-    });
+
+    // Update overlay position imperatively (no React re-render) for smooth 60fps
+    overlayRef.current?.updatePosition(
+      touch.clientX - dragOffsetRef.current.x,
+      touch.clientY - dragOffsetRef.current.y
+    );
 
     const targetIndex = getTargetIndexFromY(touch.clientY);
     const draggedActivity = activities.find((a) => a.id === activityId);
@@ -433,7 +461,8 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
     // If dragged activity is already in today's list, use computePreviewOrder
     if (draggedActivity.bucket === "scheduled" && draggedActivity.date === activeDate) {
       const newOrder = computePreviewOrder(todayActivities, activityId, targetIndex);
-      setPreviewOrder(newOrder);
+      // Throttled to prevent too many re-renders
+      throttledSetPreviewOrder(newOrder);
     } else {
       // External drag (from Overdue): build placeholder and insert into today's list
       const placeholder: Activity = {
@@ -459,12 +488,13 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
         }
         return item;
       });
-      setPreviewOrder(ordered);
+      // Throttled to prevent too many re-renders
+      throttledSetPreviewOrder(ordered);
     }
 
     // Auto-scroll when near edges
     startAutoScroll(touch.clientY);
-  }, [clearLongPressTimer, getTargetIndexFromY, todayActivities, dragOffset, startAutoScroll]);
+  }, [clearLongPressTimer, getTargetIndexFromY, todayActivities, startAutoScroll, throttledSetPreviewOrder, activities, activeDate]);
 
   const handleTouchEnd = useCallback((_activityId: string) => {
     clearLongPressTimer();
@@ -482,13 +512,16 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
 
     isTouchDraggingRef.current = false;
     setIsTouchDrag(false);
-    setDragPosition(null);
+    // Reset all scroll-related styles including overscrollBehavior
+    document.body.style.overscrollBehavior = "";
     if (scrollContainer && scrollContainer instanceof HTMLElement) {
       scrollContainer.style.overflow = "";
       scrollContainer.style.touchAction = "";
+      scrollContainer.style.overscrollBehavior = "";
     } else if (containerRef.current) {
       containerRef.current.style.overflow = "";
       containerRef.current.style.touchAction = "";
+      containerRef.current.style.overscrollBehavior = "";
     } else {
       document.body.style.overflow = "";
       document.body.style.touchAction = "";
@@ -499,7 +532,7 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
     }
     stopAutoScroll();
     resetDragState();
-  }, [clearLongPressTimer, previewOrder, reorderInDay, activeDate, stopAutoScroll, scrollContainer]);
+  }, [clearLongPressTimer, previewOrder, reorderInDay, activeDate, stopAutoScroll, scrollContainer, activities, scheduleActivity, draggingId]);
 
   const formattedDate = useMemo(() => {
     if (!activeDate) return "";
@@ -674,9 +707,13 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
         defaultDate={activeDate}
       />
 
-      {/* Touch Drag Overlay */}
-      {isTouchDrag && draggingId && dragPosition && (
-        <TouchDragOverlay x={dragPosition.x} y={dragPosition.y}>
+      {/* Touch Drag Overlay - uses imperative position updates for 60fps performance */}
+      {isTouchDrag && draggingId && (
+        <TouchDragOverlay
+          ref={overlayRef}
+          initialX={initialDragPosRef.current.x}
+          initialY={initialDragPosRef.current.y}
+        >
           <div className="w-[calc(100vw-32px)] max-w-xl pointer-events-none">
             {(() => {
               const activity = activities.find((a) => a.id === draggingId);
@@ -685,8 +722,8 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
                 <div className="shadow-xl rounded-md bg-[var(--color-surface)]">
                   <ActivityCard
                     activity={activity}
-                    onToggleDone={() => {}}
-                    onEdit={() => {}}
+                    onToggleDone={() => { }}
+                    onEdit={() => { }}
                     disableHover
                     forceHover
                   />

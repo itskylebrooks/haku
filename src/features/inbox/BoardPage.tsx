@@ -9,7 +9,7 @@ import {
 import type { Activity, Bucket } from "../../shared/types/activity";
 import AddActivityModal from "../../shared/components/AddActivityModal";
 import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
-import { TouchDragOverlay } from "../../shared/components/TouchDragOverlay";
+import { TouchDragOverlay, type TouchDragOverlayHandle } from "../../shared/components/TouchDragOverlay";
 import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
 
 const BoardPage = () => {
@@ -45,10 +45,24 @@ const BoardPage = () => {
   const { startAutoScroll, stopAutoScroll } = useAutoScroll(scrollContainer ?? window);
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
-  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isTouchDrag, setIsTouchDrag] = useState(false);
   const [touchDragOverBucket, setTouchDragOverBucket] = useState<Extract<Bucket, "inbox" | "later"> | null>(null);
+  const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const initialDragPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const overlayRef = useRef<TouchDragOverlayHandle>(null);
+
+  // Cleanup effect to ensure styles are always reset on unmount
+  useEffect(() => {
+    return () => {
+      if (preventDefaultTouchMoveRef.current) {
+        document.removeEventListener("touchmove", preventDefaultTouchMoveRef.current);
+        preventDefaultTouchMoveRef.current = null;
+      }
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
+      document.body.style.overscrollBehavior = "";
+    };
+  }, []);
 
   useEffect(() => {
     if (isTouchDrag && !preventDefaultTouchMoveRef.current) {
@@ -140,7 +154,7 @@ const BoardPage = () => {
     setDraggingId(activity.id);
     setPreviewInbox(null);
     setPreviewLater(null);
-    
+
     // Capture the height of the card being dragged
     const target = event.currentTarget;
     if (target) {
@@ -313,7 +327,7 @@ const BoardPage = () => {
         return "inbox";
       }
     }
-    
+
     // Check later container
     if (laterContainerRef.current) {
       const rect = laterContainerRef.current.getBoundingClientRect();
@@ -326,7 +340,7 @@ const BoardPage = () => {
         return "later";
       }
     }
-    
+
     return null;
   }, []);
 
@@ -351,26 +365,31 @@ const BoardPage = () => {
       isTouchDraggingRef.current = true;
       setDraggingId(activity.id);
       setIsTouchDrag(true);
-      setDragOffset({ x: offsetX, y: offsetY });
-      setDragPosition({ x: touch.clientX - offsetX, y: touch.clientY - offsetY });
+      // Store offset in ref for imperative updates (no re-render)
+      dragOffsetRef.current = { x: offsetX, y: offsetY };
+      initialDragPosRef.current = { x: touch.clientX - offsetX, y: touch.clientY - offsetY };
       setPreviewInbox(null);
       setPreviewLater(null);
-        const preventDefault = (e: TouchEvent) => e.preventDefault();
-        preventDefaultTouchMoveRef.current = preventDefault;
-        document.addEventListener("touchmove", preventDefault, { passive: false });
-        const containerRef = bucket === "inbox" ? inboxContainerRef : laterContainerRef;
-        if (scrollContainer && scrollContainer instanceof HTMLElement) {
-          scrollContainer.style.overflow = "hidden";
-          scrollContainer.style.touchAction = "none";
-        } else if (containerRef.current) {
-          containerRef.current.style.overflow = "hidden";
-          containerRef.current.style.touchAction = "none";
-        } else {
-          document.body.style.overflow = "hidden";
-          document.body.style.touchAction = "none";
-        }
+      const preventDefault = (e: TouchEvent) => e.preventDefault();
+      preventDefaultTouchMoveRef.current = preventDefault;
+      document.addEventListener("touchmove", preventDefault, { passive: false });
+      // Prevent pull-to-refresh on Android
+      document.body.style.overscrollBehavior = "none";
+      const containerRef = bucket === "inbox" ? inboxContainerRef : laterContainerRef;
+      if (scrollContainer && scrollContainer instanceof HTMLElement) {
+        scrollContainer.style.overflow = "hidden";
+        scrollContainer.style.touchAction = "none";
+        scrollContainer.style.overscrollBehavior = "none";
+      } else if (containerRef.current) {
+        containerRef.current.style.overflow = "hidden";
+        containerRef.current.style.touchAction = "none";
+        containerRef.current.style.overscrollBehavior = "none";
+      } else {
+        document.body.style.overflow = "hidden";
+        document.body.style.touchAction = "none";
+      }
     }, 150);
-    }, [clearLongPressTimer, scrollContainer, inboxContainerRef, laterContainerRef]);
+  }, [clearLongPressTimer, scrollContainer, inboxContainerRef, laterContainerRef]);
 
   const handleTouchMove = useCallback((
     event: React.TouchEvent<HTMLDivElement>,
@@ -390,11 +409,12 @@ const BoardPage = () => {
     }
 
     event.preventDefault();
-    
-    setDragPosition({
-      x: touch.clientX - dragOffset.x,
-      y: touch.clientY - dragOffset.y
-    });
+
+    // Update overlay position imperatively (no React re-render) for smooth 60fps
+    overlayRef.current?.updatePosition(
+      touch.clientX - dragOffsetRef.current.x,
+      touch.clientY - dragOffsetRef.current.y
+    );
 
     // Store the last touch position for computing target index on drop
     lastTouchPosRef.current = { x: touch.clientX, y: touch.clientY };
@@ -408,7 +428,7 @@ const BoardPage = () => {
 
     // Auto-scroll when near edges
     startAutoScroll(touch.clientY);
-  }, [clearLongPressTimer, getBucketAtPosition, dragOffset, startAutoScroll]);
+  }, [clearLongPressTimer, getBucketAtPosition, startAutoScroll]);
 
   const handleTouchEnd = useCallback((
     activityId: string,
@@ -419,7 +439,7 @@ const BoardPage = () => {
     if (isTouchDraggingRef.current) {
       const draggedActivity = activities.find((a) => a.id === activityId);
       const targetBucket = touchDragBucketRef.current || originalBucket;
-      
+
       if (draggedActivity) {
         // Move to target bucket if it changed
         if (draggedActivity.bucket !== targetBucket) {
@@ -429,10 +449,10 @@ const BoardPage = () => {
             moveToLater(activityId);
           }
         }
-        
+
         // Compute target index from final touch position
         const targetIndex = getTargetIndexFromY(lastTouchPosRef.current.y, targetBucket);
-        
+
         // Get current ordered IDs excluding the dragged item
         const orderedIds = getBucketOrderedIds(targetBucket, activityId);
         const clampedIndex = Math.min(Math.max(targetIndex, 0), orderedIds.length);
@@ -445,19 +465,23 @@ const BoardPage = () => {
     isTouchDraggingRef.current = false;
     touchDragBucketRef.current = null;
     setIsTouchDrag(false);
-    setDragPosition(null);
     setTouchDragOverBucket(null);
+    // Reset all scroll-related styles including overscrollBehavior
+    document.body.style.overscrollBehavior = "";
     if (scrollContainer && scrollContainer instanceof HTMLElement) {
       scrollContainer.style.overflow = "";
       scrollContainer.style.touchAction = "";
+      scrollContainer.style.overscrollBehavior = "";
     } else {
       if (inboxContainerRef.current) {
         inboxContainerRef.current.style.overflow = "";
         inboxContainerRef.current.style.touchAction = "";
+        inboxContainerRef.current.style.overscrollBehavior = "";
       }
       if (laterContainerRef.current) {
         laterContainerRef.current.style.overflow = "";
         laterContainerRef.current.style.touchAction = "";
+        laterContainerRef.current.style.overscrollBehavior = "";
       }
       if (!inboxContainerRef.current && !laterContainerRef.current) {
         document.body.style.overflow = "";
@@ -519,9 +543,8 @@ const BoardPage = () => {
           >
             {displayInbox.length === 0 && touchDragOverBucket !== "inbox" && (
               <div
-                className={`absolute inset-0 flex items-start justify-center pointer-events-none transition-opacity ${
-                  isDesktop && hoveredCreatePlacement === "inbox" ? "opacity-0" : "opacity-100"
-                }`}
+                className={`absolute inset-0 flex items-start justify-center pointer-events-none transition-opacity ${isDesktop && hoveredCreatePlacement === "inbox" ? "opacity-0" : "opacity-100"
+                  }`}
               >
                 <div className="w-full pt-[20px]">
                   <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
@@ -589,9 +612,8 @@ const BoardPage = () => {
           >
             {displayLater.length === 0 && touchDragOverBucket !== "later" && (
               <div
-                className={`absolute inset-0 flex items-start justify-center pointer-events-none transition-opacity ${
-                  isDesktop && hoveredCreatePlacement === "later" ? "opacity-0" : "opacity-100"
-                }`}
+                className={`absolute inset-0 flex items-start justify-center pointer-events-none transition-opacity ${isDesktop && hoveredCreatePlacement === "later" ? "opacity-0" : "opacity-100"
+                  }`}
               >
                 <div className="w-full pt-[20px]">
                   <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
@@ -660,9 +682,13 @@ const BoardPage = () => {
         initialPlacement={newActivityPlacement}
       />
 
-      {/* Touch Drag Overlay */}
-      {isTouchDrag && draggingId && dragPosition && (
-        <TouchDragOverlay x={dragPosition.x} y={dragPosition.y}>
+      {/* Touch Drag Overlay - uses imperative position updates for 60fps performance */}
+      {isTouchDrag && draggingId && (
+        <TouchDragOverlay
+          ref={overlayRef}
+          initialX={initialDragPosRef.current.x}
+          initialY={initialDragPosRef.current.y}
+        >
           <div className="w-[calc(100vw-32px)] max-w-xl pointer-events-none">
             {(() => {
               const activity = activities.find((a) => a.id === draggingId);
@@ -671,8 +697,8 @@ const BoardPage = () => {
                 <div className="shadow-xl rounded-md bg-[var(--color-surface)]">
                   <ActivityCard
                     activity={activity}
-                    onToggleDone={() => {}}
-                    onEdit={() => {}}
+                    onToggleDone={() => { }}
+                    onEdit={() => { }}
                     disableHover
                     forceHover
                   />
