@@ -60,6 +60,19 @@ const BoardPage = () => {
   });
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+  // Disable layout/appear animations for the Later column when the Board page
+  // is opened on desktop to avoid a distracting mass-appear effect. Enable the
+  // layout animations only after the first render so interactions still animate.
+  const [enableLaterLayoutAnimation, setEnableLaterLayoutAnimation] = useState(false);
+  useEffect(() => {
+    // Enable after mount so the cards don't animate into view on initial page open.
+    // Use requestAnimationFrame to avoid a layout-change animation on mount.
+    if (typeof window !== "undefined") {
+      const raf = window.requestAnimationFrame(() => setEnableLaterLayoutAnimation(true));
+      return () => window.cancelAnimationFrame(raf);
+    }
+    setEnableLaterLayoutAnimation(true);
+  }, []);
   const [isTouchDrag, setIsTouchDrag] = useState(false);
   const [touchDragOverBucket, setTouchDragOverBucket] = useState<Extract<Bucket, "inbox" | "later"> | null>(null);
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -659,7 +672,10 @@ const BoardPage = () => {
             <AnimatePresence>
               {displayLater.map((activity, index) => (
                 <motion.div
-                  layout
+                  // Only enable layout animation for the later column after the
+                  // initial mount when on desktop. Mobile and subsequent updates
+                  // still animate as usual.
+                  layout={isDesktop ? enableLaterLayoutAnimation : true}
                   key={activity.id}
                   data-activity-id={activity.id}
                   onDragOver={(e) => handleDragOver(e, "later", index)}
