@@ -862,11 +862,15 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
             const activitiesForDay = weekActivities[date] ?? [];
             const displayActivities = mobilePreviewOrder[date] ?? activitiesForDay;
             const mobileLabel = formatMobileDayLabel(date);
+            const isToday = date === activeDate;
 
             return (
               <section key={date} className="space-y-2">
                 <div className="flex items-center justify-between text-base font-semibold">
-                  <span className="text-left text-[var(--color-text-primary)]">{mobileLabel.weekday}</span>
+                  <div className="flex items-center gap-1.5 text-left text-[var(--color-text-primary)]">
+                    <span>{mobileLabel.weekday}</span>
+                    {isToday && <FlagTriangleRight className="h-3.5 w-3.5" />}
+                  </div>
                   <span className="text-right text-[var(--color-text-meta)]">{mobileLabel.monthDay}</span>
                 </div>
                 <Divider />
