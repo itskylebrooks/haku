@@ -7,7 +7,8 @@
  */
 
 import { create } from "zustand";
-import type { Activity, Bucket, RepeatPattern } from "../types/activity";
+
+import type { Activity, Bucket } from "../types/activity";
 import { isScheduled } from "../types/activity";
 import type { Settings, ListsState, PersistedState } from "./types";
 import {
@@ -28,7 +29,6 @@ type AddActivityInput = {
   date?: string | null;
   time?: string | null;
   durationMinutes?: number | null;
-  repeat?: RepeatPattern;
   note?: string | null;
 };
 
@@ -52,8 +52,7 @@ export interface HakuStoreState {
   setTime: (
     id: string,
     time: string | null,
-    durationMinutes?: number | null,
-    repeat?: RepeatPattern
+    durationMinutes?: number | null
   ) => void;
   toggleDone: (id: string) => void;
   reorderInDay: (date: string, orderedIds: string[]) => void;
@@ -92,12 +91,7 @@ const normalizeDurationMinutes = (value?: number | null): number | null => {
   return isValidDuration(value) ? value : null;
 };
 
-const normalizeRepeat = (value?: RepeatPattern | null): RepeatPattern => {
-  if (value === "daily" || value === "weekly" || value === "monthly") {
-    return value;
-  }
-  return "none";
-};
+
 
 const isScheduledWithTime = (bucket: Bucket, time: string | null): boolean =>
   bucket === "scheduled" && time !== null;
@@ -108,7 +102,7 @@ const isScheduledWithTime = (bucket: Bucket, time: string | null): boolean =>
 
 function getInitialState(): Pick<HakuStoreState, "activities" | "lists" | "settings"> {
   const persisted = loadPersistedState();
-  
+
   if (persisted) {
     return {
       activities: persisted.activities,
@@ -149,7 +143,6 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
     const durationMinutes = anchored
       ? normalizeDurationMinutes(input.durationMinutes)
       : null;
-    const repeat = anchored ? normalizeRepeat(input.repeat) : "none";
 
     const newActivity: Activity = {
       id: generateActivityId(),
@@ -158,7 +151,6 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
       date,
       time,
       durationMinutes,
-      repeat,
       note: input.note ?? null,
       isDone: false,
       orderIndex: null,
@@ -210,10 +202,6 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
           ? normalizeDurationMinutes(rawDuration)
           : null;
 
-        const rawRepeat =
-          restUpdates.repeat !== undefined ? restUpdates.repeat : activity.repeat;
-        const nextRepeat = anchored ? normalizeRepeat(rawRepeat) : "none";
-
         const nextTitle = restUpdates.title ?? activity.title;
         const nextNote =
           restUpdates.note !== undefined ? restUpdates.note : activity.note;
@@ -227,7 +215,6 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
           activity.date === nextDate &&
           activity.time === nextTime &&
           activity.durationMinutes === nextDuration &&
-          activity.repeat === nextRepeat &&
           activity.title === nextTitle &&
           activity.note === nextNote &&
           activity.isDone === nextIsDone &&
@@ -243,7 +230,6 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
           date: nextDate,
           time: nextTime,
           durationMinutes: nextDuration,
-          repeat: nextRepeat,
           title: nextTitle,
           note: nextNote,
           isDone: nextIsDone,
@@ -287,7 +273,6 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
           date: null,
           time: null,
           durationMinutes: null,
-          repeat: "none",
           updatedAt: now,
         };
       });
@@ -320,7 +305,6 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
           date: null,
           time: null,
           durationMinutes: null,
-          repeat: "none",
           updatedAt: now,
         };
       });
@@ -376,7 +360,6 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
           date: null,
           time: null,
           durationMinutes: null,
-          repeat: "none",
           updatedAt: now,
         };
       });
@@ -384,7 +367,7 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
     });
   },
 
-  setTime: (id, time, durationMinutes, repeat) => {
+  setTime: (id, time, durationMinutes) => {
     set((state) => {
       const now = nowIsoString();
       let changed = false;
@@ -404,13 +387,9 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
           ? normalizeDurationMinutes(rawDuration)
           : null;
 
-        const rawRepeat = repeat ?? activity.repeat;
-        const nextRepeat = anchored ? normalizeRepeat(rawRepeat) : "none";
-
         if (
           activity.time === nextTime &&
-          activity.durationMinutes === nextDuration &&
-          activity.repeat === nextRepeat
+          activity.durationMinutes === nextDuration
         ) {
           return activity;
         }
@@ -420,7 +399,6 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
           ...activity,
           time: nextTime,
           durationMinutes: nextDuration,
-          repeat: nextRepeat,
           updatedAt: now,
         };
       });
@@ -459,7 +437,6 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
           date: today,
           time: null,
           durationMinutes: null,
-          repeat: "none",
           orderIndex: null,
           isDone: nextIsDone,
           updatedAt: now,

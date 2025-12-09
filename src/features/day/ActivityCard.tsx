@@ -1,6 +1,6 @@
 import type React from "react";
 import { Circle, CheckCircle2 } from "lucide-react";
-import type { Activity, RepeatPattern } from "../../shared/types/activity";
+import type { Activity } from "../../shared/types/activity";
 
 interface ActivityCardProps {
   activity: Activity;
@@ -42,21 +42,7 @@ const formatDuration = (minutes: number): string => {
   return `${remainingMinutes} min`;
 };
 
-/**
- * Returns the display label for a repeat pattern.
- */
-const getRepeatLabel = (repeat: RepeatPattern): string | null => {
-  switch (repeat) {
-    case "daily":
-      return "Daily";
-    case "weekly":
-      return "Weekly";
-    case "monthly":
-      return "Monthly";
-    default:
-      return null;
-  }
-};
+
 
 const ActivityCard = ({
   activity,
@@ -72,10 +58,9 @@ const ActivityCard = ({
   disableHover = false,
   forceHover = false,
 }: ActivityCardProps) => {
-  const { id, title, time, durationMinutes, repeat, note, isDone } = activity;
+  const { id, title, time, durationMinutes, note, isDone } = activity;
 
   const hasMetaRow = time !== null;
-  const repeatLabel = getRepeatLabel(repeat);
   const hoverClasses = !disableHover && !isDone
     ? "hover:bg-[var(--color-card-hover)] hover:shadow-sm"
     : "";
@@ -85,9 +70,8 @@ const ActivityCard = ({
 
   return (
     <div
-      className={`group flex cursor-pointer rounded-md transition select-none ${
-        isDone ? "" : hoverClasses
-      } ${activeHoverClasses} ${draggable ? "cursor-grab active:cursor-grabbing" : ""} ${isDragging ? "opacity-50" : ""}`}
+      className={`group flex cursor-pointer rounded-md transition select-none ${isDone ? "" : hoverClasses
+        } ${activeHoverClasses} ${draggable ? "cursor-grab active:cursor-grabbing" : ""} ${isDragging ? "opacity-50" : ""}`}
       style={{ WebkitTouchCallout: "none" }}
       onClick={() => onEdit(activity)}
       draggable={draggable}
@@ -103,11 +87,10 @@ const ActivityCard = ({
         {hasMetaRow && (
           <div className="mb-1 flex items-center gap-1 text-xs md:text-[0.7rem]">
             <span
-              className={`${
-                isDone
-                  ? "text-[var(--color-text-faint)]"
-                  : "text-[var(--color-text-secondary)]"
-              }`}
+              className={`${isDone
+                ? "text-[var(--color-text-faint)]"
+                : "text-[var(--color-text-secondary)]"
+                }`}
             >
               {formatTimeWithAmPm(time)}
             </span>
@@ -115,27 +98,12 @@ const ActivityCard = ({
               <>
                 <span className="text-[var(--color-text-faint)]">•</span>
                 <span
-                  className={`${
-                    isDone
-                      ? "text-[var(--color-text-faint)]"
-                      : "text-[var(--color-text-meta)]"
-                  }`}
+                  className={`${isDone
+                    ? "text-[var(--color-text-faint)]"
+                    : "text-[var(--color-text-meta)]"
+                    }`}
                 >
                   {formatDuration(durationMinutes)}
-                </span>
-              </>
-            )}
-            {repeatLabel && (
-              <>
-                <span className="text-[var(--color-text-faint)]">•</span>
-                <span
-                  className={`${
-                    isDone
-                      ? "text-[var(--color-text-faint)]"
-                      : "text-[var(--color-text-meta)]"
-                  }`}
-                >
-                  {repeatLabel}
                 </span>
               </>
             )}
@@ -144,11 +112,10 @@ const ActivityCard = ({
 
         {/* Title - allow wrapping, no truncation */}
         <h3
-          className={`text-sm font-semibold leading-snug md:text-sm ${
-            isDone
-              ? "text-[var(--color-text-faint)] line-through decoration-[var(--color-strike)]"
-              : "text-[var(--color-text-primary)]"
-          }`}
+          className={`text-sm font-semibold leading-snug md:text-sm ${isDone
+            ? "text-[var(--color-text-faint)] line-through decoration-[var(--color-strike)]"
+            : "text-[var(--color-text-primary)]"
+            }`}
         >
           {title}
         </h3>
@@ -156,11 +123,10 @@ const ActivityCard = ({
         {/* Note - allow wrapping, no truncation */}
         {note && (
           <p
-            className={`mt-1 text-xs leading-relaxed md:text-xs ${
-              isDone
-                ? "text-[var(--color-text-faint)]"
-                : "text-[var(--color-text-subtle)]"
-            }`}
+            className={`mt-1 text-xs leading-relaxed md:text-xs ${isDone
+              ? "text-[var(--color-text-faint)]"
+              : "text-[var(--color-text-subtle)]"
+              }`}
           >
             {note}
           </p>

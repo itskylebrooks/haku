@@ -1,6 +1,6 @@
 import type React from "react";
 import { Circle, CheckCircle2 } from "lucide-react";
-import type { Activity, RepeatPattern } from "../../shared/types/activity";
+import type { Activity } from "../../shared/types/activity";
 
 interface WeekActivityRowProps {
   activity: Activity;
@@ -35,18 +35,7 @@ const formatDuration = (minutes: number): string => {
   return `${remainingMinutes} min`;
 };
 
-const getRepeatLabel = (repeat: RepeatPattern): string | null => {
-  switch (repeat) {
-    case "daily":
-      return "Daily";
-    case "weekly":
-      return "Weekly";
-    case "monthly":
-      return "Monthly";
-    default:
-      return null;
-  }
-};
+
 
 const WeekActivityRow = ({
   activity,
@@ -61,18 +50,14 @@ const WeekActivityRow = ({
   onDrop,
   disableHover = false,
 }: WeekActivityRowProps) => {
-  const { id, title, time, durationMinutes, repeat, isDone } = activity;
+  const { id, title, time, durationMinutes, isDone } = activity;
 
-  const repeatLabel = getRepeatLabel(repeat);
   const metaParts: string[] = [];
   if (time) {
     metaParts.push(formatTimeWithAmPm(time));
   }
   if (durationMinutes !== null) {
     metaParts.push(formatDuration(durationMinutes));
-  }
-  if (repeatLabel) {
-    metaParts.push(repeatLabel);
   }
 
   const hasMeta = metaParts.length > 0;
@@ -106,31 +91,27 @@ const WeekActivityRow = ({
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
-      className={`group flex min-h-[38px] items-stretch rounded-lg px-1.5 py-1 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
-        isDone ? "bg-transparent" : ""
-      } ${hoverClasses} ${draggable ? "cursor-grab active:cursor-grabbing" : ""} ${isDragging ? "opacity-50" : ""}`}
+      className={`group flex min-h-[38px] items-stretch rounded-lg px-1.5 py-1 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${isDone ? "bg-transparent" : ""
+        } ${hoverClasses} ${draggable ? "cursor-grab active:cursor-grabbing" : ""} ${isDragging ? "opacity-50" : ""}`}
     >
       <div
-        className={`flex min-w-0 flex-1 flex-col ${
-          centerTitleOnly ? "justify-center" : ""
-        }`}
+        className={`flex min-w-0 flex-1 flex-col ${centerTitleOnly ? "justify-center" : ""
+          }`}
       >
         <div className="flex min-w-0 items-center">
           <p
-            className={`flex-1 min-w-0 truncate text-[13px] font-semibold leading-tight ${
-              isDone
-                ? "text-[var(--color-text-faint)] line-through decoration-[var(--color-strike)]"
-                : "text-[var(--color-text-primary)]"
-            }`}
+            className={`flex-1 min-w-0 truncate text-[13px] font-semibold leading-tight ${isDone
+              ? "text-[var(--color-text-faint)] line-through decoration-[var(--color-strike)]"
+              : "text-[var(--color-text-primary)]"
+              }`}
           >
             {title}
           </p>
         </div>
 
         <p
-          className={`mt-0 text-[10px] leading-snug h-3.5 ${
-            isDone ? "text-[var(--color-text-faint)]" : "text-[var(--color-text-subtle)]"
-          } ${hasMeta ? "" : "hidden"}`}
+          className={`mt-0 text-[10px] leading-snug h-3.5 ${isDone ? "text-[var(--color-text-faint)]" : "text-[var(--color-text-subtle)]"
+            } ${hasMeta ? "" : "hidden"}`}
         >
           {hasMeta ? metaParts.join(" · ") : " "}
         </p>

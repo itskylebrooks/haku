@@ -8,7 +8,7 @@
 
 import type { PersistedState, PersistedStateV1, ListsState } from "./types";
 import { STORAGE_KEY } from "./types";
-import type { Activity, Bucket, RepeatPattern } from "../types/activity";
+import type { Activity, Bucket } from "../types/activity";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Validation Helpers
@@ -22,15 +22,11 @@ function isValidBucket(value: unknown): value is Bucket {
   return value === "inbox" || value === "later" || value === "scheduled";
 }
 
-function isValidRepeatPattern(value: unknown): value is RepeatPattern {
-  return value === "none" || value === "daily" || value === "weekly" || value === "monthly";
-}
-
 function isValidActivity(value: unknown): value is Activity {
   if (!isObject(value)) return false;
-  
+
   const v = value as Record<string, unknown>;
-  
+
   return (
     typeof v.id === "string" &&
     typeof v.title === "string" &&
@@ -38,7 +34,6 @@ function isValidActivity(value: unknown): value is Activity {
     (v.date === null || typeof v.date === "string") &&
     (v.time === null || typeof v.time === "string") &&
     (v.durationMinutes === null || typeof v.durationMinutes === "number") &&
-    isValidRepeatPattern(v.repeat) &&
     (v.note === null || typeof v.note === "string") &&
     typeof v.isDone === "boolean" &&
     (v.orderIndex === null || typeof v.orderIndex === "number") &&
@@ -53,9 +48,9 @@ function isValidActivitiesArray(value: unknown): value is Activity[] {
 
 function isValidSettings(value: unknown): boolean {
   if (!isObject(value)) return false;
-  
+
   const v = value as Record<string, unknown>;
-  
+
   return (
     (v.weekStart === "sunday" || v.weekStart === "monday") &&
     (v.themeMode === "system" || v.themeMode === "light" || v.themeMode === "dark")
@@ -64,9 +59,9 @@ function isValidSettings(value: unknown): boolean {
 
 function isValidListsState(value: unknown): boolean {
   if (!isObject(value)) return false;
-  
+
   const v = value as Record<string, unknown>;
-  
+
   return typeof v.version === "number";
 }
 
@@ -90,11 +85,11 @@ export function migratePersistedState(raw: unknown): PersistedState | null {
   switch (version) {
     case 1:
       return migrateFromV1(raw);
-    
+
     // Future migrations:
     // case 2:
     //   return migrateFromV2(raw);
-    
+
     default:
       // Unknown version or missing version field
       return null;
@@ -107,7 +102,7 @@ export function migratePersistedState(raw: unknown): PersistedState | null {
  */
 function migrateFromV1(raw: unknown): PersistedStateV1 | null {
   if (!isObject(raw)) return null;
-  
+
   const data = raw as Record<string, unknown>;
 
   // Validate version
@@ -147,7 +142,7 @@ function migrateFromV1(raw: unknown): PersistedStateV1 | null {
 export function loadPersistedState(): PersistedState | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    
+
     if (raw === null) {
       return null;
     }

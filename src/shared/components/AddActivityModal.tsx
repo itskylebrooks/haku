@@ -1,9 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Circle, Square, Diamond } from "lucide-react";
-import type { Activity, Bucket, RepeatPattern } from "../types/activity";
+import type { Activity, Bucket } from "../types/activity";
 import { useActivitiesStore } from "../store/activitiesStore";
 import SimpleDatePicker from "./date/SimpleDatePicker";
 import SimpleTimePicker from "./date/SimpleTimePicker";
+
+// Date helpers
+const addDays = (date: Date, days: number): Date => {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+};
+
+const addWeeks = (date: Date, weeks: number): Date => {
+  return addDays(date, weeks * 7);
+};
+
+const formatDate = (date: Date): string => {
+  return date.toISOString().slice(0, 10);
+};
 
 type PlacementOption = "inbox" | "date" | "later";
 type ModalMode = "create" | "edit";
@@ -28,10 +43,7 @@ const placementLabels: { key: PlacementOption; label: string }[] = [
   { key: "later", label: "Later" },
 ];
 
-const durationOptions: Array<number | null> = [
-  null,
-  ...Array.from({ length: 20 }, (_, index) => 15 * (index + 1)),
-];
+
 
 const formatDurationLabel = (minutes: number | null): string => {
   if (minutes === null) return "None";
@@ -46,12 +58,7 @@ const formatDurationLabel = (minutes: number | null): string => {
   return `${remainingMinutes} min`;
 };
 
-const repeatOptions: { value: RepeatPattern; label: string }[] = [
-  { value: "none", label: "None" },
-  { value: "daily", label: "Daily" },
-  { value: "weekly", label: "Weekly" },
-  { value: "monthly", label: "Monthly" },
-];
+
 
 const AddActivityModal = ({
   isOpen,
@@ -93,18 +100,25 @@ const AddActivityModal = ({
   const [scheduledDate, setScheduledDate] = useState<string | null>(todayIso());
   const [scheduledTime, setScheduledTime] = useState<string | null>(null);
   const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
-  const [repeat, setRepeat] = useState<RepeatPattern>("none");
+
   const [isDurationMenuOpen, setIsDurationMenuOpen] = useState(false);
-  const [isRepeatMenuOpen, setIsRepeatMenuOpen] = useState(false);
+
+  // Duplicate forward state
+  const [isDuplicateMenuOpen, setIsDuplicateMenuOpen] = useState(false);
+  const [duplicateCount, setDuplicateCount] = useState<number>(0);
+  const [duplicateInterval, setDuplicateInterval] = useState<"day" | "week">("day");
+  const duplicateContainerRef = useRef<HTMLDivElement>(null);
+
   const [note, setNote] = useState<string>("");
   const [showNote, setShowNote] = useState<boolean>(false);
   const durationContainerRef = useRef<HTMLDivElement>(null);
-  const repeatContainerRef = useRef<HTMLDivElement>(null);
+
   const noteRef = useRef<HTMLTextAreaElement | null>(null);
 
   const trimmedTitle = useMemo(() => title.trim(), [title]);
   const isDatePlacement = placement === "date";
-  const showDurationAndRepeat = isDatePlacement && scheduledTime !== null;
+  // Show duration if time is set; duplicate/repeat logic will replace old repeat logic
+  const showDuration = isDatePlacement && scheduledTime !== null;
   const canSubmit = Boolean(trimmedTitle) && (!isDatePlacement || !!scheduledDate);
 
   const resetForm = () => {
@@ -115,7 +129,7 @@ const AddActivityModal = ({
       setScheduledDate(activityToEdit.date ?? getInitialDate());
       setScheduledTime(activityToEdit.time);
       setDurationMinutes(activityToEdit.durationMinutes);
-      setRepeat(activityToEdit.repeat);
+
       setNote(activityToEdit.note ?? "");
       setShowNote(activityToEdit.note !== null && activityToEdit.note !== "");
     } else {
@@ -125,12 +139,17 @@ const AddActivityModal = ({
       setScheduledDate(getInitialDate());
       setScheduledTime(null);
       setDurationMinutes(null);
-      setRepeat("none");
+
       setNote("");
       setShowNote(false);
     }
+
+    // Always reset duplicate state on open/reset
+    setIsDuplicateMenuOpen(false);
+    setDuplicateCount(0);
+    setDuplicateInterval("day");
+
     setIsDurationMenuOpen(false);
-    setIsRepeatMenuOpen(false);
   };
 
   useEffect(() => {
@@ -149,33 +168,35 @@ const AddActivityModal = ({
   useEffect(() => {
     if (scheduledTime === null) {
       setDurationMinutes(null);
-      setRepeat("none");
       setIsDurationMenuOpen(false);
-      setIsRepeatMenuOpen(false);
+
+      // Reset duplicate state when time is removed
+      setIsDuplicateMenuOpen(false);
+      setDuplicateCount(0);
+      setDuplicateInterval("day");
     }
   }, [scheduledTime]);
 
   useEffect(() => {
-    if (!isDurationMenuOpen && !isRepeatMenuOpen) {
+    if (!isDurationMenuOpen && !isDuplicateMenuOpen) {
       return;
     }
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       const durationContains = durationContainerRef.current?.contains(target);
-      const repeatContains = repeatContainerRef.current?.contains(target);
+      const duplicateContains = duplicateContainerRef.current?.contains(target);
 
-      if (!durationContains && !repeatContains) {
+      if (!durationContains && !duplicateContains) {
         setIsDurationMenuOpen(false);
-        setIsRepeatMenuOpen(false);
+        setIsDuplicateMenuOpen(false);
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside, true);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isDurationMenuOpen, isRepeatMenuOpen]);
+  }, [isDurationMenuOpen, isDuplicateMenuOpen]);
 
   useEffect(() => {
     if (showNote) {
@@ -194,15 +215,7 @@ const AddActivityModal = ({
     onClose();
   };
 
-  const handleDurationSelect = (value: number | null) => {
-    setDurationMinutes(value);
-    setIsDurationMenuOpen(false);
-  };
 
-  const handleRepeatSelect = (value: RepeatPattern) => {
-    setRepeat(value);
-    setIsRepeatMenuOpen(false);
-  };
 
   const handleSubmit = () => {
     if (!trimmedTitle) return;
@@ -211,7 +224,7 @@ const AddActivityModal = ({
     let dateValue: string | null = null;
     let timeValue: string | null = null;
     let durationValue: number | null = null;
-    let repeatValue: RepeatPattern = "none";
+
 
     if (placement === "date") {
       bucket = "scheduled";
@@ -220,7 +233,7 @@ const AddActivityModal = ({
       timeValue = scheduledTime;
       if (timeValue !== null) {
         durationValue = durationMinutes;
-        repeatValue = repeat;
+
       }
     } else if (placement === "later") {
       bucket = "later";
@@ -228,6 +241,7 @@ const AddActivityModal = ({
 
     const noteValue = note.trim();
 
+    // Unified handle for both create and edit mode to support duplication
     if (isEditMode && onUpdate) {
       // Edit mode: update existing activity
       onUpdate(activityToEdit.id, {
@@ -236,7 +250,6 @@ const AddActivityModal = ({
         date: dateValue,
         time: timeValue,
         durationMinutes: durationValue,
-        repeat: repeatValue,
         note: noteValue === "" ? null : noteValue,
       });
     } else {
@@ -247,9 +260,28 @@ const AddActivityModal = ({
         date: dateValue,
         time: timeValue,
         durationMinutes: durationValue,
-        repeat: repeatValue,
         note: noteValue === "" ? null : noteValue,
       });
+    }
+
+    // Handle duplicates if configured and we have a valid date (works for both edit and create)
+    if (duplicateCount > 0 && dateValue) {
+      let baseDate = new Date(dateValue);
+
+      for (let i = 1; i <= duplicateCount; i++) {
+        const nextDate = duplicateInterval === "week"
+          ? addWeeks(baseDate, i)
+          : addDays(baseDate, i);
+
+        addActivity({
+          title: trimmedTitle,
+          bucket,
+          date: formatDate(nextDate),
+          time: timeValue,
+          durationMinutes: durationValue,
+          note: noteValue === "" ? null : noteValue,
+        });
+      }
     }
 
     handleClose();
@@ -318,7 +350,7 @@ const AddActivityModal = ({
               {placementLabels.map(({ key, label }) => {
                 const isActive = placement === key;
                 const isDisabled = isPlacementLocked && key !== "date";
-                  return (
+                return (
                   <button
                     key={key}
                     type="button"
@@ -327,14 +359,13 @@ const AddActivityModal = ({
                       setPlacement(key);
                       if (key !== "date") {
                         setIsDurationMenuOpen(false);
-                        setIsRepeatMenuOpen(false);
+
                       }
                     }}
-                    className={`w-full h-10 flex items-center justify-center rounded-lg px-2 sm:px-3 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
-                      isActive
-                        ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] shadow-sm border-0"
-                        : "border border-[var(--color-border)] bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-surface-subtle)]"
-                    } ${isDisabled ? "cursor-not-allowed opacity-50" : ""}`}
+                    className={`w-full h-10 flex items-center justify-center rounded-lg px-2 sm:px-3 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${isActive
+                      ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] shadow-sm border-0"
+                      : "border border-[var(--color-border)] bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-surface-subtle)]"
+                      } ${isDisabled ? "cursor-not-allowed opacity-50" : ""}`}
                   >
                     {key === "inbox" && <Circle className="w-4 h-4" />}
                     {key === "date" && <Square className="w-4 h-4" />}
@@ -364,82 +395,115 @@ const AddActivityModal = ({
                   </div>
                 </div>
 
-                {showDurationAndRepeat && (
+                {showDuration && (
                   <div className="grid grid-cols-2 gap-3">
                     <div ref={durationContainerRef} className="relative w-full">
                       <button
                         type="button"
                         onClick={() => {
                           setIsDurationMenuOpen((prev) => !prev);
-                          setIsRepeatMenuOpen(false);
+                          setIsDuplicateMenuOpen(false);
                         }}
                         className="w-full h-10 flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-transparent px-2 sm:px-3 text-sm text-[var(--color-text-primary)] transition hover:border-[var(--color-border-hover)] focus:border-[var(--color-border-focus)] focus:outline-none"
                       >
                         <span className="text-[var(--color-text-subtle)]">Duration:</span>
-                        <span>{formatDurationLabel(durationMinutes)}</span>
+                        <span>
+                          {durationMinutes ? formatDurationLabel(durationMinutes) : "None"}
+                        </span>
                       </button>
 
                       {isDurationMenuOpen && (
                         <div className="absolute left-0 top-full z-50 mt-2 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-lg">
                           <div className="max-h-56 space-y-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                            {durationOptions.map((option) => {
-                              const isSelected = durationMinutes === option;
-                              return (
-                                <button
-                                  key={option ?? "none"}
-                                  type="button"
-                                  onClick={() => handleDurationSelect(option)}
-                                  className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
-                                    isSelected
-                                      ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)]"
-                                      : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
-                                    }`}
-                                >
-                                  {formatDurationLabel(option)}
-                                </button>
-                              );
-                            })}
+                            {[15, 30, 45, 60, 90, 120].map((mins) => (
+                              <button
+                                key={mins}
+                                type="button"
+                                onClick={() => {
+                                  setDurationMinutes(mins);
+                                  setIsDurationMenuOpen(false);
+                                }}
+                                className="w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition"
+                              >
+                                {formatDurationLabel(mins)}
+                              </button>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDurationMinutes(null);
+                                setIsDurationMenuOpen(false);
+                              }}
+                              className="w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--color-text-faint)] hover:bg-[var(--color-surface-hover)] transition"
+                            >
+                              None
+                            </button>
                           </div>
                         </div>
                       )}
                     </div>
 
-                    <div ref={repeatContainerRef} className="relative w-full">
+                    {/* Duplicate Forward Button */}
+                    <div ref={duplicateContainerRef} className="relative w-full">
                       <button
                         type="button"
                         onClick={() => {
-                          setIsRepeatMenuOpen((prev) => !prev);
+                          setIsDuplicateMenuOpen((prev) => !prev);
                           setIsDurationMenuOpen(false);
                         }}
                         className="w-full h-10 flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-transparent px-2 sm:px-3 text-sm text-[var(--color-text-primary)] transition hover:border-[var(--color-border-hover)] focus:border-[var(--color-border-focus)] focus:outline-none"
                       >
-                        <span className="text-[var(--color-text-subtle)]">Repeat:</span>
-                        <span>
-                          {repeatOptions.find((item) => item.value === repeat)?.label ??
-                            "None"}
-                        </span>
+                        <span className="text-[var(--color-text-subtle)]">Duplicate:</span>
+                        <span>{duplicateCount > 0 ? `${duplicateCount} copies` : "None"}</span>
                       </button>
 
-                      {isRepeatMenuOpen && (
-                        <div className="absolute left-0 top-full z-50 mt-2 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-lg">
-                          <div className="max-h-56 space-y-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                            {repeatOptions.map(({ value, label }) => {
-                              const isSelected = repeat === value;
-                              return (
-                                <button
-                                  key={value}
-                                  type="button"
-                                  onClick={() => handleRepeatSelect(value)}
-                                  className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
-                                    isSelected
-                                      ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)]"
-                                      : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
-                                    }`}
-                                >
-                                  {label}
-                                </button>
-                              );
-                            })}
+                      {isDuplicateMenuOpen && (
+                        <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-lg flex flex-col gap-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-[var(--color-text-primary)]">Copies:</span>
+                            <div className="flex items-center gap-2 w-[110px] justify-between">
+                              <button
+                                type="button"
+                                onClick={() => setDuplicateCount(Math.max(0, duplicateCount - 1))}
+                                className="w-8 h-8 flex items-center justify-center rounded-md border border-[var(--color-border)] bg-transparent text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] transition"
+                              >
+                                -
+                              </button>
+                              <span className="flex-1 text-center text-sm">{duplicateCount}</span>
+                              <button
+                                type="button"
+                                onClick={() => setDuplicateCount(Math.min(50, duplicateCount + 1))}
+                                className="w-8 h-8 flex items-center justify-center rounded-md border border-[var(--color-border)] bg-transparent text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] transition"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-[var(--color-text-primary)]">Interval:</span>
+                            <div className="flex bg-[var(--color-surface-hover)] p-0.5 rounded-lg border border-[var(--color-border)] w-[110px]">
+                              <button
+                                type="button"
+                                onClick={() => setDuplicateInterval("day")}
+                                className={`flex-1 py-1 text-xs font-medium rounded-md transition border ${duplicateInterval === "day"
+                                  ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] shadow-sm border-transparent"
+                                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border-transparent"
+                                  }`}
+                              >
+                                Days
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDuplicateInterval("week")}
+                                className={`flex-1 py-1 text-xs font-medium rounded-md transition border ${duplicateInterval === "week"
+                                  ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] shadow-sm border-transparent"
+                                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border-transparent"
+                                  }`}
+                              >
+                                Weeks
+                              </button>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -498,11 +562,10 @@ const AddActivityModal = ({
                 type="button"
                 disabled={!canSubmit}
                 onClick={handleSubmit}
-                className={`rounded-md px-4 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
-                  canSubmit
-                    ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] hover:bg-[var(--color-emphasis-bg-hover)] active:scale-[0.99]"
-                    : "cursor-not-allowed bg-[var(--color-disabled-bg)] text-[var(--color-disabled-text)]"
-                }`}
+                className={`rounded-md px-4 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${canSubmit
+                  ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] hover:bg-[var(--color-emphasis-bg-hover)] active:scale-[0.99]"
+                  : "cursor-not-allowed bg-[var(--color-disabled-bg)] text-[var(--color-disabled-text)]"
+                  }`}
               >
                 {isEditMode ? "Save" : "Add"}
               </button>

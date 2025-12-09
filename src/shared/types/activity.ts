@@ -3,10 +3,6 @@
  */
 export type Bucket = "inbox" | "later" | "scheduled";
 
-/**
- * Supported recurrence patterns for anchored activities.
- */
-export type RepeatPattern = "none" | "daily" | "weekly" | "monthly";
 
 /**
  * Core domain entity describing a single piece of work (task or event) in Haku.
@@ -36,10 +32,6 @@ export interface Activity {
    * Optional duration stored as whole minutes. Null when unknown or unused.
    */
   durationMinutes: number | null;
-  /**
-   * Recurrence pattern applied to anchored activities; "none" for non-repeating.
-   */
-  repeat: RepeatPattern;
   /**
    * Longer free-text note associated with the activity.
    */
