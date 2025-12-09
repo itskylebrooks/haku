@@ -921,7 +921,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
 
       {/* Desktop grid with Sunday + Inbox/Later row */}
       <div className="hidden lg:block">
-        <h1 className="sticky top-[calc(1.5rem+48px)] z-30 mx-auto w-full bg-[var(--color-surface)] px-3 pb-3 pl-4">
+        <h1 className="sticky top-[calc(1.5rem-24px)] z-30 mx-auto w-full bg-[var(--color-surface)] px-3 pb-3 pl-4">
           <button
             type="button"
             onClick={onResetToday}
@@ -930,7 +930,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
             {formattedMonthYear}
           </button>
         </h1>
-        <div className="mx-auto w-full px-3 pt-0">
+        <div className="mx-auto w-full px-3">
           <div className="grid grid-cols-6 gap-0">
             {topWeekDates.map((date) => {
               const activitiesForDay = weekActivities[date] ?? [];
