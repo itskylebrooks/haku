@@ -33,7 +33,7 @@ const MobileTabBar = ({ activeTab, onTabChange, onAdd }: MobileTabBarProps) => {
       className="fixed bottom-6 left-0 right-0 z-50 flex justify-center pb-[env(safe-area-inset-bottom)] lg:hidden"
       aria-label="Main navigation"
     >
-      <div className="mb-1 mx-4 flex items-center justify-center gap-4 rounded-full border border-[var(--color-border-soft)] bg-[var(--color-surface)] px-4 py-2 shadow-lg">
+      <div className="mb-1 mx-4 flex items-center justify-center gap-4 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 shadow-lg">
         <div className="flex items-center gap-4">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
@@ -45,17 +45,17 @@ const MobileTabBar = ({ activeTab, onTabChange, onAdd }: MobileTabBarProps) => {
                 aria-label={tab.label}
                 aria-current={isActive ? "page" : undefined}
                 className={`inline-flex h-12 w-16 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
-                  isActive
-                    ? "bg-[var(--color-surface-strong)] text-[var(--color-text-contrast)] font-semibold shadow-sm"
-                    : "text-[var(--color-text-subtle)] active:bg-[var(--color-surface-pressed)]"
-                }`}
+                    isActive
+                      ? "bg-[var(--color-surface-strong)] text-[var(--color-text-contrast)] font-semibold shadow-sm"
+                      : "text-[var(--color-text-primary)] active:bg-[var(--color-surface-pressed)]"
+                  }`}
               >
                 {tab.icon}
               </button>
             );
           })}
         </div>
-        <div className="h-10 w-px bg-[var(--color-surface-divider)]" />
+        <div className="h-10 w-px bg-[var(--color-border)]" />
         <button
           type="button"
           onClick={() => {
