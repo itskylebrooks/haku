@@ -43,8 +43,6 @@ const placementLabels: { key: PlacementOption; label: string }[] = [
   { key: "later", label: "Later" },
 ];
 
-
-
 const formatDurationLabel = (minutes: number | null): string => {
   if (minutes === null) return "None";
   const hours = Math.floor(minutes / 60);
@@ -58,9 +56,7 @@ const formatDurationLabel = (minutes: number | null): string => {
   return `${remainingMinutes} min`;
 };
 
-
-
-const AddActivityModal = ({
+const AddActivityModalContent = ({
   isOpen,
   onClose,
   initialTitle,
@@ -93,13 +89,46 @@ const AddActivityModal = ({
     return defaultDate ?? todayIso();
   };
 
-  const defaultPlacement = getInitialPlacement();
+  const getInitialTime = (): string | null => {
+    if (isEditMode) {
+      return activityToEdit.time;
+    }
+    return null;
+  };
 
-  const [title, setTitle] = useState(initialTitle ?? "");
-  const [placement, setPlacement] = useState<PlacementOption>(defaultPlacement);
-  const [scheduledDate, setScheduledDate] = useState<string | null>(todayIso());
-  const [scheduledTime, setScheduledTime] = useState<string | null>(null);
-  const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
+  const getInitialDuration = (): number | null => {
+    if (isEditMode) {
+      return activityToEdit.durationMinutes;
+    }
+    return null;
+  };
+
+  const getInitialTitle = (): string => {
+    if (isEditMode) {
+      return activityToEdit.title;
+    }
+    return initialTitle ?? "";
+  };
+
+  const getInitialNote = (): string => {
+    if (isEditMode) {
+      return activityToEdit.note ?? "";
+    }
+    return "";
+  };
+
+  const getInitialShowNote = (): boolean => {
+    if (isEditMode) {
+      return activityToEdit.note !== null && activityToEdit.note !== "";
+    }
+    return false;
+  };
+
+  const [title, setTitle] = useState(getInitialTitle);
+  const [placement, setPlacement] = useState<PlacementOption>(getInitialPlacement);
+  const [scheduledDate, setScheduledDate] = useState<string | null>(getInitialDate);
+  const [scheduledTime, setScheduledTime] = useState<string | null>(getInitialTime);
+  const [durationMinutes, setDurationMinutes] = useState<number | null>(getInitialDuration);
 
   const [isDurationMenuOpen, setIsDurationMenuOpen] = useState(false);
 
@@ -109,8 +138,8 @@ const AddActivityModal = ({
   const [duplicateInterval, setDuplicateInterval] = useState<"day" | "week">("day");
   const duplicateContainerRef = useRef<HTMLDivElement>(null);
 
-  const [note, setNote] = useState<string>("");
-  const [showNote, setShowNote] = useState<boolean>(false);
+  const [note, setNote] = useState<string>(getInitialNote);
+  const [showNote, setShowNote] = useState<boolean>(getInitialShowNote);
   const durationContainerRef = useRef<HTMLDivElement>(null);
 
   const noteRef = useRef<HTMLTextAreaElement | null>(null);
@@ -121,49 +150,13 @@ const AddActivityModal = ({
   const showDuration = isDatePlacement && scheduledTime !== null;
   const canSubmit = Boolean(trimmedTitle) && (!isDatePlacement || !!scheduledDate);
 
-  const resetForm = () => {
-    if (isEditMode) {
-      // Pre-fill with activity values for edit mode
-      setTitle(activityToEdit.title);
-      setPlacement(getInitialPlacement());
-      setScheduledDate(activityToEdit.date ?? getInitialDate());
-      setScheduledTime(activityToEdit.time);
-      setDurationMinutes(activityToEdit.durationMinutes);
-
-      setNote(activityToEdit.note ?? "");
-      setShowNote(activityToEdit.note !== null && activityToEdit.note !== "");
-    } else {
-      // Reset to defaults for create mode
-      setTitle(initialTitle ?? "");
-      setPlacement(defaultPlacement);
-      setScheduledDate(getInitialDate());
-      setScheduledTime(null);
-      setDurationMinutes(null);
-
-      setNote("");
-      setShowNote(false);
-    }
-
-    // Always reset duplicate state on open/reset
-    setIsDuplicateMenuOpen(false);
-    setDuplicateCount(0);
-    setDuplicateInterval("day");
-
-    setIsDurationMenuOpen(false);
-  };
-
   useEffect(() => {
-    if (isOpen) {
-      resetForm();
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    // Lock scrolling on mount logic
+    document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = "";
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, initialTitle, initialPlacement, activityToEdit, mode]);
+  }, []);
 
   useEffect(() => {
     if (scheduledTime === null) {
@@ -211,11 +204,8 @@ const AddActivityModal = ({
   }, [showNote]);
 
   const handleClose = () => {
-    resetForm();
     onClose();
   };
-
-
 
   const handleSubmit = () => {
     if (!trimmedTitle) return;
@@ -294,8 +284,6 @@ const AddActivityModal = ({
   };
 
   useEffect(() => {
-    if (!isOpen) return undefined;
-
     const onKeyDown = (e: KeyboardEvent) => {
       // Close on Escape
       if (e.key === "Escape") {
@@ -316,11 +304,7 @@ const AddActivityModal = ({
 
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [isOpen, canSubmit, handleClose, handleSubmit]);
-
-  if (!isOpen) {
-    return null;
-  }
+  }, [canSubmit, handleClose, handleSubmit]);
 
   return (
     <div
@@ -575,6 +559,11 @@ const AddActivityModal = ({
       </div>
     </div>
   );
+};
+
+const AddActivityModal = (props: AddActivityModalProps) => {
+  if (!props.isOpen) return null;
+  return <AddActivityModalContent {...props} />;
 };
 
 export default AddActivityModal;
