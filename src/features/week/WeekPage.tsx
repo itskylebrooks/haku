@@ -107,6 +107,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
   const [mobileDragOverDate, setMobileDragOverDate] = useState<string | null>(null);
   const dragLeaveTimeoutRef = useRef<number | null>(null);
   const mobileContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [scrollContainer, setScrollContainer] = useState<HTMLElement | Window | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
   const touchStartYRef = useRef(0);
   const touchStartXRef = useRef(0);
@@ -114,7 +115,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
   const touchDragDateRef = useRef<string | null>(null);
   const lastTouchPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  const { startAutoScroll, stopAutoScroll } = useAutoScroll();
+  const { startAutoScroll, stopAutoScroll } = useAutoScroll(scrollContainer ?? window);
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
@@ -132,6 +133,17 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
       };
     }
   }, [isTouchDrag]);
+
+  // Find the nearest main scroll container within AppShell (default) once mounted
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const main = document.querySelector("main") as HTMLElement | null;
+    if (main) {
+      setScrollContainer(main);
+    } else {
+      setScrollContainer(window);
+    }
+  }, []);
 
   const weekStartDate = useMemo(
     () => getWeekStartDate(activeDate, weekStart),
