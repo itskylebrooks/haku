@@ -10,6 +10,42 @@
   font-display: swap;
 }
 
+/* Disable text selection globally; re-enable for inputs and text-editing areas */
+/* This prevents accidental selection across the app but keeps typical form fields usable. */
+*,
+*::before,
+*::after {
+  -webkit-user-select: none; /* Chrome, Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* IE/Edge */
+  user-select: none; /* Standard */
+}
+
+/* Allow selection in inputs, textareas, and contenteditable elements */
+input,
+textarea,
+select,
+option,
+[contenteditable="true"],
+input::selection,
+textarea::selection,
+[contenteditable="true"]::selection {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Preserve ability to copy from code blocks or any element explicitly marked .selectable */
+.selectable,
+.selectable * {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+
 @font-face {
   font-family: "IBM Plex Sans";
   src: url("/fonts/IBMPlexSans-Italic.woff2") format("woff2");
