@@ -279,7 +279,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
           {label}
         </p>
       </div>
-      <div className="flex-shrink-0 opacity-0 group-hover/empty:opacity-100 transition-opacity">
+      <div className="flex-shrink-0 opacity-0 group-hover/empty:opacity-100 transition-opacity lg:-translate-x-2">
         <CirclePlus className="h-4 w-4 text-[var(--color-text-meta)]" />
       </div>
     </div>
