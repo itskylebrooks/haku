@@ -1,6 +1,8 @@
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { CirclePlus } from "lucide-react";
 import ActivityCard from "../day/ActivityCard";
+import { AnimatePresence, motion } from "framer-motion";
+import { FAST_TRANSITION } from "../../shared/theme/animations";
 import {
   useActivitiesStore,
   getInboxActivities,
@@ -580,32 +582,37 @@ const BoardPage = () => {
                 </div>
               </div>
             )}
-            {displayInbox.map((activity, index) => (
-              <div
-                key={activity.id}
-                data-activity-id={activity.id}
-                onDragOver={(e) => handleDragOver(e, "inbox", index)}
-                onDrop={(e) => handleDrop(e, "inbox", index)}
-              >
-                {activity.id === '__DRAG_PLACEHOLDER__' ? (
-                  <div style={{ height: `${draggedCardHeight}px` }} />
-                ) : (
-                  <ActivityCard
-                    activity={activity}
-                    onToggleDone={handleToggleDone}
-                    onEdit={handleEdit}
-                    draggable={isDesktop}
-                    isDragging={draggingId === activity.id}
-                    disableHover={draggingId !== null}
-                    onDragStart={(e) => handleDragStart(e, activity)}
-                    onDragEnd={handleDragEnd}
-                    onTouchStart={(e) => handleTouchStart(e, activity, "inbox")}
-                    onTouchMove={(e) => handleTouchMove(e, activity.id, "inbox")}
-                    onTouchEnd={() => handleTouchEnd(activity.id, "inbox")}
-                  />
-                )}
-              </div>
-            ))}
+            <AnimatePresence>
+              {displayInbox.map((activity, index) => (
+                <motion.div
+                  layout
+                  key={activity.id}
+                  data-activity-id={activity.id}
+                  onDragOver={(e) => handleDragOver(e, "inbox", index)}
+                  onDrop={(e) => handleDrop(e, "inbox", index)}
+                  initial={false}
+                  transition={FAST_TRANSITION}
+                >
+                  {activity.id === '__DRAG_PLACEHOLDER__' ? (
+                    <div style={{ height: `${draggedCardHeight}px` }} />
+                  ) : (
+                    <ActivityCard
+                      activity={activity}
+                      onToggleDone={handleToggleDone}
+                      onEdit={handleEdit}
+                      draggable={isDesktop}
+                      isDragging={draggingId === activity.id}
+                      disableHover={draggingId !== null}
+                      onDragStart={(e) => handleDragStart(e, activity)}
+                      onDragEnd={handleDragEnd}
+                      onTouchStart={(e) => handleTouchStart(e, activity, "inbox")}
+                      onTouchMove={(e) => handleTouchMove(e, activity.id, "inbox")}
+                      onTouchEnd={() => handleTouchEnd(activity.id, "inbox")}
+                    />
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
             {/* Desktop placeholder for adding new activity */}
             {isDesktop && !draggingId && (
               <div
@@ -649,32 +656,37 @@ const BoardPage = () => {
                 </div>
               </div>
             )}
-            {displayLater.map((activity, index) => (
-              <div
-                key={activity.id}
-                data-activity-id={activity.id}
-                onDragOver={(e) => handleDragOver(e, "later", index)}
-                onDrop={(e) => handleDrop(e, "later", index)}
-              >
-                {activity.id === '__DRAG_PLACEHOLDER__' ? (
-                  <div style={{ height: `${draggedCardHeight}px` }} />
-                ) : (
-                  <ActivityCard
-                    activity={activity}
-                    onToggleDone={handleToggleDone}
-                    onEdit={handleEdit}
-                    draggable={isDesktop}
-                    isDragging={draggingId === activity.id}
-                    disableHover={draggingId !== null}
-                    onDragStart={(e) => handleDragStart(e, activity)}
-                    onDragEnd={handleDragEnd}
-                    onTouchStart={(e) => handleTouchStart(e, activity, "later")}
-                    onTouchMove={(e) => handleTouchMove(e, activity.id, "later")}
-                    onTouchEnd={() => handleTouchEnd(activity.id, "later")}
-                  />
-                )}
-              </div>
-            ))}
+            <AnimatePresence>
+              {displayLater.map((activity, index) => (
+                <motion.div
+                  layout
+                  key={activity.id}
+                  data-activity-id={activity.id}
+                  onDragOver={(e) => handleDragOver(e, "later", index)}
+                  onDrop={(e) => handleDrop(e, "later", index)}
+                  initial={false}
+                  transition={FAST_TRANSITION}
+                >
+                  {activity.id === '__DRAG_PLACEHOLDER__' ? (
+                    <div style={{ height: `${draggedCardHeight}px` }} />
+                  ) : (
+                    <ActivityCard
+                      activity={activity}
+                      onToggleDone={handleToggleDone}
+                      onEdit={handleEdit}
+                      draggable={isDesktop}
+                      isDragging={draggingId === activity.id}
+                      disableHover={draggingId !== null}
+                      onDragStart={(e) => handleDragStart(e, activity)}
+                      onDragEnd={handleDragEnd}
+                      onTouchStart={(e) => handleTouchStart(e, activity, "later")}
+                      onTouchMove={(e) => handleTouchMove(e, activity.id, "later")}
+                      onTouchEnd={() => handleTouchEnd(activity.id, "later")}
+                    />
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
             {/* Desktop placeholder for adding new activity */}
             {isDesktop && !draggingId && (
               <div
