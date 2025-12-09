@@ -7,6 +7,8 @@ import WeekPage from "./features/week/WeekPage";
 import BoardPage from "./features/inbox/BoardPage";
 import SettingsModal from "./shared/components/SettingsModal";
 import { useHakuStore, type ThemeMode } from "./shared/storage";
+import { usePWA } from "./shared/hooks/usePWA";
+import InstallInstructionsModal from "./shared/components/InstallInstructionsModal";
 
 type ViewMode = "day" | "week";
 type ActiveTab = "board" | "day" | "week";
@@ -33,7 +35,10 @@ function App() {
   const [addModalInitialPlacement, setAddModalInitialPlacement] = useState<Bucket | undefined>(undefined);
   const [addModalDefaultDate, setAddModalDefaultDate] = useState<string | undefined>(undefined);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  
+
+  const { isInstallable, isInstalled, installPwa } = usePWA();
+  const [isInstallInstructionsOpen, setIsInstallInstructionsOpen] = useState(false);
+
   // Get settings from persisted store
   const weekStart = useHakuStore((state) => state.settings.weekStart);
   const themeMode = useHakuStore((state) => state.settings.themeMode);
@@ -157,9 +162,8 @@ function App() {
       style={{ height: "var(--app-height, 100vh)" }}
     >
       <div
-        className={`mx-auto flex h-full flex-col pb-10 pt-6 ${
-          mode === "week" ? "w-full max-w-none" : "max-w-6xl"
-        }`}
+        className={`mx-auto flex h-full flex-col pb-10 pt-6 ${mode === "week" ? "w-full max-w-none" : "max-w-6xl"
+          }`}
       >
         <AppShell
           mode={mode}
@@ -195,6 +199,17 @@ function App() {
         onWeekStartChange={setWeekStart}
         themeMode={themeMode}
         onThemeChange={setThemeMode}
+        isInstallable={isInstallable}
+        isInstalled={isInstalled}
+        onInstall={installPwa}
+        onShowInstallInstructions={() => {
+          setIsSettingsOpen(false);
+          setIsInstallInstructionsOpen(true);
+        }}
+      />
+      <InstallInstructionsModal
+        open={isInstallInstructionsOpen}
+        onClose={() => setIsInstallInstructionsOpen(false)}
       />
     </div>
   );

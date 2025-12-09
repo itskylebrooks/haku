@@ -3,6 +3,7 @@ import { ChevronDown, Linkedin, User } from "lucide-react";
 import pkg from "../../../package.json";
 import { downloadStateAsJson, importStateFromFile, useHakuStore } from "../storage";
 
+
 interface SettingsModalProps {
   open: boolean;
   onClose: () => void;
@@ -10,6 +11,11 @@ interface SettingsModalProps {
   onWeekStartChange: (value: "sunday" | "monday") => void;
   themeMode: "system" | "light" | "dark";
   onThemeChange: (value: "system" | "light" | "dark") => void;
+
+  isInstallable: boolean;
+  isInstalled: boolean;
+  onInstall: () => void;
+  onShowInstallInstructions: () => void;
 }
 
 const borderClass = "border border-[var(--color-border)]";
@@ -21,6 +27,11 @@ export default function SettingsModal({
   onWeekStartChange,
   themeMode,
   onThemeChange,
+
+  isInstallable,
+  isInstalled,
+  onInstall,
+  onShowInstallInstructions,
 }: SettingsModalProps) {
   const timeoutRef = useRef<number | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -28,6 +39,8 @@ export default function SettingsModal({
   const [importError, setImportError] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const resetAllData = useHakuStore((state) => state.resetAllData);
+
+
 
   useEffect(() => {
     if (!open) {
@@ -52,7 +65,6 @@ export default function SettingsModal({
   useEffect(() => {
     if (!open) {
       setImportError(null);
-      setShowResetConfirm(false);
     }
   }, [open]);
 
@@ -74,7 +86,7 @@ export default function SettingsModal({
 
     setImportError(null);
     const result = await importStateFromFile(file);
-    
+
     if (!result.ok) {
       setImportError(result.error);
     } else {
@@ -99,7 +111,7 @@ export default function SettingsModal({
       setShowResetConfirm(true);
       return;
     }
-    
+
     resetAllData();
     setShowResetConfirm(false);
     beginClose();
@@ -113,9 +125,8 @@ export default function SettingsModal({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-5 transition-colors duration-200 ${
-        open ? "bg-[var(--color-overlay)] backdrop-blur-sm" : "bg-transparent"
-      }`}
+      className={`fixed inset-0 z-50 flex items-center justify-center p-5 transition-colors duration-200 ${open ? "bg-[var(--color-overlay)] backdrop-blur-sm" : "bg-transparent"
+        }`}
       onClick={beginClose}
       role="dialog"
       aria-modal="true"
@@ -145,9 +156,8 @@ export default function SettingsModal({
                 <button
                   type="button"
                   onClick={() => onThemeChange("system")}
-                  className={`grid h-10 w-10 place-items-center rounded-lg ${borderClass} transition ${
-                    themeMode === "system" ? "bg-[var(--color-text-primary)] text-[var(--color-text-inverse)]" : "text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-hover)]"
-                  }`}
+                  className={`grid h-10 w-10 place-items-center rounded-lg ${borderClass} transition ${themeMode === "system" ? "bg-[var(--color-text-primary)] text-[var(--color-text-inverse)]" : "text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-hover)]"
+                    }`}
                   aria-pressed={themeMode === "system"}
                   aria-label="System"
                   title="System"
@@ -162,9 +172,8 @@ export default function SettingsModal({
                 <button
                   type="button"
                   onClick={() => onThemeChange("light")}
-                  className={`grid h-10 w-10 place-items-center rounded-lg ${borderClass} transition ${
-                    themeMode === "light" ? "bg-[var(--color-text-primary)] text-[var(--color-text-inverse)]" : "text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-hover)]"
-                  }`}
+                  className={`grid h-10 w-10 place-items-center rounded-lg ${borderClass} transition ${themeMode === "light" ? "bg-[var(--color-text-primary)] text-[var(--color-text-inverse)]" : "text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-hover)]"
+                    }`}
                   aria-pressed={themeMode === "light"}
                   aria-label="Light"
                   title="Light"
@@ -180,9 +189,8 @@ export default function SettingsModal({
                 <button
                   type="button"
                   onClick={() => onThemeChange("dark")}
-                  className={`grid h-10 w-10 place-items-center rounded-lg ${borderClass} transition ${
-                    themeMode === "dark" ? "bg-[var(--color-text-primary)] text-[var(--color-text-inverse)]" : "text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-hover)]"
-                  }`}
+                  className={`grid h-10 w-10 place-items-center rounded-lg ${borderClass} transition ${themeMode === "dark" ? "bg-[var(--color-text-primary)] text-[var(--color-text-inverse)]" : "text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-hover)]"
+                    }`}
                   aria-pressed={themeMode === "dark"}
                   aria-label="Dark"
                   title="Dark"
@@ -204,20 +212,32 @@ export default function SettingsModal({
               </div>
               <button
                 type="button"
-                disabled
-                className="w-full flex items-center justify-center gap-1.5 rounded-lg h-10 px-3 text-xs font-medium transition-colors whitespace-nowrap border border-[var(--color-border)] text-[var(--color-text-subtle)]"
-                title="Coming soon"
+                disabled={isInstalled}
+                onClick={() => {
+                  if (isInstallable) {
+                    onInstall();
+                  } else {
+                    onShowInstallInstructions();
+                  }
+                }}
+                className={`w-full flex items-center justify-center gap-1.5 rounded-lg h-10 px-3 text-xs font-medium transition-colors whitespace-nowrap border border-[var(--color-border)] ${isInstalled
+                  ? "bg-[var(--color-surface-hover)] text-[var(--color-text-subtle)] opacity-50 cursor-default"
+                  : "text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]"
+                  }`}
+                title={isInstalled ? "Already installed" : "Install App"}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="7 10 12 15 17 10" />
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
-                Install
+                {isInstalled ? "Installed" : "Install"}
               </button>
             </div>
           </div>
           <div className="border-t border-[var(--color-border)]" />
+
+
 
           {/* Format */}
           <div className="text-sm">

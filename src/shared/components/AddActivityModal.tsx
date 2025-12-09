@@ -57,7 +57,7 @@ const formatDurationLabel = (minutes: number | null): string => {
 };
 
 const AddActivityModalContent = ({
-  isOpen,
+
   onClose,
   initialTitle,
   initialPlacement,
