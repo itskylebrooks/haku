@@ -141,7 +141,7 @@ export default function SettingsModal({
     <AnimatePresence>
       {open && (
         <motion.div
-          className={`fixed inset-0 z-50 flex items-center justify-center p-5 transition-colors duration-200 bg-[var(--color-overlay)] backdrop-blur-sm`}
+          className={`fixed inset-0 z-50 flex items-start justify-center bg-[var(--color-overlay)] px-4 pt-[8vh] lg:pt-[20vh] transition-colors duration-200 backdrop-blur-sm`}
           onClick={beginClose}
           role="dialog"
           aria-modal="true"
@@ -161,12 +161,7 @@ export default function SettingsModal({
                 <span className="text-lg font-semibold tracking-wide text-[var(--color-text-primary)]">
                   Settings
                 </span>
-                <button
-                  onClick={beginClose}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-[var(--color-text-subtle)] hover:text-[var(--color-text-primary)]"
-                >
-                  <ChevronDown className="w-5 h-5 rotate-180" />
-                </button>
+                {/* Removed the top-right chevron close button by request. Use the 'Done' button below to close. */}
               </div>
             </div>
 
