@@ -29,6 +29,13 @@ const formatDate = (isoDate: string): string => {
   });
 };
 
+const formatMonthYear = (isoDate: string): string => {
+  if (!isoDate) return "";
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return isoDate;
+  return date.toLocaleDateString(undefined, { month: "short", year: "numeric" });
+};
+
 const iconButton =
   "inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)] bg-transparent text-[var(--color-text-primary)] transition active:bg-[var(--color-surface-pressed)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]";
 
@@ -40,7 +47,12 @@ const MobileHeader = ({
   onOpenSettings,
   onResetToday,
 }: MobileHeaderProps) => {
-  const formattedDate = useMemo(() => formatDate(currentDate), [currentDate]);
+  const formattedDate = useMemo(() => {
+    if (activeTab === "week") {
+      return formatMonthYear(currentDate);
+    }
+    return formatDate(currentDate);
+  }, [currentDate, activeTab]);
   const chevronsDisabled = activeTab === "board";
 
   return (
