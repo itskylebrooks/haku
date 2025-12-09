@@ -114,6 +114,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
   const isTouchDraggingRef = useRef(false);
   const touchDragDateRef = useRef<string | null>(null);
   const lastTouchPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const preventDefaultTouchMoveRef = useRef<((e: TouchEvent) => void) | null>(null);
 
   const { startAutoScroll, stopAutoScroll } = useAutoScroll(scrollContainer ?? window);
 
@@ -123,13 +124,17 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
   const [isTouchDrag, setIsTouchDrag] = useState(false);
 
   useEffect(() => {
-    if (isTouchDrag) {
+    if (isTouchDrag && !preventDefaultTouchMoveRef.current) {
       const preventDefault = (e: TouchEvent) => {
         e.preventDefault();
       };
+      preventDefaultTouchMoveRef.current = preventDefault;
       document.addEventListener("touchmove", preventDefault, { passive: false });
       return () => {
-        document.removeEventListener("touchmove", preventDefault);
+        if (preventDefaultTouchMoveRef.current) {
+          document.removeEventListener("touchmove", preventDefaultTouchMoveRef.current);
+          preventDefaultTouchMoveRef.current = null;
+        }
       };
     }
   }, [isTouchDrag]);
@@ -599,10 +604,19 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
       setDragOffset({ x: offsetX, y: offsetY });
       setDragPosition({ x: touch.clientX - offsetX, y: touch.clientY - offsetY });
       setMobilePreviewOrder({});
-      document.body.style.overflow = "hidden";
-      document.body.style.touchAction = "none";
+      // Disable scrolling for the main scroll container (if found) or body
+      const preventDefault = (e: TouchEvent) => e.preventDefault();
+      preventDefaultTouchMoveRef.current = preventDefault;
+      document.addEventListener("touchmove", preventDefault, { passive: false });
+      if (scrollContainer && scrollContainer instanceof HTMLElement) {
+        scrollContainer.style.overflow = "hidden";
+        scrollContainer.style.touchAction = "none";
+      } else {
+        document.body.style.overflow = "hidden";
+        document.body.style.touchAction = "none";
+      }
     }, 150);
-  }, [clearLongPressTimer]);
+  }, [clearLongPressTimer, scrollContainer]);
 
   const handleMobileTouchMove = useCallback((
     event: React.TouchEvent<HTMLDivElement>,
@@ -684,12 +698,22 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
     setIsTouchDrag(false);
     setDragPosition(null);
     setMobileDragOverDate(null);
-    document.body.style.overflow = "";
-    document.body.style.touchAction = "";
+    // Restore scrollability on the main container or body
+    if (scrollContainer && scrollContainer instanceof HTMLElement) {
+      scrollContainer.style.overflow = "";
+      scrollContainer.style.touchAction = "";
+    } else {
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
+    }
+    if (preventDefaultTouchMoveRef.current) {
+      document.removeEventListener("touchmove", preventDefaultTouchMoveRef.current);
+      preventDefaultTouchMoveRef.current = null;
+    }
     stopAutoScroll();
     resetDragState();
     setMobilePreviewOrder({});
-  }, [clearLongPressTimer, findActivityById, scheduleActivity, reorderInDay, weekActivities, getMobileTargetIndexFromY, computeMobilePreviewOrder, stopAutoScroll]);
+  }, [clearLongPressTimer, findActivityById, scheduleActivity, reorderInDay, weekActivities, getMobileTargetIndexFromY, computeMobilePreviewOrder, stopAutoScroll, scrollContainer]);
 
   const renderBucketColumn = (
     label: string,

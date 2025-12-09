@@ -109,6 +109,8 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
   const [previewOrder, setPreviewOrder] = useState<Activity[] | null>(null);
   const dragLeaveTimeoutRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [scrollContainer, setScrollContainer] = useState<HTMLElement | Window | null>(null);
+  const preventDefaultTouchMoveRef = useRef<((e: TouchEvent) => void) | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
   const touchStartYRef = useRef(0);
   const touchStartXRef = useRef(0);
@@ -119,19 +121,33 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isTouchDrag, setIsTouchDrag] = useState(false);
 
-  const { startAutoScroll, stopAutoScroll } = useAutoScroll();
+  const { startAutoScroll, stopAutoScroll } = useAutoScroll(scrollContainer ?? window);
 
   useEffect(() => {
-    if (isTouchDrag) {
+    if (isTouchDrag && !preventDefaultTouchMoveRef.current) {
       const preventDefault = (e: TouchEvent) => {
         e.preventDefault();
       };
+      preventDefaultTouchMoveRef.current = preventDefault;
       document.addEventListener("touchmove", preventDefault, { passive: false });
       return () => {
-        document.removeEventListener("touchmove", preventDefault);
+        if (preventDefaultTouchMoveRef.current) {
+          document.removeEventListener("touchmove", preventDefaultTouchMoveRef.current);
+          preventDefaultTouchMoveRef.current = null;
+        }
       };
     }
   }, [isTouchDrag]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const main = document.querySelector("main") as HTMLElement | null;
+    if (main) {
+      setScrollContainer(main);
+    } else {
+      setScrollContainer(window);
+    }
+  }, []);
 
   const { overdue, todayAnchored, todayFlexible } = useMemo(
     () => getDayViewData(activities, activeDate),
@@ -374,10 +390,21 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
       setDragOffset({ x: offsetX, y: offsetY });
       setDragPosition({ x: touch.clientX - offsetX, y: touch.clientY - offsetY });
       setPreviewOrder(null);
-      document.body.style.overflow = "hidden";
-      document.body.style.touchAction = "none";
+      const preventDefault = (e: TouchEvent) => e.preventDefault();
+      preventDefaultTouchMoveRef.current = preventDefault;
+      document.addEventListener("touchmove", preventDefault, { passive: false });
+      if (scrollContainer && scrollContainer instanceof HTMLElement) {
+        scrollContainer.style.overflow = "hidden";
+        scrollContainer.style.touchAction = "none";
+      } else if (containerRef.current) {
+        containerRef.current.style.overflow = "hidden";
+        containerRef.current.style.touchAction = "none";
+      } else {
+        document.body.style.overflow = "hidden";
+        document.body.style.touchAction = "none";
+      }
     }, 150);
-  }, [clearLongPressTimer]);
+  }, [clearLongPressTimer, containerRef, scrollContainer]);
 
   const handleTouchMove = useCallback((event: React.TouchEvent<HTMLDivElement>, activityId: string) => {
     const touch = event.touches[0];
@@ -456,11 +483,23 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
     isTouchDraggingRef.current = false;
     setIsTouchDrag(false);
     setDragPosition(null);
-    document.body.style.overflow = "";
-    document.body.style.touchAction = "";
+    if (scrollContainer && scrollContainer instanceof HTMLElement) {
+      scrollContainer.style.overflow = "";
+      scrollContainer.style.touchAction = "";
+    } else if (containerRef.current) {
+      containerRef.current.style.overflow = "";
+      containerRef.current.style.touchAction = "";
+    } else {
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
+    }
+    if (preventDefaultTouchMoveRef.current) {
+      document.removeEventListener("touchmove", preventDefaultTouchMoveRef.current);
+      preventDefaultTouchMoveRef.current = null;
+    }
     stopAutoScroll();
     resetDragState();
-  }, [clearLongPressTimer, previewOrder, reorderInDay, activeDate, stopAutoScroll]);
+  }, [clearLongPressTimer, previewOrder, reorderInDay, activeDate, stopAutoScroll, scrollContainer]);
 
   const formattedDate = useMemo(() => {
     if (!activeDate) return "";

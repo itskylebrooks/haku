@@ -33,6 +33,8 @@ const BoardPage = () => {
   const dragLeaveTimeoutRef = useRef<number | null>(null);
   const inboxContainerRef = useRef<HTMLDivElement>(null);
   const laterContainerRef = useRef<HTMLDivElement>(null);
+  const [scrollContainer, setScrollContainer] = useState<HTMLElement | Window | null>(null);
+  const preventDefaultTouchMoveRef = useRef<((e: TouchEvent) => void) | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
   const touchStartYRef = useRef(0);
   const touchStartXRef = useRef(0);
@@ -40,7 +42,7 @@ const BoardPage = () => {
   const touchDragBucketRef = useRef<Extract<Bucket, "inbox" | "later"> | null>(null);
   const lastTouchPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  const { startAutoScroll, stopAutoScroll } = useAutoScroll();
+  const { startAutoScroll, stopAutoScroll } = useAutoScroll(scrollContainer ?? window);
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
@@ -49,16 +51,30 @@ const BoardPage = () => {
   const [touchDragOverBucket, setTouchDragOverBucket] = useState<Extract<Bucket, "inbox" | "later"> | null>(null);
 
   useEffect(() => {
-    if (isTouchDrag) {
+    if (isTouchDrag && !preventDefaultTouchMoveRef.current) {
       const preventDefault = (e: TouchEvent) => {
         e.preventDefault();
       };
+      preventDefaultTouchMoveRef.current = preventDefault;
       document.addEventListener("touchmove", preventDefault, { passive: false });
       return () => {
-        document.removeEventListener("touchmove", preventDefault);
+        if (preventDefaultTouchMoveRef.current) {
+          document.removeEventListener("touchmove", preventDefaultTouchMoveRef.current);
+          preventDefaultTouchMoveRef.current = null;
+        }
       };
     }
   }, [isTouchDrag]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const main = document.querySelector("main") as HTMLElement | null;
+    if (main) {
+      setScrollContainer(main);
+    } else {
+      setScrollContainer(window);
+    }
+  }, []);
 
   const inboxActivities = useMemo(
     () => getInboxActivities(activities),
@@ -339,10 +355,22 @@ const BoardPage = () => {
       setDragPosition({ x: touch.clientX - offsetX, y: touch.clientY - offsetY });
       setPreviewInbox(null);
       setPreviewLater(null);
-      document.body.style.overflow = "hidden";
-      document.body.style.touchAction = "none";
+        const preventDefault = (e: TouchEvent) => e.preventDefault();
+        preventDefaultTouchMoveRef.current = preventDefault;
+        document.addEventListener("touchmove", preventDefault, { passive: false });
+        const containerRef = bucket === "inbox" ? inboxContainerRef : laterContainerRef;
+        if (scrollContainer && scrollContainer instanceof HTMLElement) {
+          scrollContainer.style.overflow = "hidden";
+          scrollContainer.style.touchAction = "none";
+        } else if (containerRef.current) {
+          containerRef.current.style.overflow = "hidden";
+          containerRef.current.style.touchAction = "none";
+        } else {
+          document.body.style.overflow = "hidden";
+          document.body.style.touchAction = "none";
+        }
     }, 150);
-  }, [clearLongPressTimer]);
+    }, [clearLongPressTimer, scrollContainer, inboxContainerRef, laterContainerRef]);
 
   const handleTouchMove = useCallback((
     event: React.TouchEvent<HTMLDivElement>,
@@ -419,11 +447,30 @@ const BoardPage = () => {
     setIsTouchDrag(false);
     setDragPosition(null);
     setTouchDragOverBucket(null);
-    document.body.style.overflow = "";
-    document.body.style.touchAction = "";
+    if (scrollContainer && scrollContainer instanceof HTMLElement) {
+      scrollContainer.style.overflow = "";
+      scrollContainer.style.touchAction = "";
+    } else {
+      if (inboxContainerRef.current) {
+        inboxContainerRef.current.style.overflow = "";
+        inboxContainerRef.current.style.touchAction = "";
+      }
+      if (laterContainerRef.current) {
+        laterContainerRef.current.style.overflow = "";
+        laterContainerRef.current.style.touchAction = "";
+      }
+      if (!inboxContainerRef.current && !laterContainerRef.current) {
+        document.body.style.overflow = "";
+        document.body.style.touchAction = "";
+      }
+    }
+    if (preventDefaultTouchMoveRef.current) {
+      document.removeEventListener("touchmove", preventDefaultTouchMoveRef.current);
+      preventDefaultTouchMoveRef.current = null;
+    }
     stopAutoScroll();
     resetDragState();
-  }, [clearLongPressTimer, activities, moveToInbox, moveToLater, getBucketOrderedIds, getTargetIndexFromY, reorderInBucket, stopAutoScroll]);
+  }, [clearLongPressTimer, activities, moveToInbox, moveToLater, getBucketOrderedIds, getTargetIndexFromY, reorderInBucket, stopAutoScroll, scrollContainer]);
 
   const EmptySlot = ({ onClick, label = "New activity" }: { onClick: () => void; label?: string }) => (
     <div
