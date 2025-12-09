@@ -77,7 +77,148 @@ export function getDefaultListsState(): ListsState {
 }
 
 export function getDefaultActivities(): Activity[] {
-  return [];
+  // Create simple helper to compute today/yesterday/tomorrow ISO dates (YYYY-MM-DD)
+  const offsetIsoDate = (offsetDays: number): string => {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() + offsetDays);
+    return d.toISOString().slice(0, 10);
+  };
+
+  const now = new Date().toISOString();
+  const today = offsetIsoDate(0);
+  const yesterday = offsetIsoDate(-1);
+  const tomorrow = offsetIsoDate(1);
+
+  // Seed activities to provide a gentle first-run experience.
+  // IDs are deterministic to make it easy to reason about these seeded items.
+  return [
+    // Today (Day page) - anchored time example
+    {
+      id: "seed_plan_week",
+      title: "Plan this week in Haku",
+      bucket: "scheduled",
+      date: today,
+      time: null,
+      durationMinutes: null,
+      repeat: "none",
+      note: "Open me to see how an activity works.",
+      isDone: false,
+      orderIndex: null,
+      createdAt: now,
+      updatedAt: now,
+    },
+
+    // Today (Day page) - flexible item you can drag
+    {
+      id: "seed_drag_week",
+      title: "Drag me to another day on the Week page",
+      bucket: "scheduled",
+      date: today,
+      time: null,
+      durationMinutes: null,
+      repeat: "none",
+      note: null,
+      isDone: false,
+      orderIndex: 0,
+      createdAt: now,
+      updatedAt: now,
+    },
+
+    // Today (Day page) - editable placeholder
+    {
+      id: "seed_replace_first",
+      title: "Replace me with your first real activity",
+      bucket: "scheduled",
+      date: today,
+      time: "15:00",
+      durationMinutes: null,
+      repeat: "none",
+      note: null,
+      isDone: false,
+      orderIndex: 1,
+      createdAt: now,
+      updatedAt: now,
+    },
+
+    // Inbox - captured ideas
+    {
+      id: "seed_inbox_example",
+      title: "This is Inbox: drop any idea here",
+      bucket: "inbox",
+      date: null,
+      time: null,
+      durationMinutes: null,
+      repeat: "none",
+      note: "Try moving me to a day.",
+      isDone: false,
+      orderIndex: 0,
+      createdAt: now,
+      updatedAt: now,
+    },
+
+    {
+      id: "seed_inbox_capture",
+      title: "Capture one thing you want to do this week",
+      bucket: "inbox",
+      date: null,
+      time: null,
+      durationMinutes: null,
+      repeat: "none",
+      note: null,
+      isDone: false,
+      orderIndex: 1,
+      createdAt: now,
+      updatedAt: now,
+    },
+
+    // Later (Someday)
+    {
+      id: "seed_someday_activity",
+      title: "A someday activity",
+      bucket: "later",
+      date: null,
+      time: null,
+      durationMinutes: null,
+      repeat: "none",
+      note: "Move me back to a day when it becomes relevant.",
+      isDone: false,
+      orderIndex: 0,
+      createdAt: now,
+      updatedAt: now,
+    },
+
+    // Overdue (yesterday)
+    {
+      id: "seed_overdue_example",
+      title: "Example overdue activity",
+      bucket: "scheduled",
+      date: yesterday,
+      time: null,
+      durationMinutes: null,
+      repeat: "none",
+      note: "Change to yesterday to see where I live. Mark me done when you're ready.",
+      isDone: false,
+      orderIndex: null,
+      createdAt: now,
+      updatedAt: now,
+    },
+
+    // Pre-fill Tomorrow - teaches quick rescheduling
+    {
+      id: "seed_move_tomorrow",
+      title: "Move me to Today or Later",
+      bucket: "scheduled",
+      date: tomorrow,
+      time: null,
+      durationMinutes: null,
+      repeat: "none",
+      note: null,
+      isDone: false,
+      orderIndex: null,
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
 }
 
 export function getDefaultPersistedState(): PersistedState {
