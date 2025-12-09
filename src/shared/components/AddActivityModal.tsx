@@ -318,7 +318,7 @@ const AddActivityModal = ({
               {placementLabels.map(({ key, label }) => {
                 const isActive = placement === key;
                 const isDisabled = isPlacementLocked && key !== "date";
-                return (
+                  return (
                   <button
                     key={key}
                     type="button"
@@ -330,7 +330,7 @@ const AddActivityModal = ({
                         setIsRepeatMenuOpen(false);
                       }
                     }}
-                    className={`w-full h-10 flex items-center justify-center rounded-lg px-3 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
+                    className={`w-full h-10 flex items-center justify-center rounded-lg px-2 sm:px-3 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
                       isActive
                         ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] shadow-sm border-0"
                         : "border border-[var(--color-border)] bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-surface-subtle)]"
@@ -373,7 +373,7 @@ const AddActivityModal = ({
                           setIsDurationMenuOpen((prev) => !prev);
                           setIsRepeatMenuOpen(false);
                         }}
-                        className="w-full h-10 flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-transparent px-3 text-sm text-[var(--color-text-primary)] transition hover:border-[var(--color-border-hover)] focus:border-[var(--color-border-focus)] focus:outline-none"
+                        className="w-full h-10 flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-transparent px-2 sm:px-3 text-sm text-[var(--color-text-primary)] transition hover:border-[var(--color-border-hover)] focus:border-[var(--color-border-focus)] focus:outline-none"
                       >
                         <span className="text-[var(--color-text-subtle)]">Duration:</span>
                         <span>{formatDurationLabel(durationMinutes)}</span>
@@ -411,7 +411,7 @@ const AddActivityModal = ({
                           setIsRepeatMenuOpen((prev) => !prev);
                           setIsDurationMenuOpen(false);
                         }}
-                        className="w-full h-10 flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-transparent px-3 text-sm text-[var(--color-text-primary)] transition hover:border-[var(--color-border-hover)] focus:border-[var(--color-border-focus)] focus:outline-none"
+                        className="w-full h-10 flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-transparent px-2 sm:px-3 text-sm text-[var(--color-text-primary)] transition hover:border-[var(--color-border-hover)] focus:border-[var(--color-border-focus)] focus:outline-none"
                       >
                         <span className="text-[var(--color-text-subtle)]">Repeat:</span>
                         <span>
