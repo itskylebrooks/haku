@@ -30,10 +30,10 @@ const tabs: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
 const MobileTabBar = ({ activeTab, onTabChange, onAdd }: MobileTabBarProps) => {
   return (
     <nav
-      className="fixed bottom-4 left-0 right-0 z-50 flex justify-center pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="fixed bottom-6 left-0 right-0 z-50 flex justify-center pb-[env(safe-area-inset-bottom)] lg:hidden"
       aria-label="Main navigation"
     >
-      <div className="mb-1 mx-4 flex items-center justify-center gap-4 rounded-full border border-[var(--color-border-soft)] bg-[var(--color-surface)] px-3 py-1.5 shadow-lg">
+      <div className="mb-1 mx-4 flex items-center justify-center gap-4 rounded-full border border-[var(--color-border-soft)] bg-[var(--color-surface)] px-4 py-2 shadow-lg">
         <div className="flex items-center gap-4">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
@@ -44,7 +44,7 @@ const MobileTabBar = ({ activeTab, onTabChange, onAdd }: MobileTabBarProps) => {
                 onClick={() => onTabChange(tab.id)}
                 aria-label={tab.label}
                 aria-current={isActive ? "page" : undefined}
-                className={`inline-flex h-10 w-14 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
+                className={`inline-flex h-12 w-16 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
                   isActive
                     ? "bg-[var(--color-surface-strong)] text-[var(--color-text-contrast)] font-semibold shadow-sm"
                     : "text-[var(--color-text-subtle)] active:bg-[var(--color-surface-pressed)]"
@@ -55,7 +55,7 @@ const MobileTabBar = ({ activeTab, onTabChange, onAdd }: MobileTabBarProps) => {
             );
           })}
         </div>
-        <div className="h-8 w-px bg-[var(--color-surface-divider)]" />
+        <div className="h-10 w-px bg-[var(--color-surface-divider)]" />
         <button
           type="button"
           onClick={() => {
@@ -63,7 +63,7 @@ const MobileTabBar = ({ activeTab, onTabChange, onAdd }: MobileTabBarProps) => {
             onAdd(placement);
           }}
           aria-label={`Add activity (${activeTab === "board" ? "Inbox" : "Date"})`}
-          className={`inline-flex h-10 items-center justify-center rounded-full px-4 text-[var(--color-text-contrast)] font-semibold shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99] ${
+          className={`inline-flex h-12 items-center justify-center rounded-full px-5 text-[var(--color-text-contrast)] font-semibold shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99] ${
             activeTab === "board" ? "bg-[var(--color-emphasis-bg)]" : "bg-[var(--color-surface-strong)]"
           }`}
         >
