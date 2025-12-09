@@ -123,17 +123,13 @@ export default function SettingsModal({
     setShowResetConfirm(false);
   }
 
-  // New variables and functions from the provided snippet, adapted to existing props
-  const showPwaInstall = isInstallable && !isInstalled; // Assuming isIOS and deferredPrompt are not available here, using existing props
+  // Use the incoming props to handle PWA install flow
   const handleInstallClick = () => {
     if (isInstallable) {
       onInstall();
     } else {
       onShowInstallInstructions();
     }
-  };
-  const toggleDayStart = () => {
-    onWeekStartChange(weekStart === "monday" ? "sunday" : "monday");
   };
 
 
