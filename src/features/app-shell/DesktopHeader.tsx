@@ -7,6 +7,8 @@ import {
   Square,
   Plus,
 } from "lucide-react";
+import { motion } from "framer-motion";
+import { SPRING_TRANSITION } from "../../shared/theme/animations";
 import type { Bucket } from "../../shared/types/activity";
 
 type ViewMode = "day" | "week";
@@ -52,9 +54,8 @@ const DesktopHeader = ({
               <button
                 type="button"
                 onClick={chevronsDisabled ? undefined : onPrev}
-                className={`${iconButton} ${
-                  chevronsDisabled ? "cursor-default opacity-40" : ""
-                }`}
+                className={`${iconButton} ${chevronsDisabled ? "cursor-default opacity-40" : ""
+                  }`}
                 aria-label="Previous"
                 title="Previous"
                 disabled={chevronsDisabled}
@@ -64,9 +65,8 @@ const DesktopHeader = ({
               <button
                 type="button"
                 onClick={chevronsDisabled ? undefined : onNext}
-                className={`${iconButton} ${
-                  chevronsDisabled ? "cursor-default opacity-40" : ""
-                }`}
+                className={`${iconButton} ${chevronsDisabled ? "cursor-default opacity-40" : ""
+                  }`}
                 aria-label="Next"
                 title="Next"
                 disabled={chevronsDisabled}
@@ -77,7 +77,7 @@ const DesktopHeader = ({
           </div>
 
           <div className="flex items-center justify-center">
-            <div className="relative inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-border)] bg-transparent px-1 text-sm font-medium shadow-none transition" style={{transform: 'translateX(30px)'}}>
+            <div className="relative inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-border)] bg-transparent px-1 text-sm font-medium shadow-none transition" style={{ transform: 'translateX(30px)' }}>
               <div className="flex items-center gap-1">
                 {(["board", "day", "week"] as ActiveTab[]).map((value) => {
                   const isActive = selectedTab === value;
@@ -87,15 +87,24 @@ const DesktopHeader = ({
                       type="button"
                       aria-pressed={isActive}
                       onClick={() => onTabChange(value)}
-                      className={`inline-flex h-8 w-11 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
-                        isActive
-                          ? "bg-[var(--color-surface-strong)] text-[var(--color-text-contrast)] font-semibold shadow-sm"
-                          : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
-                      }`}
-                      >
-                      {value === "board" && <Circle className="h-5 w-5" aria-hidden />}
-                      {value === "day" && <Square className="h-5 w-5" aria-hidden />}
-                      {value === "week" && <Grid2x2 className="h-5 w-5" aria-hidden />}
+                      className={`relative inline-flex h-8 w-11 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${isActive
+                        ? "text-[var(--color-text-contrast)] font-semibold shadow-sm"
+                        : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                        }`}
+                    >
+                      {isActive && (
+                        <motion.div
+                          layoutId="header-tab-pill"
+                          className="absolute inset-0 rounded-full bg-[var(--color-surface-strong)]"
+                          transition={SPRING_TRANSITION}
+                          style={{ borderRadius: 9999 }} // Ensure radius is passed to motion
+                        />
+                      )}
+                      <span className="relative z-10 flex items-center justify-center">
+                        {value === "board" && <Circle className="h-5 w-5" aria-hidden />}
+                        {value === "day" && <Square className="h-5 w-5" aria-hidden />}
+                        {value === "week" && <Grid2x2 className="h-5 w-5" aria-hidden />}
+                      </span>
                       <span className="sr-only">{value}</span>
                     </button>
                   );
@@ -109,11 +118,10 @@ const DesktopHeader = ({
                   onOpenAdd(placement);
                 }}
                 aria-label={`Add activity (${activeTab === "board" ? "Inbox" : "Date"})`}
-                className={`inline-flex h-8 items-center justify-center rounded-full px-3 text-[var(--color-text-contrast)] font-semibold shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99] ${
-                  activeTab === "board"
-                    ? "bg-[var(--color-emphasis-bg)]"
-                    : "bg-[var(--color-surface-strong)]"
-                }`}
+                className={`inline-flex h-8 items-center justify-center rounded-full px-3 text-[var(--color-text-contrast)] font-semibold shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99] ${activeTab === "board"
+                  ? "bg-[var(--color-emphasis-bg)]"
+                  : "bg-[var(--color-surface-strong)]"
+                  }`}
               >
                 <Plus className="h-5 w-5" />
               </button>

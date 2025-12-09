@@ -9,6 +9,8 @@ import SettingsModal from "./shared/components/SettingsModal";
 import { useHakuStore, type ThemeMode } from "./shared/storage";
 import { usePWA } from "./shared/hooks/usePWA";
 import InstallInstructionsModal from "./shared/components/InstallInstructionsModal";
+import { AnimatePresence, motion } from "framer-motion";
+import { FAST_TRANSITION, PAGE_VARIANTS } from "./shared/theme/animations";
 
 type ViewMode = "day" | "week";
 type ActiveTab = "board" | "day" | "week";
@@ -36,6 +38,8 @@ function App() {
   const [addModalDefaultDate, setAddModalDefaultDate] = useState<string | undefined>(undefined);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+  const [direction, setDirection] = useState(0);
+
   const { isInstallable, isInstalled, installPwa } = usePWA();
   const [isInstallInstructionsOpen, setIsInstallInstructionsOpen] = useState(false);
 
@@ -45,11 +49,22 @@ function App() {
   const setWeekStart = useHakuStore((state) => state.setWeekStart);
   const setThemeMode = useHakuStore((state) => state.setThemeMode);
 
-  const handlePrev = () =>
+  const handlePrev = () => {
+    setDirection(-1);
     setCurrentDate((date) => shiftDate(date, mode, -1));
-  const handleNext = () =>
+  };
+  const handleNext = () => {
+    setDirection(1);
     setCurrentDate((date) => shiftDate(date, mode, 1));
-  const handleResetToday = () => setCurrentDate(todayIso());
+  };
+  const handleResetToday = () => {
+    const today = todayIso();
+    // Determine direction based on comparison with current
+    if (today > currentDate) setDirection(1);
+    else if (today < currentDate) setDirection(-1);
+    else setDirection(0);
+    setCurrentDate(today);
+  };
   const handleTabChange = (tab: ActiveTab) => {
     setActiveTab(tab);
     if (tab === "day") {
@@ -162,8 +177,7 @@ function App() {
       style={{ height: "var(--app-height, 100vh)" }}
     >
       <div
-        className={`mx-auto flex h-full flex-col pb-10 pt-6 ${mode === "week" ? "w-full max-w-none" : "max-w-6xl"
-          }`}
+        className="mx-auto flex h-full flex-col pb-10 pt-6 w-full"
       >
         <AppShell
           mode={mode}
@@ -177,13 +191,45 @@ function App() {
           onOpenSettings={handleOpenSettings}
           onOpenAdd={handleOpenAddModal}
         >
-          {activeTab === "board" ? (
-            <BoardPage />
-          ) : mode === "day" ? (
-            <DayPage activeDate={currentDate} onResetToday={handleResetToday} />
-          ) : (
-            <WeekPage activeDate={currentDate} weekStart={weekStart} onResetToday={handleResetToday} />
-          )}
+          <AnimatePresence mode="wait">
+            {activeTab === "board" ? (
+              <motion.div
+                key="board"
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                variants={PAGE_VARIANTS}
+                transition={FAST_TRANSITION}
+                className="h-full max-w-6xl mx-auto w-full"
+              >
+                <BoardPage />
+              </motion.div>
+            ) : mode === "day" ? (
+              <motion.div
+                key="day"
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                variants={PAGE_VARIANTS}
+                transition={FAST_TRANSITION}
+                className="h-full max-w-6xl mx-auto w-full"
+              >
+                <DayPage activeDate={currentDate} onResetToday={handleResetToday} direction={direction} />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="week"
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                variants={PAGE_VARIANTS}
+                transition={FAST_TRANSITION}
+                className="h-full w-full"
+              >
+                <WeekPage activeDate={currentDate} weekStart={weekStart} onResetToday={handleResetToday} direction={direction} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </AppShell>
       </div>
       <AddActivityModal

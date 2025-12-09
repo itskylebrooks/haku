@@ -9,10 +9,13 @@ import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
 import { TouchDragOverlay, type TouchDragOverlayHandle } from "../../shared/components/TouchDragOverlay";
 import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
 import { useThrottledCallback } from "../../shared/hooks/useThrottle";
+import { AnimatePresence, motion } from "framer-motion";
+import { FAST_TRANSITION, SLIDE_VARIANTS } from "../../shared/theme/animations";
 
 interface DayPageProps {
   activeDate: string;
   onResetToday?: () => void;
+  direction?: number;
 }
 
 /**
@@ -94,7 +97,7 @@ const computeDesktopPreviewOrder = (
   });
 };
 
-const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
+const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
   const activities = useActivitiesStore((state) => state.activities);
   const toggleDone = useActivitiesStore((state) => state.toggleDone);
   const deleteActivity = useActivitiesStore((state) => state.deleteActivity);
@@ -574,39 +577,106 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
   return (
     <>
       <div className="mx-auto w-full max-w-xl px-4 pt-4 lg:pt-0">
-        {/* top date header removed per design: no date at top of Day page */}
-        {/* NOTE: Overdue section intentionally moved below Today's section */}
-
-        {/* Today section */}
-        <div
-          ref={containerRef}
-          className={`mt-0 md:mt-5 lg:mt-0`}
-          onDragLeave={handleDragLeave}
-        >
-          <div className="mb-2">
-            <button
-              type="button"
-              onClick={onResetToday}
-              className="text-base font-semibold text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
-              aria-label="Go to today"
-            >
-              {isDesktop ? formattedDate : "Today"}
-            </button>
-          </div>
-          <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
-          {hasDisplayActivities ? (
-            <>
-              {displayActivities.map((activity, index) => (
+        <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+          <motion.div
+            key={activeDate}
+            custom={direction}
+            variants={SLIDE_VARIANTS}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={FAST_TRANSITION}
+            className={`mt-0 md:mt-5 lg:mt-0`}
+            ref={containerRef}
+            onDragLeave={handleDragLeave}
+          >
+            <div className="mb-2">
+              <button
+                type="button"
+                onClick={onResetToday}
+                className="text-base font-semibold text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
+                aria-label="Go to today"
+              >
+                {isDesktop ? formattedDate : "Today"}
+              </button>
+            </div>
+            <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
+            {hasDisplayActivities ? (
+              <>
+                {displayActivities.map((activity, index) => (
+                  <motion.div
+                    layout
+                    key={activity.id}
+                    data-activity-id={activity.id}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDrop={(e) => handleDrop(e, index)}
+                    initial={false}
+                    transition={FAST_TRANSITION}
+                  >
+                    {activity.id === '__DRAG_PLACEHOLDER__' ? (
+                      <div style={{ height: `${draggedCardHeight}px` }} />
+                    ) : (
+                      <ActivityCard
+                        activity={activity}
+                        onToggleDone={handleToggleDone}
+                        onEdit={handleEdit}
+                        draggable={isDesktop}
+                        isDragging={draggingId === activity.id}
+                        disableHover={draggingId !== null}
+                        onDragStart={(e) => handleDragStart(e, activity)}
+                        onDragEnd={handleDragEnd}
+                        onTouchStart={(e) => handleTouchStart(e, activity)}
+                        onTouchMove={(e) => handleTouchMove(e, activity.id)}
+                        onTouchEnd={() => handleTouchEnd(activity.id)}
+                      />
+                    )}
+                  </motion.div>
+                ))}
+                {/* Drop zone + desktop add slot */}
                 <div
-                  key={activity.id}
-                  data-activity-id={activity.id}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDrop={(e) => handleDrop(e, index)}
+                  onDragOver={(e) => handleDragOver(e, displayActivities.length)}
+                  onDrop={(e) => handleDrop(e, displayActivities.length)}
                 >
-                  {activity.id === '__DRAG_PLACEHOLDER__' ? (
-                    <div style={{ height: `${draggedCardHeight}px` }} />
+                  {canShowDesktopAddSlot ? (
+                    <div className="hidden lg:block">
+                      <EmptySlot label="Add to Today" onClick={handleOpenCreateModal} />
+                    </div>
                   ) : (
+                    <div className="h-8" />
+                  )}
+                </div>
+              </>
+            ) : (
+              <div
+                className={`text-left ${canShowDesktopAddSlot ? "group/quiet" : ""}`}
+                onDragOver={(e) => handleDragOver(e, 0)}
+                onDrop={(e) => handleDrop(e, 0)}
+              >
+
+                <div className="py-4 min-h-[44px] relative flex items-center justify-center px-2">
+                  <p className={`text-sm text-[var(--color-text-subtle)] transition-opacity transform -translate-y-1 ${canShowDesktopAddSlot ? "group-hover/quiet:opacity-0" : ""}`}>
+                    A quiet day.
+                  </p>
+
+                  {canShowDesktopAddSlot && (
+                    <div className="absolute inset-0 flex items-center lg:block opacity-0 pointer-events-none transition-opacity duration-150 group-hover/quiet:opacity-100 group-hover/quiet:pointer-events-auto">
+                      <EmptySlot label="Add to Today" onClick={handleOpenCreateModal} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            {/* Overdue section (moved to below Today's section) */}
+            {hasOverdue && (
+              <div className="mt-8 mb-4">
+                <div className="mb-2 text-base font-semibold text-[var(--color-text-primary)]">
+                  Overdue
+                </div>
+                <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
+                <div>
+                  {overdue.map((activity) => (
                     <ActivityCard
+                      key={activity.id}
                       activity={activity}
                       onToggleDone={handleToggleDone}
                       onEdit={handleEdit}
@@ -619,73 +689,13 @@ const DayPage = ({ activeDate, onResetToday }: DayPageProps) => {
                       onTouchMove={(e) => handleTouchMove(e, activity.id)}
                       onTouchEnd={() => handleTouchEnd(activity.id)}
                     />
-                  )}
+                  ))}
                 </div>
-              ))}
-              {/* Drop zone + desktop add slot */}
-              <div
-                onDragOver={(e) => handleDragOver(e, displayActivities.length)}
-                onDrop={(e) => handleDrop(e, displayActivities.length)}
-              >
-                {canShowDesktopAddSlot ? (
-                  <div className="hidden lg:block">
-                    <EmptySlot label="Add to Today" onClick={handleOpenCreateModal} />
-                  </div>
-                ) : (
-                  <div className="h-8" />
-                )}
               </div>
-            </>
-          ) : (
-            <div
-              className={`text-left ${canShowDesktopAddSlot ? "group/quiet" : ""}`}
-              onDragOver={(e) => handleDragOver(e, 0)}
-              onDrop={(e) => handleDrop(e, 0)}
-            >
-
-              <div className="py-4 min-h-[44px] relative flex items-center justify-center px-2">
-                <p className={`text-sm text-[var(--color-text-subtle)] transition-opacity transform -translate-y-1 ${canShowDesktopAddSlot ? "group-hover/quiet:opacity-0" : ""}`}>
-                  A quiet day.
-                </p>
-
-                {canShowDesktopAddSlot && (
-                  <div className="absolute inset-0 flex items-center lg:block opacity-0 pointer-events-none transition-opacity duration-150 group-hover/quiet:opacity-100 group-hover/quiet:pointer-events-auto">
-                    <EmptySlot label="Add to Today" onClick={handleOpenCreateModal} />
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
-
-      {/* Overdue section (moved to below Today's section) */}
-      {hasOverdue && (
-        <div className="mt-3 mb-4 mx-auto w-full max-w-xl px-4">
-          <div className="mb-2 text-base font-semibold text-[var(--color-text-primary)]">
-            Overdue
-          </div>
-          <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
-          <div>
-            {overdue.map((activity) => (
-              <ActivityCard
-                key={activity.id}
-                activity={activity}
-                onToggleDone={handleToggleDone}
-                onEdit={handleEdit}
-                draggable={isDesktop}
-                isDragging={draggingId === activity.id}
-                disableHover={draggingId !== null}
-                onDragStart={(e) => handleDragStart(e, activity)}
-                onDragEnd={handleDragEnd}
-                onTouchStart={(e) => handleTouchStart(e, activity)}
-                onTouchMove={(e) => handleTouchMove(e, activity.id)}
-                onTouchEnd={() => handleTouchEnd(activity.id)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Edit Modal */}
       <AddActivityModal

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Circle, Square, Diamond } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from "../theme/animations";
 import type { Activity, Bucket } from "../types/activity";
 import { useActivitiesStore } from "../store/activitiesStore";
 import SimpleDatePicker from "./date/SimpleDatePicker";
@@ -307,15 +309,20 @@ const AddActivityModalContent = ({
   }, [canSubmit, handleClose, handleSubmit]);
 
   return (
-    <div
+    <motion.div
       className="fixed inset-0 z-50 flex items-start justify-center bg-[var(--color-overlay)] px-4 pt-[8vh] lg:pt-[20vh] backdrop-blur-sm"
       onClick={handleClose}
       role="dialog"
       aria-modal="true"
+      variants={BACKDROP_VARIANTS}
+      initial="initial"
+      animate="animate"
+      exit="exit"
     >
-      <div
+      <motion.div
         className="w-96 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-elevated)] outline-none"
         onClick={(event) => event.stopPropagation()}
+        variants={SCALE_FADE_VARIANTS}
       >
         <div className="space-y-5">
           <div className="space-y-2">
@@ -556,14 +563,17 @@ const AddActivityModalContent = ({
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
 const AddActivityModal = (props: AddActivityModalProps) => {
-  if (!props.isOpen) return null;
-  return <AddActivityModalContent {...props} />;
+  return (
+    <AnimatePresence>
+      {props.isOpen && <AddActivityModalContent {...props} />}
+    </AnimatePresence>
+  );
 };
 
 export default AddActivityModal;
