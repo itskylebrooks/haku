@@ -25,7 +25,7 @@ export const PAGE_VARIANTS: Variants = {
 
 export const SLIDE_VARIANTS: Variants = {
     enter: (direction: number) => ({
-        x: direction > 0 ? 20 : -20,
+        x: direction > 0 ? 120 : -120,
         opacity: 0,
     }),
     center: {
@@ -35,7 +35,7 @@ export const SLIDE_VARIANTS: Variants = {
     },
     exit: (direction: number) => ({
         zIndex: 0,
-        x: direction < 0 ? 20 : -20,
+        x: direction < 0 ? 120 : -120,
         opacity: 0,
     }),
 };

@@ -1,4 +1,6 @@
 import { Circle, Grid2x2, Plus, Square } from "lucide-react";
+import { motion } from "framer-motion";
+import { SPRING_TRANSITION } from "../../shared/theme/animations";
 import type { Bucket } from "../../shared/types/activity";
 
 type ActiveTab = "board" | "day" | "week";
@@ -44,13 +46,20 @@ const MobileTabBar = ({ activeTab, onTabChange, onAdd }: MobileTabBarProps) => {
                 onClick={() => onTabChange(tab.id)}
                 aria-label={tab.label}
                 aria-current={isActive ? "page" : undefined}
-                className={`inline-flex h-12 w-16 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
-                    isActive
-                      ? "bg-[var(--color-surface-strong)] text-[var(--color-text-contrast)] font-semibold shadow-sm"
-                      : "text-[var(--color-text-primary)] active:bg-[var(--color-surface-pressed)]"
+                className={`relative inline-flex h-12 w-16 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${isActive
+                  ? "text-[var(--color-text-contrast)] font-semibold shadow-sm"
+                  : "text-[var(--color-text-primary)] active:bg-[var(--color-surface-pressed)]"
                   }`}
               >
-                {tab.icon}
+                {isActive && (
+                  <motion.div
+                    layoutId="mobile-tab-pill"
+                    className="absolute inset-0 rounded-full bg-[var(--color-surface-strong)]"
+                    transition={SPRING_TRANSITION}
+                    style={{ borderRadius: 9999 }}
+                  />
+                )}
+                <span className="relative z-10">{tab.icon}</span>
               </button>
             );
           })}
@@ -63,9 +72,8 @@ const MobileTabBar = ({ activeTab, onTabChange, onAdd }: MobileTabBarProps) => {
             onAdd(placement);
           }}
           aria-label={`Add activity (${activeTab === "board" ? "Inbox" : "Date"})`}
-          className={`inline-flex h-12 items-center justify-center rounded-full px-5 text-[var(--color-text-contrast)] font-semibold shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99] ${
-            activeTab === "board" ? "bg-[var(--color-emphasis-bg)]" : "bg-[var(--color-surface-strong)]"
-          }`}
+          className={`inline-flex h-12 items-center justify-center rounded-full px-5 text-[var(--color-text-contrast)] font-semibold shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99] ${activeTab === "board" ? "bg-[var(--color-emphasis-bg)]" : "bg-[var(--color-surface-strong)]"
+            }`}
         >
           <Plus className="h-5 w-5" />
         </button>
