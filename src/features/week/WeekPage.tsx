@@ -116,13 +116,14 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
   const lastTouchPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const preventDefaultTouchMoveRef = useRef<((e: TouchEvent) => void) | null>(null);
 
-  const { startAutoScroll, stopAutoScroll } = useAutoScroll(scrollContainer ?? window);
-
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [isTouchDrag, setIsTouchDrag] = useState(false);
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const initialDragPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const overlayRef = useRef<TouchDragOverlayHandle>(null);
+  // Cached date container rects to avoid layout thrashing during drag
+  const cachedDateRectsRef = useRef<Record<string, DOMRect>>({});
+  const lastDateUpdateRef = useRef<number>(0);
 
   // Cleanup effect to ensure styles are always reset on unmount
   useEffect(() => {
@@ -178,6 +179,21 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
   // (weekStart) changes.
   const topWeekDates = useMemo(() => weekDates.slice(0, 6), [weekDates]);
   const extraDate = useMemo(() => weekDates.length === 7 ? weekDates[6] : null, [weekDates]);
+
+  // Callback to refresh cached date container rects during autoscroll
+  const refreshCachedRects = useCallback(() => {
+    for (const date of weekDates) {
+      const container = mobileContainerRefs.current[date];
+      if (container) {
+        cachedDateRectsRef.current[date] = container.getBoundingClientRect();
+      }
+    }
+  }, [weekDates]);
+
+  const { startAutoScroll, stopAutoScroll } = useAutoScroll({
+    scrollContainer: scrollContainer ?? window,
+    onScrolling: refreshCachedRects,
+  });
   const weekActivities = useMemo(
     () => getWeekActivities(activities, weekStartDate),
     [activities, weekStartDate]
@@ -575,11 +591,10 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
   }, []);
 
   const getDateAtPosition = useCallback((clientX: number, clientY: number): string | null => {
-    // Check all date containers to see which one contains the touch point
+    // Use cached rects to avoid layout thrashing
     for (const date of weekDates) {
-      const container = mobileContainerRefs.current[date];
-      if (container) {
-        const rect = container.getBoundingClientRect();
+      const rect = cachedDateRectsRef.current[date];
+      if (rect) {
         if (
           clientX >= rect.left &&
           clientX <= rect.right &&
@@ -618,6 +633,14 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
       dragOffsetRef.current = { x: offsetX, y: offsetY };
       initialDragPosRef.current = { x: touch.clientX - offsetX, y: touch.clientY - offsetY };
       setMobilePreviewOrder({});
+      // Cache date container rects at drag start to avoid layout thrashing
+      cachedDateRectsRef.current = {};
+      for (const d of weekDates) {
+        const container = mobileContainerRefs.current[d];
+        if (container) {
+          cachedDateRectsRef.current[d] = container.getBoundingClientRect();
+        }
+      }
       // Disable scrolling and prevent pull-to-refresh on Android
       const preventDefault = (e: TouchEvent) => e.preventDefault();
       preventDefaultTouchMoveRef.current = preventDefault;
@@ -662,11 +685,15 @@ const WeekPage = ({ activeDate, weekStart, onResetToday }: WeekPageProps) => {
     // Store the last touch position for computing target index on drop
     lastTouchPosRef.current = { x: touch.clientX, y: touch.clientY };
 
-    // Update which date we're over
-    const targetDate = getDateAtPosition(touch.clientX, touch.clientY);
-    if (targetDate) {
-      touchDragDateRef.current = targetDate;
-      setMobileDragOverDate(targetDate);
+    // Update which date we're over (throttled to avoid excessive re-renders)
+    const now = Date.now();
+    if (now - lastDateUpdateRef.current > 50) {
+      lastDateUpdateRef.current = now;
+      const targetDate = getDateAtPosition(touch.clientX, touch.clientY);
+      if (targetDate && targetDate !== touchDragDateRef.current) {
+        touchDragDateRef.current = targetDate;
+        setMobileDragOverDate(targetDate);
+      }
     }
 
     // Auto-scroll when near edges

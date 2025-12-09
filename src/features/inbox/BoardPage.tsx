@@ -42,7 +42,20 @@ const BoardPage = () => {
   const touchDragBucketRef = useRef<Extract<Bucket, "inbox" | "later"> | null>(null);
   const lastTouchPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  const { startAutoScroll, stopAutoScroll } = useAutoScroll(scrollContainer ?? window);
+  // Callback to refresh cached container rects during autoscroll
+  const refreshCachedRects = useCallback(() => {
+    if (inboxContainerRef.current) {
+      inboxRectRef.current = inboxContainerRef.current.getBoundingClientRect();
+    }
+    if (laterContainerRef.current) {
+      laterRectRef.current = laterContainerRef.current.getBoundingClientRect();
+    }
+  }, []);
+
+  const { startAutoScroll, stopAutoScroll } = useAutoScroll({
+    scrollContainer: scrollContainer ?? window,
+    onScrolling: refreshCachedRects,
+  });
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [isTouchDrag, setIsTouchDrag] = useState(false);
@@ -50,6 +63,10 @@ const BoardPage = () => {
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const initialDragPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const overlayRef = useRef<TouchDragOverlayHandle>(null);
+  // Cached container rects to avoid layout thrashing during drag
+  const inboxRectRef = useRef<DOMRect | null>(null);
+  const laterRectRef = useRef<DOMRect | null>(null);
+  const lastBucketUpdateRef = useRef<number>(0);
 
   // Cleanup effect to ensure styles are always reset on unmount
   useEffect(() => {
@@ -315,27 +332,26 @@ const BoardPage = () => {
   }, []);
 
   const getBucketAtPosition = useCallback((clientX: number, clientY: number): Extract<Bucket, "inbox" | "later"> | null => {
-    // Check inbox container
-    if (inboxContainerRef.current) {
-      const rect = inboxContainerRef.current.getBoundingClientRect();
+    // Use cached rects to avoid layout thrashing
+    const inboxRect = inboxRectRef.current;
+    if (inboxRect) {
       if (
-        clientX >= rect.left &&
-        clientX <= rect.right &&
-        clientY >= rect.top &&
-        clientY <= rect.bottom
+        clientX >= inboxRect.left &&
+        clientX <= inboxRect.right &&
+        clientY >= inboxRect.top &&
+        clientY <= inboxRect.bottom
       ) {
         return "inbox";
       }
     }
 
-    // Check later container
-    if (laterContainerRef.current) {
-      const rect = laterContainerRef.current.getBoundingClientRect();
+    const laterRect = laterRectRef.current;
+    if (laterRect) {
       if (
-        clientX >= rect.left &&
-        clientX <= rect.right &&
-        clientY >= rect.top &&
-        clientY <= rect.bottom
+        clientX >= laterRect.left &&
+        clientX <= laterRect.right &&
+        clientY >= laterRect.top &&
+        clientY <= laterRect.bottom
       ) {
         return "later";
       }
@@ -373,6 +389,13 @@ const BoardPage = () => {
       const preventDefault = (e: TouchEvent) => e.preventDefault();
       preventDefaultTouchMoveRef.current = preventDefault;
       document.addEventListener("touchmove", preventDefault, { passive: false });
+      // Cache container rects at drag start to avoid layout thrashing
+      if (inboxContainerRef.current) {
+        inboxRectRef.current = inboxContainerRef.current.getBoundingClientRect();
+      }
+      if (laterContainerRef.current) {
+        laterRectRef.current = laterContainerRef.current.getBoundingClientRect();
+      }
       // Prevent pull-to-refresh on Android
       document.body.style.overscrollBehavior = "none";
       const containerRef = bucket === "inbox" ? inboxContainerRef : laterContainerRef;
@@ -419,11 +442,15 @@ const BoardPage = () => {
     // Store the last touch position for computing target index on drop
     lastTouchPosRef.current = { x: touch.clientX, y: touch.clientY };
 
-    // Update which bucket we're over
-    const targetBucket = getBucketAtPosition(touch.clientX, touch.clientY);
-    if (targetBucket) {
-      touchDragBucketRef.current = targetBucket;
-      setTouchDragOverBucket(targetBucket);
+    // Update which bucket we're over (throttled to avoid excessive re-renders)
+    const now = Date.now();
+    if (now - lastBucketUpdateRef.current > 50) {
+      lastBucketUpdateRef.current = now;
+      const targetBucket = getBucketAtPosition(touch.clientX, touch.clientY);
+      if (targetBucket && targetBucket !== touchDragBucketRef.current) {
+        touchDragBucketRef.current = targetBucket;
+        setTouchDragOverBucket(targetBucket);
+      }
     }
 
     // Auto-scroll when near edges
