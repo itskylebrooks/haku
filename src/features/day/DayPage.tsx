@@ -216,7 +216,10 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
 
   const displayActivities = previewOrder ?? todayActivities;
 
-  const isToday = useMemo(() => new Date().toISOString().slice(0, 10) === activeDate, [activeDate]);
+  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const isToday = activeDate === todayIso;
+  const isPast = activeDate < todayIso;
+  const mobileListTitle = isToday ? "Today" : isPast ? "Past" : "Future";
   const hasOverdue = overdue.length > 0 && isToday;
   const hasDisplayActivities = displayActivities.length > 0;
 
@@ -598,7 +601,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                 className="text-base font-semibold text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
                 aria-label="Go to today"
               >
-                {isDesktop ? formattedDate : "Today"}
+                {isDesktop ? formattedDate : mobileListTitle}
               </button>
             </div>
             <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
