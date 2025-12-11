@@ -4,6 +4,7 @@ import pkg from "../../../package.json";
 import { downloadStateAsJson, importStateFromFile, useHakuStore } from "../storage";
 import { AnimatePresence, motion } from "framer-motion";
 import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from "../theme/animations";
+import ConfirmModal from "./ConfirmModal";
 
 
 interface SettingsModalProps {
@@ -35,11 +36,10 @@ export default function SettingsModal({
   onInstall,
   onShowInstallInstructions,
 }: SettingsModalProps) {
-  const timeoutRef = useRef<number | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const [importError, setImportError] = useState<string | null>(null);
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const resetAllData = useHakuStore((state) => state.resetAllData);
 
 
@@ -55,18 +55,11 @@ export default function SettingsModal({
     };
   }, [open]);
 
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        window.clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
   // Reset error state when modal closes
   useEffect(() => {
     if (!open) {
       setImportError(null);
+      setIsResetConfirmOpen(false);
     }
   }, [open]);
 
@@ -108,19 +101,18 @@ export default function SettingsModal({
     }
   }
 
-  function handleReset() {
-    if (!showResetConfirm) {
-      setShowResetConfirm(true);
-      return;
-    }
+  function handleResetClick() {
+    setIsResetConfirmOpen(true);
+  }
 
+  function handleResetConfirm() {
     resetAllData();
-    setShowResetConfirm(false);
+    setIsResetConfirmOpen(false);
     beginClose();
   }
 
-  function cancelReset() {
-    setShowResetConfirm(false);
+  function handleResetCancel() {
+    setIsResetConfirmOpen(false);
   }
 
   // Use the incoming props to handle PWA install flow
@@ -134,24 +126,25 @@ export default function SettingsModal({
 
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          className={`fixed inset-0 z-50 flex items-start justify-center bg-[var(--color-overlay)] px-4 pt-[8vh] lg:pt-[20vh] transition-colors duration-200 backdrop-blur-sm`}
-          onClick={beginClose}
-          role="dialog"
-          aria-modal="true"
-          variants={BACKDROP_VARIANTS}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-        >
+    <>
+      <AnimatePresence>
+        {open && (
           <motion.div
-            className={`w-full max-w-sm rounded-2xl bg-[var(--color-surface)] p-6 pt-3 pb-8 ${borderClass} shadow-[var(--shadow-elevated)] overflow-y-auto`}
-            style={{ WebkitOverflowScrolling: "touch", paddingBottom: "max(env(safe-area-inset-bottom), 32px)" }}
-            onClick={(e) => e.stopPropagation()}
-            variants={SCALE_FADE_VARIANTS}
+            className={`fixed inset-0 z-50 flex items-start justify-center bg-[var(--color-overlay)] px-4 pt-[8vh] lg:pt-[20vh] transition-colors duration-200 backdrop-blur-sm`}
+            onClick={beginClose}
+            role="dialog"
+            aria-modal="true"
+            variants={BACKDROP_VARIANTS}
+            initial="initial"
+            animate="animate"
+            exit="exit"
           >
+            <motion.div
+              className={`w-full max-w-sm rounded-2xl bg-[var(--color-surface)] p-6 pt-3 pb-8 ${borderClass} shadow-[var(--shadow-elevated)] overflow-y-auto`}
+              style={{ WebkitOverflowScrolling: "touch", paddingBottom: "max(env(safe-area-inset-bottom), 32px)" }}
+              onClick={(e) => e.stopPropagation()}
+              variants={SCALE_FADE_VARIANTS}
+            >
             <div className="mb-2">
               <div className="relative h-12 flex items-center justify-center">
                 <span className="text-lg font-semibold tracking-wide text-[var(--color-text-primary)]">
@@ -283,14 +276,14 @@ export default function SettingsModal({
                 {/* Reset */}
                 <button
                   type="button"
-                  onClick={handleReset}
+                  onClick={handleResetClick}
                   className="w-full flex items-center justify-center gap-1.5 rounded-lg h-10 px-3 text-xs font-medium border border-[var(--color-danger-border)] text-[var(--color-danger-text)] hover:bg-[var(--color-danger-surface)] transition whitespace-nowrap"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 21H8a2 2 0 0 1-1.42-.587l-3.994-3.999a2 2 0 0 1 0-2.828l10-10a2 2 0 0 1 2.829 0l5.999 6a2 2 0 0 1 0 2.828L12.834 21" />
                     <path d="m5.082 11.09 8.828 8.828" />
                   </svg>
-                  <span>{showResetConfirm ? "Confirm?" : "Reset"}</span>
+                  <span>Reset</span>
                 </button>
 
                 {/* Export */}
@@ -307,20 +300,6 @@ export default function SettingsModal({
                   <span>Export</span>
                 </button>
               </div>
-
-              {/* Reset confirmation hint */}
-              {showResetConfirm && (
-                <div className="mt-2 flex items-center justify-between text-xs">
-                  <span className="text-[var(--color-danger-text)]">This will erase all data!</span>
-                  <button
-                    type="button"
-                    onClick={cancelReset}
-                    className="text-[var(--color-text-subtle)] hover:text-[var(--color-text-primary)] underline"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
 
               {/* Import error message */}
               {importError && (
@@ -378,8 +357,19 @@ export default function SettingsModal({
               </div>
             </div>
           </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <ConfirmModal
+        open={isResetConfirmOpen}
+        onClose={handleResetCancel}
+        onConfirm={handleResetConfirm}
+        title="Reset Haku?"
+        message="This will erase all activities, settings, and saved data. This action cannot be undone."
+        confirmLabel="Erase everything"
+        cancelLabel="Keep data"
+        destructive
+      />
+    </>
   );
 }
