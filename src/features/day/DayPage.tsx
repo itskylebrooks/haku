@@ -605,7 +605,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
               <>
                 {displayActivities.map((activity, index) => (
                   <motion.div
-                    layout
+                    layout={!isDesktop}
                     key={activity.id}
                     data-activity-id={activity.id}
                     onDragOver={(e) => handleDragOver(e, index)}
