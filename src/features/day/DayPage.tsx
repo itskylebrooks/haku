@@ -216,7 +216,8 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
 
   const displayActivities = previewOrder ?? todayActivities;
 
-  const hasOverdue = overdue.length > 0;
+  const isToday = useMemo(() => new Date().toISOString().slice(0, 10) === activeDate, [activeDate]);
+  const hasOverdue = overdue.length > 0 && isToday;
   const hasDisplayActivities = displayActivities.length > 0;
 
   const handleToggleDone = (id: string) => {
