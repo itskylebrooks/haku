@@ -13,6 +13,78 @@ import AddActivityModal from "../../shared/components/AddActivityModal";
 import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
 import { TouchDragOverlay, type TouchDragOverlayHandle } from "../../shared/components/TouchDragOverlay";
 import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
+import { useThrottledCallback } from "../../shared/hooks/useThrottle";
+
+/**
+ * Reorders a list with the dragged activity in-place, keeping anchored items
+ * sorted by time while flexible items can move freely.
+ */
+const computePreviewOrder = (
+  activities: Activity[],
+  draggedId: string,
+  targetIndex: number
+): Activity[] => {
+  const dragged = activities.find((a) => a.id === draggedId);
+  if (!dragged) return activities;
+
+  const withoutDragged = activities.filter((a) => a.id !== draggedId);
+  const clampedIndex = Math.min(Math.max(targetIndex, 0), withoutDragged.length);
+
+  const merged = [
+    ...withoutDragged.slice(0, clampedIndex),
+    dragged,
+    ...withoutDragged.slice(clampedIndex),
+  ];
+
+  const anchored = merged.filter((a) => a.time !== null).sort((a, b) => {
+    if (a.time === null || b.time === null) return 0;
+    return a.time.localeCompare(b.time);
+  });
+
+  let anchoredPtr = 0;
+  return merged.map((item) => {
+    if (item.time !== null) {
+      return anchored[anchoredPtr++];
+    }
+    return item;
+  });
+};
+
+/**
+ * Builds a preview list that shows a placeholder gap at the drop target.
+ */
+const computePlaceholderPreview = (
+  activities: Activity[],
+  draggedActivity: Activity,
+  targetIndex: number
+): Activity[] => {
+  const withoutDragged = activities.filter((a) => a.id !== draggedActivity.id);
+  const clampedIndex = Math.min(Math.max(targetIndex, 0), withoutDragged.length);
+
+  const placeholder: Activity = {
+    ...draggedActivity,
+    id: "__DRAG_PLACEHOLDER__",
+  };
+
+  const merged = [
+    ...withoutDragged.slice(0, clampedIndex),
+    placeholder,
+    ...withoutDragged.slice(clampedIndex),
+  ];
+
+  const anchored = merged.filter((a) => a.time !== null).sort((a, b) => {
+    if (a.time === null || b.time === null) return 0;
+    return a.time.localeCompare(b.time);
+  });
+
+  let anchoredPtr = 0;
+  return merged.map((item) => {
+    if (item.time !== null) {
+      return anchored[anchoredPtr++];
+    }
+    return item;
+  });
+};
 
 const BoardPage = () => {
   const activities = useActivitiesStore((state) => state.activities);
@@ -42,7 +114,6 @@ const BoardPage = () => {
   const touchStartXRef = useRef(0);
   const isTouchDraggingRef = useRef(false);
   const touchDragBucketRef = useRef<Extract<Bucket, "inbox" | "later"> | null>(null);
-  const lastTouchPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Callback to refresh cached container rects during autoscroll
   const refreshCachedRects = useCallback(() => {
@@ -82,6 +153,14 @@ const BoardPage = () => {
   const inboxRectRef = useRef<DOMRect | null>(null);
   const laterRectRef = useRef<DOMRect | null>(null);
   const lastBucketUpdateRef = useRef<number>(0);
+  const throttledSetPreviewInbox = useThrottledCallback(
+    (order: Activity[] | null) => setPreviewInbox(order),
+    32
+  );
+  const throttledSetPreviewLater = useThrottledCallback(
+    (order: Activity[] | null) => setPreviewLater(order),
+    32
+  );
 
   // Cleanup effect to ensure styles are always reset on unmount
   useEffect(() => {
@@ -431,8 +510,8 @@ const BoardPage = () => {
 
   const handleTouchMove = useCallback((
     event: React.TouchEvent<HTMLDivElement>,
-    _activityId: string,
-    _originalBucket: Extract<Bucket, "inbox" | "later">
+    activityId: string,
+    originalBucket: Extract<Bucket, "inbox" | "later">
   ) => {
     const touch = event.touches[0];
 
@@ -454,23 +533,51 @@ const BoardPage = () => {
       touch.clientY - dragOffsetRef.current.y
     );
 
-    // Store the last touch position for computing target index on drop
-    lastTouchPosRef.current = { x: touch.clientX, y: touch.clientY };
+    const detectedBucket =
+      getBucketAtPosition(touch.clientX, touch.clientY) ??
+      touchDragBucketRef.current ??
+      originalBucket;
 
-    // Update which bucket we're over (throttled to avoid excessive re-renders)
+    if (detectedBucket !== touchDragBucketRef.current) {
+      touchDragBucketRef.current = detectedBucket;
+    }
+
     const now = Date.now();
     if (now - lastBucketUpdateRef.current > 50) {
       lastBucketUpdateRef.current = now;
-      const targetBucket = getBucketAtPosition(touch.clientX, touch.clientY);
-      if (targetBucket && targetBucket !== touchDragBucketRef.current) {
-        touchDragBucketRef.current = targetBucket;
-        setTouchDragOverBucket(targetBucket);
+      setTouchDragOverBucket(detectedBucket);
+    }
+
+    const targetBucket = touchDragBucketRef.current ?? originalBucket;
+    const targetIndex = getTargetIndexFromY(touch.clientY, targetBucket);
+    const draggedActivity = activities.find((a) => a.id === activityId);
+    if (!draggedActivity) return;
+
+    if (draggedActivity.bucket === targetBucket) {
+      const sourceList = targetBucket === "inbox" ? inboxActivities : laterActivities;
+      const newOrder = computePreviewOrder(sourceList, activityId, targetIndex);
+      if (targetBucket === "inbox") {
+        throttledSetPreviewInbox(newOrder);
+        setPreviewLater(null);
+      } else {
+        throttledSetPreviewLater(newOrder);
+        setPreviewInbox(null);
+      }
+    } else {
+      const targetList = targetBucket === "inbox" ? inboxActivities : laterActivities;
+      const newOrder = computePlaceholderPreview(targetList, draggedActivity, targetIndex);
+      if (targetBucket === "inbox") {
+        throttledSetPreviewInbox(newOrder);
+        setPreviewLater(null);
+      } else {
+        throttledSetPreviewLater(newOrder);
+        setPreviewInbox(null);
       }
     }
 
     // Auto-scroll when near edges
     startAutoScroll(touch.clientY);
-  }, [clearLongPressTimer, getBucketAtPosition, startAutoScroll]);
+  }, [clearLongPressTimer, getBucketAtPosition, startAutoScroll, getTargetIndexFromY, activities, inboxActivities, laterActivities, throttledSetPreviewInbox, throttledSetPreviewLater]);
 
   const handleTouchEnd = useCallback((
     activityId: string,
@@ -481,9 +588,9 @@ const BoardPage = () => {
     if (isTouchDraggingRef.current) {
       const draggedActivity = activities.find((a) => a.id === activityId);
       const targetBucket = touchDragBucketRef.current || originalBucket;
+      const preview = targetBucket === "inbox" ? previewInbox : previewLater;
 
-      if (draggedActivity) {
-        // Move to target bucket if it changed
+      if (draggedActivity && preview) {
         if (draggedActivity.bucket !== targetBucket) {
           if (targetBucket === "inbox") {
             moveToInbox(activityId);
@@ -492,15 +599,10 @@ const BoardPage = () => {
           }
         }
 
-        // Compute target index from final touch position
-        const targetIndex = getTargetIndexFromY(lastTouchPosRef.current.y, targetBucket);
-
-        // Get current ordered IDs excluding the dragged item
-        const orderedIds = getBucketOrderedIds(targetBucket, activityId);
-        const clampedIndex = Math.min(Math.max(targetIndex, 0), orderedIds.length);
-        // Insert the dragged item at the target index
-        orderedIds.splice(clampedIndex, 0, activityId);
-        reorderInBucket(targetBucket, orderedIds);
+        const finalOrderedIds = preview.map((a) =>
+          a.id === "__DRAG_PLACEHOLDER__" ? activityId : a.id
+        );
+        reorderInBucket(targetBucket, finalOrderedIds);
       }
     }
 
@@ -536,7 +638,7 @@ const BoardPage = () => {
     }
     stopAutoScroll();
     resetDragState();
-  }, [clearLongPressTimer, activities, moveToInbox, moveToLater, getBucketOrderedIds, getTargetIndexFromY, reorderInBucket, stopAutoScroll, scrollContainer]);
+  }, [clearLongPressTimer, activities, moveToInbox, moveToLater, reorderInBucket, stopAutoScroll, scrollContainer, previewInbox, previewLater]);
 
   const EmptySlot = ({ onClick, label = "New activity" }: { onClick: () => void; label?: string }) => (
     <div
