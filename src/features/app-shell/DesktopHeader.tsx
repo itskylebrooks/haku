@@ -88,14 +88,14 @@ const DesktopHeader = ({
                       aria-pressed={isActive}
                       onClick={() => onTabChange(value)}
                       className={`relative inline-flex h-8 w-11 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${isActive
-                        ? "text-[var(--color-text-contrast)] font-semibold shadow-sm"
+                        ? "text-[var(--color-emphasis-text)] font-semibold shadow-sm"
                         : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
                         }`}
                     >
                       {isActive && (
                         <motion.div
                           layoutId="header-tab-pill"
-                          className="absolute inset-0 rounded-full bg-[var(--color-surface-strong)]"
+                          className="absolute inset-0 rounded-full bg-[var(--color-emphasis-bg)]"
                           transition={SPRING_TRANSITION}
                           style={{ borderRadius: 9999 }} // Ensure radius is passed to motion
                         />
@@ -118,7 +118,7 @@ const DesktopHeader = ({
                   onOpenAdd(placement);
                 }}
                 aria-label={`Add activity (${activeTab === "board" ? "Inbox" : "Date"})`}
-                className="inline-flex h-8 items-center justify-center rounded-full bg-[var(--color-surface-strong)] px-3 text-[var(--color-text-contrast)] font-semibold shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99]"
+                className="inline-flex h-8 items-center justify-center rounded-full bg-[var(--color-emphasis-bg)] px-3 text-[var(--color-emphasis-text)] font-semibold shadow-sm transition hover:bg-[var(--color-emphasis-bg-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99]"
               >
                 <Plus className="h-5 w-5" />
               </button>

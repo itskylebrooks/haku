@@ -47,14 +47,14 @@ const MobileTabBar = ({ activeTab, onTabChange, onAdd }: MobileTabBarProps) => {
                 aria-label={tab.label}
                 aria-current={isActive ? "page" : undefined}
                 className={`relative inline-flex h-12 w-16 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${isActive
-                  ? "text-[var(--color-text-contrast)] font-semibold shadow-sm"
+                  ? "text-[var(--color-emphasis-text)] font-semibold shadow-sm"
                   : "text-[var(--color-text-primary)] active:bg-[var(--color-surface-pressed)]"
                   }`}
               >
                 {isActive && (
                   <motion.div
                     layoutId="mobile-tab-pill"
-                    className="absolute inset-0 rounded-full bg-[var(--color-surface-strong)]"
+                    className="absolute inset-0 rounded-full bg-[var(--color-emphasis-bg)]"
                     transition={SPRING_TRANSITION}
                     style={{ borderRadius: 9999 }}
                   />
@@ -72,7 +72,7 @@ const MobileTabBar = ({ activeTab, onTabChange, onAdd }: MobileTabBarProps) => {
             onAdd(placement);
           }}
           aria-label={`Add activity (${activeTab === "board" ? "Inbox" : "Date"})`}
-          className="inline-flex h-12 items-center justify-center rounded-full bg-[var(--color-surface-strong)] px-5 text-[var(--color-text-contrast)] font-semibold shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99]"
+          className="inline-flex h-12 items-center justify-center rounded-full bg-[var(--color-emphasis-bg)] px-5 text-[var(--color-emphasis-text)] font-semibold shadow-sm transition hover:bg-[var(--color-emphasis-bg-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99]"
         >
           <Plus className="h-5 w-5" />
         </button>

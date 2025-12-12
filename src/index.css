@@ -92,8 +92,8 @@ textarea::selection,
   --color-overlay: rgba(0, 0, 0, 0.4);
   --shadow-elevated: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
 
-  --color-emphasis-bg: #111827;
-  --color-emphasis-bg-hover: #1f2937;
+  --color-emphasis-bg: #1f2937;
+  --color-emphasis-bg-hover: #111827;
   --color-emphasis-text: #ffffff;
   --color-accent-glow: #646cffaa;
   --color-react-glow: #61dafbaa;
@@ -139,8 +139,8 @@ html[data-theme="light"] {
   --motion-ease: cubic-bezier(0.2, 0.8, 0.4, 1);
   --color-overlay: rgba(0, 0, 0, 0.4);
   --shadow-elevated: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
-  --color-emphasis-bg: #111827;
-  --color-emphasis-bg-hover: #1f2937;
+  --color-emphasis-bg: #1f2937;
+  --color-emphasis-bg-hover: #111827;
   --color-emphasis-text: #ffffff;
   --color-accent-glow: #646cffaa;
   --color-react-glow: #61dafbaa;
