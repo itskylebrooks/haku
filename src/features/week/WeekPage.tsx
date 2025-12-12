@@ -792,18 +792,18 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
       >
         <div className="flex items-baseline justify-between gap-2 px-1">
           <div
-            className={`text-sm font-semibold text-[var(--color-text-primary)] ${showLabel ? "" : "text-transparent"
+            className={`text-base font-semibold text-[var(--color-text-primary)] ${showLabel ? "" : "text-transparent"
               }`}
             aria-hidden={!showLabel}
           >
             {showLabel ? label : "Placeholder"}
           </div>
           {showLabel ? (
-            <div className="text-xs text-[var(--color-text-meta)]">
+            <div className="text-base text-[var(--color-text-meta)]">
               {totalCount > 0 ? totalCount : ""}
             </div>
           ) : (
-            <div aria-hidden className="text-xs text-transparent">0</div>
+            <div aria-hidden className="text-base text-transparent">0</div>
           )}
         </div>
         <div>
@@ -1041,11 +1041,11 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                       className="flex min-h-64 flex-col gap-2 px-1 py-3"
                     >
                       <div className="flex items-baseline justify-between gap-2 px-1">
-                        <div className="flex items-center gap-1.5 text-sm font-semibold text-[var(--color-text-primary)]">
+                        <div className="flex items-center gap-1.5 text-base font-semibold text-[var(--color-text-primary)]">
                           {weekday}
                           {isToday && <FlagTriangleRight className="h-3.5 w-3.5" />}
                         </div>
-                        <div className="text-sm text-[var(--color-text-meta)]">{monthDay}</div>
+                        <div className="text-base text-[var(--color-text-meta)]">{monthDay}</div>
                       </div>
                       <div
                         onDragOver={(event) => handleDragOverZone(event, appendKey)}
@@ -1196,11 +1196,11 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                       return (
                         <div className="flex min-h-64 flex-col gap-2 px-1 py-3">
                           <div className="flex items-baseline justify-between gap-2 px-1">
-                            <div className="flex items-center gap-1.5 text-sm font-semibold text-[var(--color-text-primary)]">
+                            <div className="flex items-center gap-1.5 text-base font-semibold text-[var(--color-text-primary)]">
                               <span>{weekday}</span>
                               {isToday && <FlagTriangleRight className="h-3.5 w-3.5" />}
                             </div>
-                            <div className="text-sm text-[var(--color-text-meta)]">{monthDay}</div>
+                            <div className="text-base text-[var(--color-text-meta)]">{monthDay}</div>
                           </div>
                           <div
                             onDragOver={(event) => handleDragOverZone(event, appendKey)}

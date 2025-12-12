@@ -622,10 +622,10 @@ const BoardPage = () => {
                   className="flex min-h-64 flex-col gap-2 px-1 py-3 rounded-xl"
                 >
                   <div className="flex items-baseline justify-between gap-2 px-1">
-                    <div className="flex items-center gap-1.5 text-sm font-semibold text-[var(--color-text-primary)]">
+                    <div className="flex items-center gap-1.5 text-base font-semibold text-[var(--color-text-primary)]">
                       <span>{label}</span>
                     </div>
-                    <div className="text-sm text-[var(--color-text-meta)]">
+                    <div className="text-base text-[var(--color-text-meta)]">
                       {bucketActivities.length > 0 ? bucketActivities.length : ""}
                     </div>
                   </div>
