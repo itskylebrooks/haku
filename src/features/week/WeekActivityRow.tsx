@@ -14,6 +14,7 @@ interface WeekActivityRowProps {
   onDragLeave?: (event: React.DragEvent<HTMLDivElement>) => void;
   onDrop?: (event: React.DragEvent<HTMLDivElement>) => void;
   disableHover?: boolean;
+  showNote?: boolean;
 }
 
 const formatTimeWithAmPm = (time: string): string => {
@@ -49,8 +50,9 @@ const WeekActivityRow = ({
   onDragLeave,
   onDrop,
   disableHover = false,
+  showNote = false,
 }: WeekActivityRowProps) => {
-  const { id, title, time, durationMinutes, isDone } = activity;
+  const { id, title, time, durationMinutes, note, isDone } = activity;
 
   const metaParts: string[] = [];
   if (time) {
@@ -61,7 +63,7 @@ const WeekActivityRow = ({
   }
 
   const hasMeta = metaParts.length > 0;
-  const centerTitleOnly = !hasMeta;
+  const centerTitleOnly = !hasMeta && !note;
 
   const handleToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
@@ -115,6 +117,14 @@ const WeekActivityRow = ({
         >
           {hasMeta ? metaParts.join(" · ") : " "}
         </p>
+        {showNote && note && (
+          <p
+            className={`mt-1 text-[11px] leading-snug ${isDone ? "text-[var(--color-text-faint)] line-through decoration-[var(--color-strike)]" : "text-[var(--color-text-subtle)]"
+              }`}
+          >
+            {note}
+          </p>
+        )}
       </div>
 
       <button

@@ -1,5 +1,4 @@
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
-import { CirclePlus } from "lucide-react";
 import ActivityCard from "../day/ActivityCard";
 import { AnimatePresence, motion } from "framer-motion";
 import { FAST_TRANSITION } from "../../shared/theme/animations";
@@ -14,6 +13,8 @@ import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
 import { TouchDragOverlay, type TouchDragOverlayHandle } from "../../shared/components/TouchDragOverlay";
 import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
 import { useThrottledCallback } from "../../shared/hooks/useThrottle";
+import WeekActivityRow from "../week/WeekActivityRow";
+import { DesktopDivider as Divider, DesktopEmptySlot as EmptySlot } from "../week/DesktopColumnPrimitives";
 
 /**
  * Reorders a list with the dragged activity in-place, keeping anchored items
@@ -99,7 +100,6 @@ const BoardPage = () => {
   const [activityBeingEdited, setActivityBeingEdited] = useState<Activity | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newActivityPlacement, setNewActivityPlacement] = useState<Extract<Bucket, "inbox" | "later">>("inbox");
-  const [hoveredCreatePlacement, setHoveredCreatePlacement] = useState<Extract<Bucket, "inbox" | "later"> | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [draggedCardHeight, setDraggedCardHeight] = useState<number>(72);
   const [previewInbox, setPreviewInbox] = useState<Activity[] | null>(null);
@@ -135,6 +135,8 @@ const BoardPage = () => {
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const initialDragPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const overlayRef = useRef<TouchDragOverlayHandle>(null);
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+  const dragLeaveTimeoutRef = useRef<number | null>(null);
   // Cached container rects to avoid layout thrashing during drag
   const inboxRectRef = useRef<DOMRect | null>(null);
   const laterRectRef = useRef<DOMRect | null>(null);
@@ -147,7 +149,6 @@ const BoardPage = () => {
     (order: Activity[] | null) => setPreviewLater(order),
     32
   );
-  const lastDesktopPreviewKeyRef = useRef<string | null>(null);
 
   // Cleanup effect to ensure styles are always reset on unmount
   useEffect(() => {
@@ -197,8 +198,13 @@ const BoardPage = () => {
     [activities]
   );
 
-  const displayInbox = previewInbox ?? inboxActivities;
-  const displayLater = previewLater ?? laterActivities;
+  const displayInbox = isDesktop && !isTouchDrag
+    ? inboxActivities
+    : (previewInbox ?? inboxActivities);
+  const displayLater = isDesktop && !isTouchDrag
+    ? laterActivities
+    : (previewLater ?? laterActivities);
+  const canShowDesktopAddSlot = isDesktop && !draggingId;
 
   const handleToggleDone = (id: string) => {
     toggleDone(id);
@@ -240,7 +246,11 @@ const BoardPage = () => {
     setDraggingId(null);
     setPreviewInbox(null);
     setPreviewLater(null);
-    lastDesktopPreviewKeyRef.current = null;
+    setDragOverKey(null);
+    if (dragLeaveTimeoutRef.current !== null) {
+      window.clearTimeout(dragLeaveTimeoutRef.current);
+      dragLeaveTimeoutRef.current = null;
+    }
   }, []);
 
   useEffect(() => {
@@ -260,6 +270,7 @@ const BoardPage = () => {
     setDraggingId(activity.id);
     setPreviewInbox(null);
     setPreviewLater(null);
+    setDragOverKey(null);
 
     // Capture the height of the card being dragged
     const target = event.currentTarget;
@@ -272,123 +283,75 @@ const BoardPage = () => {
     resetDragState();
   };
 
-  const handleDragOver = (
-    event: React.DragEvent<HTMLDivElement>,
-    bucket: Extract<Bucket, "inbox" | "later">
+  const makeBucketZoneKey = (bucket: Extract<Bucket, "inbox" | "later">, index: number) =>
+    `bucket-${bucket}-zone-${index}`;
+  const makeBucketAppendKey = (bucket: Extract<Bucket, "inbox" | "later">) =>
+    `bucket-${bucket}-append`;
+
+  const handleDragOverZone = (
+    event: React.DragEvent<HTMLElement>,
+    key: string
   ) => {
     event.preventDefault();
     event.stopPropagation();
     event.dataTransfer.dropEffect = "move";
-
-    if (!draggingId) return;
-
-    const draggedActivity = activities.find((a) => a.id === draggingId);
-    if (!draggedActivity) return;
-
-    const containerRef = bucket === "inbox" ? inboxContainerRef : laterContainerRef;
-    if (!containerRef.current) return;
-
-    const cards = Array.from(containerRef.current.querySelectorAll("[data-activity-id]")).filter(
-      (node) => {
-        const id = (node as HTMLElement).dataset.activityId;
-        return id && id !== "__DRAG_PLACEHOLDER__";
-      }
-    );
-
-    let targetIndex = 0;
-    cards.forEach((card, index) => {
-      const rect = card.getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-      if (event.clientY > midY) {
-        targetIndex = index + 1;
-      }
-    });
-
-    const previewKey = `${bucket}:${draggingId}:${draggedActivity.bucket}:${targetIndex}`;
-    if (lastDesktopPreviewKeyRef.current === previewKey) return;
-    lastDesktopPreviewKeyRef.current = previewKey;
-
-    if (bucket === "inbox") {
-      const newOrder = computePlaceholderPreview(inboxActivities, draggedActivity, targetIndex);
-      throttledSetPreviewInbox(newOrder);
-      if (draggedActivity.bucket === "later") {
-        throttledSetPreviewLater(laterActivities.filter((a) => a.id !== draggingId));
-      } else {
-        throttledSetPreviewLater(null);
-      }
-      return;
+    if (dragLeaveTimeoutRef.current !== null) {
+      window.clearTimeout(dragLeaveTimeoutRef.current);
+      dragLeaveTimeoutRef.current = null;
     }
-
-    const newOrder = computePlaceholderPreview(laterActivities, draggedActivity, targetIndex);
-    throttledSetPreviewLater(newOrder);
-    if (draggedActivity.bucket === "inbox") {
-      throttledSetPreviewInbox(inboxActivities.filter((a) => a.id !== draggingId));
-    } else {
-      throttledSetPreviewInbox(null);
+    if (dragOverKey !== key) {
+      setDragOverKey(key);
     }
   };
 
-  const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
-    if (isDesktop) return;
-    const nextTarget = event.relatedTarget as Node | null;
-    if (nextTarget && event.currentTarget.contains(nextTarget)) {
-      return;
+  const handleDragLeaveZone = (
+    event: React.DragEvent<HTMLElement> | null,
+    key: string
+  ) => {
+    if (event) {
+      const nextTarget = event.relatedTarget as Node | null;
+      if (nextTarget && event.currentTarget.contains(nextTarget)) {
+        return;
+      }
     }
-
-    setPreviewInbox(null);
-    setPreviewLater(null);
+    if (dragLeaveTimeoutRef.current !== null) {
+      window.clearTimeout(dragLeaveTimeoutRef.current);
+    }
+    dragLeaveTimeoutRef.current = window.setTimeout(() => {
+      if (dragOverKey === key) {
+        setDragOverKey(null);
+      }
+      dragLeaveTimeoutRef.current = null;
+    }, 50);
   };
 
-  const handleDrop = (
-    event: React.DragEvent<HTMLDivElement>,
-    bucket: Extract<Bucket, "inbox" | "later">
+  const handleDropOnBucket = (
+    event: React.DragEvent<HTMLElement>,
+    bucket: Extract<Bucket, "inbox" | "later">,
+    targetIndex: number
   ) => {
     event.preventDefault();
     event.stopPropagation();
 
     const droppedId = draggingId ?? event.dataTransfer.getData("text/plain");
-    if (!droppedId) {
+    const activity = droppedId ? activities.find((a) => a.id === droppedId) : null;
+
+    if (!activity) {
       resetDragState();
       return;
     }
 
-    const draggedActivity = activities.find((a) => a.id === droppedId);
-    if (!draggedActivity) {
-      resetDragState();
-      return;
-    }
-
-    // Move to target bucket if needed
-    if (draggedActivity.bucket !== bucket) {
+    if (activity.bucket !== bucket) {
       if (bucket === "inbox") {
-        moveToInbox(droppedId);
+        moveToInbox(activity.id);
       } else {
-        moveToLater(droppedId);
+        moveToLater(activity.id);
       }
     }
 
-    // Compute final order (exclude the dropped item first, then insert)
-    const orderedIds = getBucketOrderedIds(bucket, droppedId);
-    const containerRef = bucket === "inbox" ? inboxContainerRef : laterContainerRef;
-    const cards =
-      containerRef.current
-        ? Array.from(containerRef.current.querySelectorAll("[data-activity-id]")).filter((node) => {
-          const id = (node as HTMLElement).dataset.activityId;
-          return id && id !== "__DRAG_PLACEHOLDER__";
-        })
-        : [];
-
-    let computedIndex = 0;
-    cards.forEach((card, index) => {
-      const rect = card.getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-      if (event.clientY > midY) {
-        computedIndex = index + 1;
-      }
-    });
-
-    const clampedIndex = Math.min(Math.max(computedIndex, 0), orderedIds.length);
-    orderedIds.splice(clampedIndex, 0, droppedId);
+    const orderedIds = getBucketOrderedIds(bucket, activity.id);
+    const clampedIndex = Math.min(Math.max(targetIndex, 0), orderedIds.length);
+    orderedIds.splice(clampedIndex, 0, activity.id);
     reorderInBucket(bucket, orderedIds);
 
     resetDragState();
@@ -637,182 +600,226 @@ const BoardPage = () => {
     resetDragState();
   }, [clearLongPressTimer, activities, moveToInbox, moveToLater, reorderInBucket, stopAutoScroll, scrollContainer, previewInbox, previewLater, resetDragState]);
 
-  const EmptySlot = ({ onClick, label = "New activity" }: { onClick: () => void; label?: string }) => (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onClick();
-        }
-      }}
-      className="group/empty flex min-h-[44px] items-center rounded-md px-3 py-1 cursor-pointer transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
-    >
-      <div className="flex min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-[var(--color-text-meta)] opacity-0 group-hover/empty:opacity-100 transition-opacity">
-          {label}
-        </p>
-      </div>
-      <div className="flex-shrink-0 opacity-0 group-hover/empty:opacity-100 transition-opacity">
-        <CirclePlus className="h-5 w-5 text-[var(--color-text-meta)]" />
-      </div>
-    </div>
-  );
-
   // top date removed; no formattedDate needed
 
   return (
     <>
       <div className="mx-auto w-full max-w-xl px-4 pt-4 lg:pt-0">
-        {/* top date header removed per design: no date at top of Board page */}
-        {/* Inbox Section - Always Visible */}
-        <div
-          ref={inboxContainerRef}
-          className="mb-6"
-          onDragLeave={handleDragLeave}
-        >
-          <div className="mb-2 text-base font-semibold text-[var(--color-text-primary)]">
-            Inbox
-          </div>
-          <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
-          <div
-            className="min-h-20 relative mb-6 group/section"
-            onDragOver={(e) => handleDragOver(e, "inbox")}
-            onDrop={(e) => handleDrop(e, "inbox")}
-          >
-            {displayInbox.length === 0 && touchDragOverBucket !== "inbox" && (
-              <div
-                className={`absolute inset-0 flex items-start justify-center pointer-events-none transition-opacity ${isDesktop && hoveredCreatePlacement === "inbox" ? "opacity-0" : "opacity-100"
-                  }`}
-              >
-                <div className="w-full pt-[20px]">
-                  <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
-                  <div className="h-[30px]" />
-                  <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
-                </div>
-              </div>
-            )}
-            <AnimatePresence>
-              {displayInbox.map((activity) => (
-                <motion.div
-                  layout={!isDesktop}
-                  key={activity.id}
-                  data-activity-id={activity.id}
-                  initial={false}
-                  transition={FAST_TRANSITION}
-                >
-                  {activity.id === '__DRAG_PLACEHOLDER__' ? (
-                    <div style={{ height: `${draggedCardHeight}px` }} />
-                  ) : (
-                    <ActivityCard
-                      activity={activity}
-                      onToggleDone={handleToggleDone}
-                      onEdit={handleEdit}
-                      draggable={isDesktop}
-                      isDragging={draggingId === activity.id}
-                      disableHover={draggingId !== null}
-                      onDragStart={(e) => handleDragStart(e, activity)}
-                      onDragEnd={handleDragEnd}
-                      onTouchStart={(e) => handleTouchStart(e, activity, "inbox")}
-                      onTouchMove={(e) => handleTouchMove(e, activity.id, "inbox")}
-                      onTouchEnd={() => handleTouchEnd(activity.id, "inbox")}
-                    />
-                  )}
-                </motion.div>
-              ))}
-            </AnimatePresence>
-            {/* Desktop placeholder for adding new activity */}
-            {isDesktop && !draggingId && (
-              <div
-                className="hidden lg:block"
-                onMouseEnter={() => setHoveredCreatePlacement("inbox")}
-                onMouseLeave={() => setHoveredCreatePlacement(null)}
-              >
-                <EmptySlot
-                  label="Add to Inbox"
-                  onClick={() => handleOpenCreateModal("inbox")}
-                />
-              </div>
-            )}
-          </div>
-        </div>
+        {isDesktop ? (
+          <div className="space-y-8">
+            {(["inbox", "later"] as const).map((bucket) => {
+              const bucketActivities = bucket === "inbox" ? displayInbox : displayLater;
+              const label = bucket === "inbox" ? "Inbox" : "Later";
+              const appendKey = makeBucketAppendKey(bucket);
+              const placeholderCount = Math.max(5 - bucketActivities.length, 0);
+              const totalSlots = Math.max(placeholderCount, 1);
+              let zoneIndex = 0;
 
-        {/* Later Section - Always Visible */}
-        <div
-          ref={laterContainerRef}
-          className="mb-4"
-          onDragLeave={handleDragLeave}
-        >
-          <div className="mb-2 text-base font-semibold text-[var(--color-text-primary)]">
-            Later
-          </div>
-          <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
-          <div
-            className="min-h-20 relative mb-4 group/section"
-            onDragOver={(e) => handleDragOver(e, "later")}
-            onDrop={(e) => handleDrop(e, "later")}
-          >
-            {displayLater.length === 0 && touchDragOverBucket !== "later" && (
-              <div
-                className={`absolute inset-0 flex items-start justify-center pointer-events-none transition-opacity ${isDesktop && hoveredCreatePlacement === "later" ? "opacity-0" : "opacity-100"
-                  }`}
-              >
-                <div className="w-full pt-[20px]">
-                  <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
-                  <div className="h-[30px]" />
-                  <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
-                </div>
-              </div>
-            )}
-            <AnimatePresence>
-              {displayLater.map((activity) => (
-                <motion.div
-                  // Only enable layout animation for the later column after the
-                  // initial mount when on desktop. Mobile and subsequent updates
-                  // still animate as usual.
-                  layout={!isDesktop}
-                  key={activity.id}
-                  data-activity-id={activity.id}
-                  initial={false}
-                  transition={FAST_TRANSITION}
+              return (
+                <div
+                  key={bucket}
+                  ref={bucket === "inbox" ? inboxContainerRef : laterContainerRef}
+                  className="flex min-h-64 flex-col gap-2 px-1 py-3 rounded-xl"
                 >
-                  {activity.id === '__DRAG_PLACEHOLDER__' ? (
-                    <div style={{ height: `${draggedCardHeight}px` }} />
-                  ) : (
-                    <ActivityCard
-                      activity={activity}
-                      onToggleDone={handleToggleDone}
-                      onEdit={handleEdit}
-                      draggable={isDesktop}
-                      isDragging={draggingId === activity.id}
-                      disableHover={draggingId !== null}
-                      onDragStart={(e) => handleDragStart(e, activity)}
-                      onDragEnd={handleDragEnd}
-                      onTouchStart={(e) => handleTouchStart(e, activity, "later")}
-                      onTouchMove={(e) => handleTouchMove(e, activity.id, "later")}
-                      onTouchEnd={() => handleTouchEnd(activity.id, "later")}
-                    />
-                  )}
-                </motion.div>
-              ))}
-            </AnimatePresence>
-            {/* Desktop placeholder for adding new activity */}
-            {isDesktop && !draggingId && (
-              <div
-                className="hidden lg:block"
-                onMouseEnter={() => setHoveredCreatePlacement("later")}
-                onMouseLeave={() => setHoveredCreatePlacement(null)}
-              >
-                <EmptySlot
-                  label="Add to Later"
-                  onClick={() => handleOpenCreateModal("later")}
-                />
-              </div>
-            )}
+                  <div className="flex items-baseline justify-between gap-2 px-1">
+                    <div className="flex items-center gap-1.5 text-sm font-semibold text-[var(--color-text-primary)]">
+                      <span>{label}</span>
+                    </div>
+                    <div className="text-sm text-[var(--color-text-meta)]">
+                      {bucketActivities.length > 0 ? bucketActivities.length : ""}
+                    </div>
+                  </div>
+                  <div
+                    onDragOver={(event) => handleDragOverZone(event, appendKey)}
+                    onDragLeave={(event) => handleDragLeaveZone(event, appendKey)}
+                    onDrop={(event) => handleDropOnBucket(event, bucket, zoneIndex)}
+                  >
+                    <>
+                      {bucketActivities.map((activity) => {
+                        const dropIndex = zoneIndex;
+                        const zoneKey = makeBucketZoneKey(bucket, zoneIndex);
+                        zoneIndex += 1;
+
+                        return (
+                          <motion.div
+                            layout
+                            initial={false}
+                            transition={FAST_TRANSITION}
+                            key={activity.id}
+                          >
+                            <Divider
+                              isActive={dragOverKey === zoneKey}
+                              onDragOver={(event) => handleDragOverZone(event, zoneKey)}
+                              onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
+                              onDrop={(event) => handleDropOnBucket(event, bucket, dropIndex)}
+                            />
+                            <WeekActivityRow
+                              activity={activity}
+                              onToggleDone={handleToggleDone}
+                              onEdit={handleEdit}
+                              draggable
+                              isDragging={draggingId === activity.id}
+                              disableHover={draggingId !== null}
+                              showNote
+                              onDragStart={(event) => handleDragStart(event, activity)}
+                              onDragEnd={handleDragEnd}
+                              onDragOver={(event) => handleDragOverZone(event, zoneKey)}
+                              onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
+                              onDrop={(event) => handleDropOnBucket(event, bucket, dropIndex)}
+                            />
+                          </motion.div>
+                        );
+                      })}
+                      {Array.from({ length: totalSlots }).map((_, idx) => {
+                        const dropIndex = zoneIndex;
+                        const zoneKey = makeBucketZoneKey(bucket, zoneIndex);
+                        zoneIndex += 1;
+                        const isPrimaryDrop = idx === 0;
+                        const activeKey = isPrimaryDrop ? appendKey : zoneKey;
+
+                        return (
+                          <div key={`${bucket}-placeholder-${idx}`}>
+                            {isPrimaryDrop ? (
+                              <>
+                                <Divider
+                                  isActive={dragOverKey === activeKey}
+                                  onDragOver={(event) => handleDragOverZone(event, activeKey)}
+                                  onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
+                                  onDrop={(event) => handleDropOnBucket(event, bucket, dropIndex)}
+                                />
+                                <div
+                                  onDragOver={(event) => handleDragOverZone(event, activeKey)}
+                                  onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
+                                  onDrop={(event) => handleDropOnBucket(event, bucket, dropIndex)}
+                                >
+                                  {canShowDesktopAddSlot ? (
+                                    <EmptySlot
+                                      label={`Add to ${label}`}
+                                      onClick={() => handleOpenCreateModal(bucket)}
+                                    />
+                                  ) : (
+                                    <div className="min-h-[38px]" />
+                                  )}
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <Divider />
+                                <div className="min-h-[38px]" />
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </div>
+        ) : (
+          <div>
+            <div
+              ref={inboxContainerRef}
+              className="mb-6"
+            >
+              <div className="mb-2 text-base font-semibold text-[var(--color-text-primary)]">
+                Inbox
+              </div>
+              <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
+              <div className="min-h-20 relative mb-6 group/section">
+                {displayInbox.length === 0 && touchDragOverBucket !== "inbox" && (
+                  <div className="absolute inset-0 flex items-start justify-center pointer-events-none transition-opacity">
+                    <div className="w-full pt-[20px]">
+                      <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
+                      <div className="h-[30px]" />
+                      <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
+                    </div>
+                  </div>
+                )}
+                <AnimatePresence>
+                  {displayInbox.map((activity) => (
+                    <motion.div
+                      layout
+                      key={activity.id}
+                      data-activity-id={activity.id}
+                      initial={false}
+                      transition={FAST_TRANSITION}
+                    >
+                      {activity.id === '__DRAG_PLACEHOLDER__' ? (
+                        <div style={{ height: `${draggedCardHeight}px` }} />
+                      ) : (
+                        <ActivityCard
+                          activity={activity}
+                          onToggleDone={handleToggleDone}
+                          onEdit={handleEdit}
+                          draggable={isDesktop}
+                          isDragging={draggingId === activity.id}
+                          disableHover={draggingId !== null}
+                          onDragStart={(e) => handleDragStart(e, activity)}
+                          onDragEnd={handleDragEnd}
+                          onTouchStart={(e) => handleTouchStart(e, activity, "inbox")}
+                          onTouchMove={(e) => handleTouchMove(e, activity.id, "inbox")}
+                          onTouchEnd={() => handleTouchEnd(activity.id, "inbox")}
+                        />
+                      )}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            <div
+              ref={laterContainerRef}
+              className="mb-4"
+            >
+              <div className="mb-2 text-base font-semibold text-[var(--color-text-primary)]">
+                Later
+              </div>
+              <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
+              <div className="min-h-20 relative mb-4 group/section">
+                {displayLater.length === 0 && touchDragOverBucket !== "later" && (
+                  <div className="absolute inset-0 flex items-start justify-center pointer-events-none transition-opacity">
+                    <div className="w-full pt-[20px]">
+                      <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
+                      <div className="h-[30px]" />
+                      <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
+                    </div>
+                  </div>
+                )}
+                <AnimatePresence>
+                  {displayLater.map((activity) => (
+                    <motion.div
+                      layout
+                      key={activity.id}
+                      data-activity-id={activity.id}
+                      initial={false}
+                      transition={FAST_TRANSITION}
+                    >
+                      {activity.id === '__DRAG_PLACEHOLDER__' ? (
+                        <div style={{ height: `${draggedCardHeight}px` }} />
+                      ) : (
+                        <ActivityCard
+                          activity={activity}
+                          onToggleDone={handleToggleDone}
+                          onEdit={handleEdit}
+                          draggable={isDesktop}
+                          isDragging={draggingId === activity.id}
+                          disableHover={draggingId !== null}
+                          onDragStart={(e) => handleDragStart(e, activity)}
+                          onDragEnd={handleDragEnd}
+                          onTouchStart={(e) => handleTouchStart(e, activity, "later")}
+                          onTouchMove={(e) => handleTouchMove(e, activity.id, "later")}
+                          onTouchEnd={() => handleTouchEnd(activity.id, "later")}
+                        />
+                      )}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <AddActivityModal

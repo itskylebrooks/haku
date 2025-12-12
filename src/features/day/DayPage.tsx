@@ -1,5 +1,5 @@
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
-import { CirclePlus } from "lucide-react";
+import { FlagTriangleRight } from "lucide-react";
 import { useActivitiesStore } from "../../shared/store/activitiesStore";
 import type { Activity } from "../../shared/types/activity";
 import ActivityCard from "./ActivityCard";
@@ -11,6 +11,8 @@ import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
 import { useThrottledCallback } from "../../shared/hooks/useThrottle";
 import { AnimatePresence, motion } from "framer-motion";
 import { FAST_TRANSITION, SLIDE_VARIANTS } from "../../shared/theme/animations";
+import WeekActivityRow from "../week/WeekActivityRow";
+import { DesktopDivider as Divider, DesktopEmptySlot as EmptySlot } from "../week/DesktopColumnPrimitives";
 
 interface DayPageProps {
   activeDate: string;
@@ -37,48 +39,6 @@ const computePreviewOrder = (
   const merged = [
     ...withoutDragged.slice(0, clampedIndex),
     dragged,
-    ...withoutDragged.slice(clampedIndex),
-  ];
-
-  // Anchored activities must maintain their time order
-  const anchored = merged.filter((a) => a.time !== null).sort((a, b) => {
-    if (a.time === null || b.time === null) return 0;
-    return a.time.localeCompare(b.time);
-  });
-
-  let anchoredPtr = 0;
-  return merged.map((item) => {
-    if (item.time !== null) {
-      return anchored[anchoredPtr++];
-    }
-    return item;
-  });
-};
-
-/**
- * Computes preview order for desktop drag - shows gap without the dragged card.
- * Returns cards reordered with a placeholder at the drop position.
- */
-const computeDesktopPreviewOrder = (
-  activities: Activity[],
-  draggedId: string,
-  targetIndex: number
-): Activity[] => {
-  const dragged = activities.find((a) => a.id === draggedId);
-  if (!dragged) return activities;
-
-  const withoutDragged = activities.filter((a) => a.id !== draggedId);
-  const clampedIndex = Math.min(Math.max(targetIndex, 0), withoutDragged.length);
-
-  // Create a placeholder that will render as empty space
-  const placeholder: Activity = {
-    ...dragged,
-    id: '__DRAG_PLACEHOLDER__',
-  };
-
-  const merged = [
-    ...withoutDragged.slice(0, clampedIndex),
-    placeholder,
     ...withoutDragged.slice(clampedIndex),
   ];
 
@@ -124,6 +84,8 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const initialDragPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const overlayRef = useRef<TouchDragOverlayHandle>(null);
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+  const dragLeaveTimeoutRef = useRef<number | null>(null);
 
   const { startAutoScroll, stopAutoScroll } = useAutoScroll(scrollContainer ?? window);
 
@@ -132,7 +94,6 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     (order: Activity[] | null) => setPreviewOrder(order),
     32
   );
-  const lastDesktopPreviewKeyRef = useRef<string | null>(null);
 
   // Cleanup effect to ensure styles are always reset on unmount or when drag ends unexpectedly
   useEffect(() => {
@@ -214,7 +175,9 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     return combined;
   }, [todayAnchored, todayFlexible]);
 
-  const displayActivities = previewOrder ?? todayActivities;
+  const displayActivities = isDesktop && !isTouchDrag
+    ? todayActivities
+    : (previewOrder ?? todayActivities);
 
   const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const isToday = activeDate === todayIso;
@@ -253,7 +216,11 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
   const resetDragState = useCallback(() => {
     setDraggingId(null);
     setPreviewOrder(null);
-    lastDesktopPreviewKeyRef.current = null;
+    setDragOverKey(null);
+    if (dragLeaveTimeoutRef.current !== null) {
+      window.clearTimeout(dragLeaveTimeoutRef.current);
+      dragLeaveTimeoutRef.current = null;
+    }
   }, []);
 
   useEffect(() => {
@@ -272,6 +239,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     event.dataTransfer.setData("text/plain", activity.id);
     setDraggingId(activity.id);
     setPreviewOrder(null);
+    setDragOverKey(null);
 
     // Capture the height of the card being dragged
     const target = event.currentTarget;
@@ -284,132 +252,88 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     resetDragState();
   };
 
-  const handleDragOver = (event: React.DragEvent<HTMLDivElement>, targetIndex: number) => {
+  const makeTodayZoneKey = (zoneIndex: number) => `today-zone-${zoneIndex}`;
+  const todayAppendKey = "today-append";
+
+  const handleDragOverZone = (event: React.DragEvent<HTMLElement>, key: string) => {
     event.preventDefault();
     event.stopPropagation();
     event.dataTransfer.dropEffect = "move";
-
-    if (!draggingId) return;
-
-    const draggedActivity = activities.find((a) => a.id === draggingId);
-    if (!draggedActivity) return;
-
-    // Desktop drag from same day: show gap placeholder as before
-    if (draggedActivity.bucket === "scheduled" && draggedActivity.date === activeDate) {
-      const newOrder = computeDesktopPreviewOrder(todayActivities, draggingId, targetIndex);
-      const key = `${draggingId}:${targetIndex}:${activeDate}:same-day`;
-      if (lastDesktopPreviewKeyRef.current !== key) {
-        lastDesktopPreviewKeyRef.current = key;
-        throttledSetPreviewOrder(newOrder);
-      }
-      return;
+    if (dragLeaveTimeoutRef.current !== null) {
+      window.clearTimeout(dragLeaveTimeoutRef.current);
+      dragLeaveTimeoutRef.current = null;
     }
-
-    // Desktop drag from Overdue (scheduled but earlier date): allow dropping into Today
-    if (draggedActivity.bucket === "scheduled" && draggedActivity.date !== activeDate) {
-      // Build placeholder based on dragged activity
-      const placeholder: Activity = {
-        ...draggedActivity,
-        id: "__DRAG_PLACEHOLDER__",
-      };
-      const withoutDragged = [...todayActivities];
-      const clampedIndex = Math.min(Math.max(targetIndex, 0), withoutDragged.length);
-      const merged = [
-        ...withoutDragged.slice(0, clampedIndex),
-        placeholder,
-        ...withoutDragged.slice(clampedIndex),
-      ];
-
-      // Maintain anchored time order
-      const anchored = merged.filter((a) => a.time !== null).sort((a, b) => {
-        if (a.time === null || b.time === null) return 0;
-        return a.time.localeCompare(b.time);
-      });
-      let anchoredPtr = 0;
-      const ordered = merged.map((item) => {
-        if (item.time !== null) {
-          return anchored[anchoredPtr++];
-        }
-        return item;
-      });
-      const key = `${draggingId}:${targetIndex}:${activeDate}:overdue`;
-      if (lastDesktopPreviewKeyRef.current !== key) {
-        lastDesktopPreviewKeyRef.current = key;
-        throttledSetPreviewOrder(ordered);
-      }
-      return;
+    if (dragOverKey !== key) {
+      setDragOverKey(key);
     }
   };
 
-  const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
-    if (isDesktop) return;
-    const nextTarget = event.relatedTarget as Node | null;
-    if (nextTarget && event.currentTarget.contains(nextTarget)) {
-      return;
-    }
-
-    setPreviewOrder(null);
-  };
-
-  const getDesktopTargetIndexFromY = (clientY: number): number => {
-    if (!containerRef.current) return 0;
-    const cards = Array.from(containerRef.current.querySelectorAll("[data-activity-id]")).filter((node) => {
-      const id = (node as HTMLElement).dataset.activityId;
-      return id && id !== "__DRAG_PLACEHOLDER__";
-    });
-
-    let targetIndex = 0;
-    cards.forEach((card, index) => {
-      const rect = card.getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-      if (clientY > midY) {
-        targetIndex = index + 1;
+  const handleDragLeaveZone = (
+    event: React.DragEvent<HTMLElement> | null,
+    key: string
+  ) => {
+    if (event) {
+      const nextTarget = event.relatedTarget as Node | null;
+      if (nextTarget && event.currentTarget.contains(nextTarget)) {
+        return;
       }
-    });
-
-    return targetIndex;
+    }
+    if (dragLeaveTimeoutRef.current !== null) {
+      window.clearTimeout(dragLeaveTimeoutRef.current);
+    }
+    dragLeaveTimeoutRef.current = window.setTimeout(() => {
+      if (dragOverKey === key) {
+        setDragOverKey(null);
+      }
+      dragLeaveTimeoutRef.current = null;
+    }, 50);
   };
 
-  const handleDesktopDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-    if (!isDesktop) return;
-    const targetIndex = getDesktopTargetIndexFromY(event.clientY);
-    handleDragOver(event, targetIndex);
-  };
-
-  const handleDesktopDrop = (event: React.DragEvent<HTMLDivElement>) => {
-    if (!isDesktop) return;
-    const targetIndex = getDesktopTargetIndexFromY(event.clientY);
-    handleDrop(event, targetIndex);
-  };
-
-  const handleDrop = (event: React.DragEvent<HTMLDivElement>, targetIndex: number) => {
+  const handleDropOnToday = (event: React.DragEvent<HTMLDivElement>, targetIndex: number) => {
     event.preventDefault();
     event.stopPropagation();
 
     const droppedId = draggingId ?? event.dataTransfer.getData("text/plain");
-    if (!droppedId) {
+    const activity = droppedId ? activities.find((a) => a.id === droppedId) : null;
+
+    if (!activity) {
       resetDragState();
       return;
     }
 
-    const draggedActivity = activities.find((a) => a.id === droppedId);
-    // If the dragged activity is not already scheduled for this date, schedule it for today
-    if (draggedActivity && !(draggedActivity.bucket === "scheduled" && draggedActivity.date === activeDate)) {
-      scheduleActivity(droppedId, activeDate);
+    const sourceDate = activity.bucket === "scheduled" ? activity.date : null;
+
+    if (!(activity.bucket === "scheduled" && activity.date === activeDate)) {
+      scheduleActivity(activity.id, activeDate);
     }
 
-    // Compute final ordered IDs; use previewOrder if available
-    const finalOrder = previewOrder ?? (() => {
-      const current = [...todayActivities];
-      const clampedIndex = Math.min(Math.max(targetIndex, 0), current.length);
-      current.splice(clampedIndex, 0, activities.find((a) => a.id === droppedId) ?? ({} as Activity));
-      return current;
-    })();
+    const currentDayItems = todayActivities;
+    const currentIndex = currentDayItems.findIndex((item) => item.id === activity.id);
+    let adjustedIndex = targetIndex;
+    if (sourceDate === activeDate && currentIndex >= 0 && targetIndex > currentIndex) {
+      adjustedIndex = targetIndex - 1;
+    }
+    const withoutDropped = currentDayItems.filter((item) => item.id !== activity.id);
+    const clampedIndex = Math.min(Math.max(adjustedIndex, 0), withoutDropped.length);
+    const merged = [
+      ...withoutDropped.slice(0, clampedIndex),
+      activity,
+      ...withoutDropped.slice(clampedIndex),
+    ];
 
-    // Replace placeholder id with real id if necessary
-    const orderedIds = finalOrder.map((a) => (a.id === "__DRAG_PLACEHOLDER__" ? droppedId : a.id));
-    reorderInDay(activeDate, orderedIds);
+    const anchored = merged.filter((item) => item.time !== null).sort((a, b) => {
+      if (a.time === null || b.time === null) return 0;
+      return a.time.localeCompare(b.time);
+    });
+    let anchoredPtr = 0;
+    const finalOrder = merged.map((item) => {
+      if (item.time !== null) {
+        return anchored[anchoredPtr++];
+      }
+      return item;
+    });
 
+    reorderInDay(activeDate, finalOrder.map((item) => item.id));
     resetDragState();
   };
 
@@ -589,30 +513,6 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     });
   }, [activeDate]);
 
-  const EmptySlot = ({ onClick, label = "Add activity" }: { onClick: () => void; label?: string }) => (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onClick();
-        }
-      }}
-      className="group/empty flex min-h-[44px] items-center rounded-md px-3 py-1 cursor-pointer transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
-    >
-      <div className="flex min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-[var(--color-text-meta)] opacity-0 group-hover/empty:opacity-100 transition-opacity">
-          {label}
-        </p>
-      </div>
-      <div className="flex-shrink-0 opacity-0 group-hover/empty:opacity-100 transition-opacity">
-        <CirclePlus className="h-5 w-5 text-[var(--color-text-meta)]" />
-      </div>
-    </div>
-  );
-
   const canShowDesktopAddSlot = isDesktop && !draggingId;
 
   return (
@@ -627,111 +527,234 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
             animate="center"
             exit="exit"
             transition={FAST_TRANSITION}
-            className={`mt-0 md:mt-5 lg:mt-0`}
+            className="mt-0 md:mt-5 lg:mt-0"
             ref={containerRef}
-            onDragLeave={handleDragLeave}
-            onDragOver={handleDesktopDragOver}
-            onDrop={handleDesktopDrop}
           >
-            <div className="mb-2">
-              <button
-                type="button"
-                onClick={onResetToday}
-                className="text-base font-semibold text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
-                aria-label="Go to today"
-              >
-                {isDesktop ? formattedDate : mobileListTitle}
-              </button>
-            </div>
-            <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
-            {hasDisplayActivities ? (
-              <>
-                {displayActivities.map((activity) => (
-                  <motion.div
-                    layout={!isDesktop}
-                    key={activity.id}
-                    data-activity-id={activity.id}
-                    initial={false}
-                    transition={FAST_TRANSITION}
+            {isDesktop ? (
+              <div className="space-y-8">
+                <div className="flex items-center justify-between px-1">
+                  <button
+                    type="button"
+                    onClick={onResetToday}
+                    className="text-base font-semibold text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
+                    aria-label="Go to today"
                   >
-                    {activity.id === '__DRAG_PLACEHOLDER__' ? (
-                      <div style={{ height: `${draggedCardHeight}px` }} />
-                    ) : (
-                      <ActivityCard
-                        activity={activity}
-                        onToggleDone={handleToggleDone}
-                        onEdit={handleEdit}
-                        draggable={isDesktop}
-                        isDragging={draggingId === activity.id}
-                        disableHover={draggingId !== null}
-                        onDragStart={(e) => handleDragStart(e, activity)}
-                        onDragEnd={handleDragEnd}
-                        onTouchStart={(e) => handleTouchStart(e, activity)}
-                        onTouchMove={(e) => handleTouchMove(e, activity.id)}
-                        onTouchEnd={() => handleTouchEnd(activity.id)}
-                      />
-                    )}
-                  </motion.div>
-                ))}
-                {/* Drop zone + desktop add slot */}
-                <div
-                  onDragOver={handleDesktopDragOver}
-                  onDrop={handleDesktopDrop}
-                >
-                  {canShowDesktopAddSlot ? (
-                    <div className="hidden lg:block">
-                      <EmptySlot label="Add to Today" onClick={handleOpenCreateModal} />
-                    </div>
-                  ) : (
-                    <div className="h-8" />
-                  )}
+                    {formattedDate}
+                  </button>
+                  {isToday && <FlagTriangleRight className="h-3.5 w-3.5 text-[var(--color-text-meta)]" />}
                 </div>
-              </>
-            ) : (
-              <div
-                className={`text-left ${canShowDesktopAddSlot ? "group/quiet" : ""}`}
-                onDragOver={handleDesktopDragOver}
-                onDrop={handleDesktopDrop}
-              >
 
-                <div className="py-4 min-h-[44px] relative flex items-center justify-center px-2">
-                  <p className={`text-sm text-[var(--color-text-subtle)] transition-opacity transform -translate-y-1 ${canShowDesktopAddSlot ? "group-hover/quiet:opacity-0" : ""}`}>
-                    A quiet day.
-                  </p>
+                <div className="space-y-8">
+                  {(() => {
+                    const placeholderCount = Math.max(5 - todayActivities.length, 0);
+                    const totalSlots = Math.max(placeholderCount, 1);
+                    let zoneIndex = 0;
 
-                  {canShowDesktopAddSlot && (
-                    <div className="absolute inset-0 flex items-center lg:block opacity-0 pointer-events-none transition-opacity duration-150 group-hover/quiet:opacity-100 group-hover/quiet:pointer-events-auto">
-                      <EmptySlot label="Add to Today" onClick={handleOpenCreateModal} />
+                    return (
+                      <div className="flex min-h-64 flex-col gap-2 px-1 py-3 rounded-xl">
+                        <div className="flex items-baseline justify-between gap-2 px-1">
+                          <div className="flex items-center gap-1.5 text-sm font-semibold text-[var(--color-text-primary)]">
+                            <span>Today</span>
+                            {isToday && <FlagTriangleRight className="h-3.5 w-3.5" />}
+                          </div>
+                          <div className="text-sm text-[var(--color-text-meta)]">{formattedDate}</div>
+                        </div>
+                        <div
+                          onDragOver={(event) => handleDragOverZone(event, todayAppendKey)}
+                          onDragLeave={(event) => handleDragLeaveZone(event, todayAppendKey)}
+                          onDrop={(event) => handleDropOnToday(event, zoneIndex)}
+                        >
+                          <>
+                            {todayActivities.map((activity) => {
+                              const dropIndex = zoneIndex;
+                              const zoneKey = makeTodayZoneKey(zoneIndex);
+                              zoneIndex += 1;
+
+                              return (
+                                <motion.div
+                                  layout
+                                  initial={false}
+                                  transition={FAST_TRANSITION}
+                                  key={activity.id}
+                                >
+                                  <Divider
+                                    isActive={dragOverKey === zoneKey}
+                                    onDragOver={(event) => handleDragOverZone(event, zoneKey)}
+                                    onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
+                                    onDrop={(event) => handleDropOnToday(event, dropIndex)}
+                                  />
+                                  <WeekActivityRow
+                                    activity={activity}
+                                    onToggleDone={handleToggleDone}
+                                    onEdit={handleEdit}
+                                    draggable
+                                    isDragging={draggingId === activity.id}
+                                    disableHover={draggingId !== null}
+                                    showNote
+                                    onDragStart={(event) => handleDragStart(event, activity)}
+                                    onDragEnd={handleDragEnd}
+                                    onDragOver={(event) => handleDragOverZone(event, zoneKey)}
+                                    onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
+                                    onDrop={(event) => handleDropOnToday(event, dropIndex)}
+                                  />
+                                </motion.div>
+                              );
+                            })}
+                            {Array.from({ length: totalSlots }).map((_, idx) => {
+                              const dropIndex = zoneIndex;
+                              const zoneKey = makeTodayZoneKey(zoneIndex);
+                              zoneIndex += 1;
+                              const isPrimaryDrop = idx === 0;
+                              const activeKey = isPrimaryDrop ? todayAppendKey : zoneKey;
+                              return (
+                                <div key={`today-placeholder-${idx}`}>
+                                  {isPrimaryDrop ? (
+                                    <>
+                                      <Divider
+                                        isActive={dragOverKey === activeKey}
+                                        onDragOver={(event) => handleDragOverZone(event, activeKey)}
+                                        onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
+                                        onDrop={(event) => handleDropOnToday(event, dropIndex)}
+                                      />
+                                      <div
+                                        onDragOver={(event) => handleDragOverZone(event, activeKey)}
+                                        onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
+                                        onDrop={(event) => handleDropOnToday(event, dropIndex)}
+                                      >
+                                        {canShowDesktopAddSlot ? (
+                                          <EmptySlot label="Add to Today" onClick={handleOpenCreateModal} />
+                                        ) : (
+                                          <div className="min-h-[38px]" />
+                                        )}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Divider />
+                                      <div className="min-h-[38px]" />
+                                    </>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {hasOverdue && (
+                    <div className="flex min-h-64 flex-col gap-2 px-1 py-3 rounded-xl">
+                      <div className="flex items-baseline justify-between gap-2 px-1">
+                        <div className="flex items-center gap-1.5 text-sm font-semibold text-[var(--color-text-primary)]">
+                          <span>Overdue</span>
+                        </div>
+                        <div className="text-sm text-[var(--color-text-meta)]">
+                          {overdue.length > 0 ? overdue.length : ""}
+                        </div>
+                      </div>
+                      <div>
+                        {overdue.map((activity) => (
+                          <div key={activity.id}>
+                            <Divider />
+                            <WeekActivityRow
+                              activity={activity}
+                              onToggleDone={handleToggleDone}
+                              onEdit={handleEdit}
+                              draggable
+                              isDragging={draggingId === activity.id}
+                              disableHover={draggingId !== null}
+                              showNote
+                              onDragStart={(event) => handleDragStart(event, activity)}
+                              onDragEnd={handleDragEnd}
+                            />
+                          </div>
+                        ))}
+                        <Divider />
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
-            )}
-            {/* Overdue section (moved to below Today's section) */}
-            {hasOverdue && (
-              <div className="mt-8 mb-4">
-                <div className="mb-2 text-base font-semibold text-[var(--color-text-primary)]">
-                  Overdue
+            ) : (
+              <div>
+                <div className="mb-2">
+                  <button
+                    type="button"
+                    onClick={onResetToday}
+                    className="text-base font-semibold text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
+                    aria-label="Go to today"
+                  >
+                    {mobileListTitle}
+                  </button>
                 </div>
                 <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
-                <div>
-                  {overdue.map((activity) => (
-                    <ActivityCard
-                      key={activity.id}
-                      activity={activity}
-                      onToggleDone={handleToggleDone}
-                      onEdit={handleEdit}
-                      draggable={isDesktop}
-                      isDragging={draggingId === activity.id}
-                      disableHover={draggingId !== null}
-                      onDragStart={(e) => handleDragStart(e, activity)}
-                      onDragEnd={handleDragEnd}
-                      onTouchStart={(e) => handleTouchStart(e, activity)}
-                      onTouchMove={(e) => handleTouchMove(e, activity.id)}
-                      onTouchEnd={() => handleTouchEnd(activity.id)}
-                    />
-                  ))}
-                </div>
+                {hasDisplayActivities ? (
+                  <>
+                    {displayActivities.map((activity) => (
+                      <motion.div
+                        layout
+                        key={activity.id}
+                        data-activity-id={activity.id}
+                        initial={false}
+                        transition={FAST_TRANSITION}
+                      >
+                        {activity.id === '__DRAG_PLACEHOLDER__' ? (
+                          <div style={{ height: `${draggedCardHeight}px` }} />
+                        ) : (
+                          <ActivityCard
+                            activity={activity}
+                            onToggleDone={handleToggleDone}
+                            onEdit={handleEdit}
+                            draggable={isDesktop}
+                            isDragging={draggingId === activity.id}
+                            disableHover={draggingId !== null}
+                            onDragStart={(e) => handleDragStart(e, activity)}
+                            onDragEnd={handleDragEnd}
+                            onTouchStart={(e) => handleTouchStart(e, activity)}
+                            onTouchMove={(e) => handleTouchMove(e, activity.id)}
+                            onTouchEnd={() => handleTouchEnd(activity.id)}
+                          />
+                        )}
+                      </motion.div>
+                    ))}
+                    <div className="h-8" />
+                  </>
+                ) : (
+                  <div className="text-left">
+                    <div className="py-4 min-h-[44px] relative flex items-center justify-center px-2">
+                      <p className="text-sm text-[var(--color-text-subtle)] transition-opacity transform -translate-y-1">
+                        A quiet day.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {hasOverdue && (
+                  <div className="mt-8 mb-4">
+                    <div className="mb-2 text-base font-semibold text-[var(--color-text-primary)]">
+                      Overdue
+                    </div>
+                    <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
+                    <div>
+                      {overdue.map((activity) => (
+                        <ActivityCard
+                          key={activity.id}
+                          activity={activity}
+                          onToggleDone={handleToggleDone}
+                          onEdit={handleEdit}
+                          draggable={isDesktop}
+                          isDragging={draggingId === activity.id}
+                          disableHover={draggingId !== null}
+                          onDragStart={(e) => handleDragStart(e, activity)}
+                          onDragEnd={handleDragEnd}
+                          onTouchStart={(e) => handleTouchStart(e, activity)}
+                          onTouchMove={(e) => handleTouchMove(e, activity.id)}
+                          onTouchEnd={() => handleTouchEnd(activity.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </motion.div>

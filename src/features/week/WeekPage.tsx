@@ -1,6 +1,6 @@
 import type React from "react";
 import { useMemo, useRef, useState, useCallback, useEffect } from "react";
-import { CirclePlus, FlagTriangleRight } from "lucide-react";
+import { FlagTriangleRight } from "lucide-react";
 import ActivityCard from "../day/ActivityCard";
 import { useActivitiesStore, getInboxActivities, getLaterActivities } from "../../shared/store/activitiesStore";
 import type { Activity, Bucket } from "../../shared/types/activity";
@@ -18,6 +18,7 @@ import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
 import { AnimatePresence, motion } from "framer-motion";
 import { FAST_TRANSITION, SLIDE_VARIANTS } from "../../shared/theme/animations";
 import { useThrottledCallback } from "../../shared/hooks/useThrottle";
+import { DesktopDivider as Divider, DesktopEmptySlot as EmptySlot } from "./DesktopColumnPrimitives";
 
 interface WeekPageProps {
   activeDate: string;
@@ -269,68 +270,6 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     const maxCount = counts.length > 0 ? Math.max(...counts) : 0;
     return Math.max(5, maxCount);
   }, [weekActivities, topWeekDates]);
-
-  const Divider = ({
-    isActive = false,
-    onDragOver,
-    onDragLeave,
-    onDrop,
-  }: {
-    isActive?: boolean;
-    onDragOver?: (event: React.DragEvent<HTMLDivElement>) => void;
-    onDragLeave?: (event: React.DragEvent<HTMLDivElement>) => void;
-    onDrop?: (event: React.DragEvent<HTMLDivElement>) => void;
-  }) => (
-    <div
-      className="flex h-[2px] items-center w-full"
-      onDragOver={(event) => {
-        if (onDragOver) {
-          event.preventDefault();
-          onDragOver(event);
-        }
-      }}
-      onDragLeave={(event) => {
-        if (onDragLeave) {
-          onDragLeave(event);
-        }
-      }}
-      onDrop={(event) => {
-        if (onDrop) {
-          event.preventDefault();
-          onDrop(event);
-        }
-      }}
-    >
-      <div
-        className={`h-px w-full rounded-full transition-colors ${isActive ? "bg-[var(--color-text-meta)]" : "bg-[var(--color-border-divider)]"
-          }`}
-      />
-    </div>
-  );
-
-  const EmptySlot = ({ onClick, label = "New activity" }: { onClick: () => void; label?: string }) => (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onClick();
-        }
-      }}
-      className="group/empty flex min-h-[38px] items-center rounded-lg px-1.5 py-1 cursor-pointer transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
-    >
-      <div className="flex min-w-0 flex-1">
-        <p className="truncate text-[13px] font-semibold text-[var(--color-text-meta)] opacity-0 group-hover/empty:opacity-100 transition-opacity">
-          {label}
-        </p>
-      </div>
-      <div className="flex-shrink-0 opacity-0 group-hover/empty:opacity-100 transition-opacity lg:-translate-x-2">
-        <CirclePlus className="h-4 w-4 text-[var(--color-text-meta)]" />
-      </div>
-    </div>
-  );
 
   const handleToggleDone = (id: string) => {
     toggleDone(id);
