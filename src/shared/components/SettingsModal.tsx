@@ -233,12 +233,11 @@ export default function SettingsModal({
 
               <div className="border-t border-[var(--color-border)]" />
 
-              {/* Format */}
+              {/* Week Start */}
               <div className="text-sm">
                 <div className="grid grid-cols-2 items-center gap-2">
                   <div>
-                    <div className="text-sm font-semibold mb-0.5">Format</div>
-                    <div className="text-xs text-[var(--color-text-subtle)]">Week starts on</div>
+                    <div className="text-sm font-semibold mb-0.5">Week Start</div>
                   </div>
                   <div className="relative w-full">
                     <select
