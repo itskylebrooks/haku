@@ -62,10 +62,10 @@ const ActivityCard = ({
 
   const hasMetaRow = time !== null;
   const hoverClasses = !disableHover && !isDone
-    ? "hover:bg-[var(--color-card-hover)] hover:shadow-sm"
+    ? "hover:bg-[var(--color-surface-hover)] hover:shadow-sm"
     : "";
   const activeHoverClasses = forceHover && !isDone
-    ? "bg-[var(--color-card-hover)] shadow-sm"
+    ? "bg-[var(--color-surface-hover)] shadow-sm"
     : "";
 
   return (
@@ -140,7 +140,7 @@ const ActivityCard = ({
           event.stopPropagation();
           onToggleDone(id);
         }}
-        className="flex w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-r-md transition hover:bg-[var(--color-card-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[var(--color-border)] md:w-11"
+        className="flex w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-r-md transition hover:bg-[var(--color-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[var(--color-border)] md:w-11"
         aria-label={isDone ? "Mark as not done" : "Mark as done"}
       >
         {isDone ? (
