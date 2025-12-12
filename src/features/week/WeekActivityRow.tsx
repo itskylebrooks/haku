@@ -63,7 +63,8 @@ const WeekActivityRow = ({
   }
 
   const hasMeta = metaParts.length > 0;
-  const centerTitleOnly = !hasMeta && !note;
+  const hasVisibleNote = showNote && Boolean(note);
+  const centerTitleOnly = !hasMeta && !hasVisibleNote;
 
   const handleToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
