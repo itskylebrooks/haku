@@ -532,18 +532,6 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
           >
             {isDesktop ? (
               <div className="space-y-8">
-                <div className="flex items-center justify-between px-1">
-                  <button
-                    type="button"
-                    onClick={onResetToday}
-                    className="text-base font-semibold text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
-                    aria-label="Go to today"
-                  >
-                    {formattedDate}
-                  </button>
-                  {isToday && <FlagTriangleRight className="h-3.5 w-3.5 text-[var(--color-text-meta)]" />}
-                </div>
-
                 <div className="space-y-8">
                   {(() => {
                     const placeholderCount = Math.max(5 - todayActivities.length, 0);
@@ -552,12 +540,16 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
 
                     return (
                       <div className="flex min-h-64 flex-col gap-2 px-1 py-3 rounded-xl">
-                        <div className="flex items-baseline justify-between gap-2 px-1">
-                          <div className="flex items-center gap-1.5 text-sm font-semibold text-[var(--color-text-primary)]">
-                            <span>Today</span>
-                            {isToday && <FlagTriangleRight className="h-3.5 w-3.5" />}
-                          </div>
-                          <div className="text-sm text-[var(--color-text-meta)]">{formattedDate}</div>
+                      <div className="flex items-baseline justify-between gap-2 px-1">
+                          <button
+                            type="button"
+                            onClick={onResetToday}
+                            className="flex items-center gap-2 text-base font-semibold text-left text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
+                            aria-label="Go to today"
+                          >
+                            <span>{formattedDate}</span>
+                            {isToday && <FlagTriangleRight className="h-3.5 w-3.5 text-[var(--color-text-meta)]" />}
+                          </button>
                         </div>
                         <div
                           onDragOver={(event) => handleDragOverZone(event, todayAppendKey)}
