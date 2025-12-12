@@ -1015,7 +1015,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
 
           {/* Desktop grid with Sunday + Inbox/Later row */}
           <div className="hidden lg:block">
-            <h1 className="sticky top-[calc(1.5rem-24px)] z-30 mx-auto w-full bg-[var(--color-surface)] px-3 pb-3 pl-4">
+            <h1 className="mx-auto w-full bg-[var(--color-surface)] px-3 pb-3 pl-4">
               <button
                 type="button"
                 onClick={onResetToday}
