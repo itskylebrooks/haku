@@ -648,7 +648,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                         <div className="flex items-center gap-1.5 text-base font-semibold text-[var(--color-text-primary)]">
                           <span>Overdue</span>
                         </div>
-                        <div className="text-base text-[var(--color-text-meta)]">
+                        <div className="text-base text-[var(--color-text-meta)] mr-3">
                           {overdue.length > 0 ? overdue.length : ""}
                         </div>
                       </div>

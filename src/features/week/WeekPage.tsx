@@ -799,11 +799,11 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
             {showLabel ? label : "Placeholder"}
           </div>
           {showLabel ? (
-            <div className="text-base text-[var(--color-text-meta)]">
+            <div className="text-base text-[var(--color-text-meta)] mr-3">
               {totalCount > 0 ? totalCount : ""}
             </div>
           ) : (
-            <div aria-hidden className="text-base text-transparent">0</div>
+            <div aria-hidden className="text-base text-transparent mr-3">0</div>
           )}
         </div>
         <div>
@@ -1045,7 +1045,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                           {weekday}
                           {isToday && <FlagTriangleRight className="h-3.5 w-3.5" />}
                         </div>
-                        <div className="text-base text-[var(--color-text-meta)]">{monthDay}</div>
+                        <div className="text-base text-[var(--color-text-meta)] mr-3">{monthDay}</div>
                       </div>
                       <div
                         onDragOver={(event) => handleDragOverZone(event, appendKey)}
@@ -1200,7 +1200,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                               <span>{weekday}</span>
                               {isToday && <FlagTriangleRight className="h-3.5 w-3.5" />}
                             </div>
-                            <div className="text-base text-[var(--color-text-meta)]">{monthDay}</div>
+                            <div className="text-base text-[var(--color-text-meta)] mr-3">{monthDay}</div>
                           </div>
                           <div
                             onDragOver={(event) => handleDragOverZone(event, appendKey)}

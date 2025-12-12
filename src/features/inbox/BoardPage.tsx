@@ -636,7 +636,7 @@ const BoardPage = () => {
                     <div className="flex items-center gap-1.5 text-base font-semibold text-[var(--color-text-primary)]">
                       <span>{label}</span>
                     </div>
-                    <div className="text-base text-[var(--color-text-meta)]">
+                    <div className="text-base text-[var(--color-text-meta)] mr-3">
                       {bucketActivities.length > 0 ? bucketActivities.length : ""}
                     </div>
                   </div>
