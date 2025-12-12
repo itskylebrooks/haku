@@ -22,6 +22,7 @@ interface SettingsModalProps {
 }
 
 const borderClass = "border border-[var(--color-border)]";
+const settingsControlWidthClass = "w-[8.5rem] justify-self-end";
 
 export default function SettingsModal({
   open,
@@ -157,11 +158,11 @@ export default function SettingsModal({
             <div className="space-y-4 text-[var(--color-text-primary)]">
               {/* Theme */}
               <div className="text-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
+                <div className="grid grid-cols-2 items-center gap-3">
+                  <div className="min-w-0">
                     <div className="text-sm font-semibold mb-0.5">Theme</div>
                   </div>
-                  <div className="flex items-center gap-2 whitespace-nowrap">
+                  <div className={`flex items-center justify-end gap-2 whitespace-nowrap ${settingsControlWidthClass}`}>
                     <button
                       type="button"
                       onClick={() => onThemeChange("system")}
@@ -208,26 +209,28 @@ export default function SettingsModal({
 
               {/* PWA Install */}
               <div className="text-sm">
-                <div className="grid grid-cols-3 items-center gap-2">
-                  <div className="col-span-2">
+                <div className="grid grid-cols-2 items-center gap-2">
+                  <div>
                     <div className="text-sm font-semibold mb-0.5">Install App</div>
                   </div>
-                  <button
-                    type="button"
-                    disabled={isInstalled}
-                    onClick={handleInstallClick}
-                    className={`w-full flex items-center justify-center gap-1.5 rounded-lg h-10 px-3 text-xs font-medium transition-colors whitespace-nowrap border border-[var(--color-border)] ${isInstalled
-                        ? "bg-[var(--color-surface-hover)] text-[var(--color-text-subtle)] opacity-50 cursor-default"
-                        : "text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]"
-                      }`}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="7 10 12 15 17 10" />
-                      <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    {isInstalled ? "Installed" : "Install"}
-                  </button>
+                  <div className={settingsControlWidthClass}>
+                    <button
+                      type="button"
+                      disabled={isInstalled}
+                      onClick={handleInstallClick}
+                      className={`w-full flex items-center justify-center gap-1.5 rounded-lg h-10 px-3 text-xs font-medium transition-colors whitespace-nowrap border border-[var(--color-border)] ${isInstalled
+                          ? "bg-[var(--color-surface-hover)] text-[var(--color-text-subtle)] opacity-50 cursor-default"
+                          : "text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]"
+                        }`}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                      {isInstalled ? "Installed" : "Install"}
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -239,7 +242,7 @@ export default function SettingsModal({
                   <div>
                     <div className="text-sm font-semibold mb-0.5">Week Start</div>
                   </div>
-                  <div className="relative w-full">
+                  <div className={`relative ${settingsControlWidthClass}`}>
                     <select
                       aria-label="Week starts on"
                       className="appearance-none w-full rounded-lg border border-[var(--color-border)] bg-transparent px-3 h-10 pr-7 text-sm text-[var(--color-text-primary)]"
