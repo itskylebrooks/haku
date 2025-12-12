@@ -927,6 +927,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
       year: "numeric",
     });
   }, [activeDate]);
+  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   return (
     <>
@@ -948,7 +949,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                 const activitiesForDay = weekActivities[date] ?? [];
                 const displayActivities = mobilePreviewOrder[date] ?? activitiesForDay;
                 const mobileLabel = formatMobileDayLabel(date);
-                const isToday = date === activeDate;
+                const isToday = date === todayIso;
 
                 return (
                   <section key={date} className="space-y-2">
@@ -1028,7 +1029,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                 {topWeekDates.map((date) => {
                   const activitiesForDay = weekActivities[date] ?? [];
                   const { weekday, monthDay } = formatDesktopDayLabel(date);
-                  const isToday = date === activeDate;
+                  const isToday = date === todayIso;
                   let zoneIndex = 0;
                   const appendKey = makeDayAppendKey(date);
 
@@ -1187,7 +1188,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                     {(() => {
                       const activitiesForDay = weekActivities[extraDate!] ?? [];
                       const { weekday, monthDay } = formatDesktopDayLabel(extraDate!);
-                      const isToday = extraDate === activeDate;
+                      const isToday = extraDate === todayIso;
                       let zoneIndex = 0;
                       const appendKey = makeDayAppendKey(extraDate!);
                       return (
