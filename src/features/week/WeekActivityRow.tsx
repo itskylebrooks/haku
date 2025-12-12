@@ -112,7 +112,7 @@ const WeekActivityRow = ({
         </div>
 
         <p
-          className={`${showNote ? "mt-1" : "mt-0"} text-[10px] leading-snug h-3.5 ${isDone ? "text-[var(--color-text-faint)]" : "text-[var(--color-text-subtle)]"
+          className={`mt-0 text-[10px] leading-snug h-3.5 ${isDone ? "text-[var(--color-text-faint)]" : "text-[var(--color-text-subtle)]"
             } ${hasMeta ? "" : "hidden"}`}
         >
           {hasMeta ? metaParts.join(" · ") : " "}
