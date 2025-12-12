@@ -226,11 +226,18 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
   useEffect(() => {
     if (!isDesktop || isTouchDrag || !draggingId) return;
     const reset = () => resetDragState();
+    const resetIfDroppedOutside = (event: DragEvent) => {
+      const target = event.target as Node | null;
+      if (target && containerRef.current?.contains(target)) {
+        return;
+      }
+      resetDragState();
+    };
     window.addEventListener("dragend", reset, true);
-    window.addEventListener("drop", reset, true);
+    window.addEventListener("drop", resetIfDroppedOutside, true);
     return () => {
       window.removeEventListener("dragend", reset, true);
-      window.removeEventListener("drop", reset, true);
+      window.removeEventListener("drop", resetIfDroppedOutside, true);
     };
   }, [isDesktop, isTouchDrag, draggingId, resetDragState]);
 

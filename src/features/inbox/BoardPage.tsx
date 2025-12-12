@@ -256,11 +256,22 @@ const BoardPage = () => {
   useEffect(() => {
     if (!isDesktop || isTouchDrag || !draggingId) return;
     const reset = () => resetDragState();
+    const resetIfDroppedOutside = (event: DragEvent) => {
+      const target = event.target as Node | null;
+      if (target) {
+        const inboxContains = inboxContainerRef.current?.contains(target) ?? false;
+        const laterContains = laterContainerRef.current?.contains(target) ?? false;
+        if (inboxContains || laterContains) {
+          return;
+        }
+      }
+      resetDragState();
+    };
     window.addEventListener("dragend", reset, true);
-    window.addEventListener("drop", reset, true);
+    window.addEventListener("drop", resetIfDroppedOutside, true);
     return () => {
       window.removeEventListener("dragend", reset, true);
-      window.removeEventListener("drop", reset, true);
+      window.removeEventListener("drop", resetIfDroppedOutside, true);
     };
   }, [isDesktop, isTouchDrag, draggingId, resetDragState]);
 
