@@ -15,17 +15,17 @@ const tabs: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
   {
     id: "board",
     label: "Board",
-    icon: <Circle className="h-6 w-6" />,
+    icon: <Circle className="block h-6 w-6" aria-hidden />,
   },
   {
     id: "day",
     label: "Day",
-    icon: <Square className="h-6 w-6" />,
+    icon: <Square className="block h-6 w-6" aria-hidden />,
   },
   {
     id: "week",
     label: "Week",
-    icon: <Grid2x2 className="h-6 w-6" />,
+    icon: <Grid2x2 className="block h-6 w-6" aria-hidden />,
   },
 ];
 
@@ -46,7 +46,7 @@ const MobileTabBar = ({ activeTab, onTabChange, onAdd }: MobileTabBarProps) => {
                 onClick={() => onTabChange(tab.id)}
                 aria-label={tab.label}
                 aria-current={isActive ? "page" : undefined}
-                className={`relative inline-flex h-12 w-16 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${isActive
+                className={`relative inline-flex h-12 w-16 items-center justify-center rounded-full leading-none transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${isActive
                   ? "text-[var(--color-emphasis-text)] font-semibold shadow-sm"
                   : "text-[var(--color-text-primary)] active:bg-[var(--color-surface-pressed)]"
                   }`}
@@ -54,12 +54,14 @@ const MobileTabBar = ({ activeTab, onTabChange, onAdd }: MobileTabBarProps) => {
                 {isActive && (
                   <motion.div
                     layoutId="mobile-tab-pill"
-                    className="absolute inset-0 rounded-full bg-[var(--color-emphasis-bg)]"
+                    className="absolute inset-0 rounded-full bg-[var(--color-emphasis-bg)] will-change-transform [backface-visibility:hidden]"
                     transition={SPRING_TRANSITION}
                     style={{ borderRadius: 9999 }}
                   />
                 )}
-                <span className="relative z-10">{tab.icon}</span>
+                <span className="relative z-10 flex h-6 w-6 items-center justify-center will-change-transform transform-gpu [backface-visibility:hidden]">
+                  {tab.icon}
+                </span>
               </button>
             );
           })}
