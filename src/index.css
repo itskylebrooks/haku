@@ -160,7 +160,7 @@ html[data-theme="dark"] {
   --color-surface-hover: rgba(255, 255, 255, 0.05);
   --color-surface-subtle: rgba(255, 255, 255, 0.05);
   --color-surface-pressed: rgba(255, 255, 255, 0.1);
-  --color-surface-strong: #e5e7eb;
+  --color-surface-strong: #d1d5db;
   --color-card-hover: rgba(38, 38, 38, 0.5);
   --color-surface-divider: #374151;
   --color-text-primary: #f3f4f6;
@@ -182,8 +182,8 @@ html[data-theme="dark"] {
   --motion-ease: cubic-bezier(0.2, 0.8, 0.4, 1);
   --color-overlay: rgba(0, 0, 0, 0.45);
   --shadow-elevated: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
-  --color-emphasis-bg: #ffffff;
-  --color-emphasis-bg-hover: #e5e7eb;
+  --color-emphasis-bg: #d1d5db;
+  --color-emphasis-bg-hover: #c4c9d1;
   --color-emphasis-text: #000000;
   --color-accent-glow: #646cffaa;
   --color-react-glow: #61dafbaa;
@@ -203,7 +203,7 @@ html[data-theme="dark"] {
   --color-surface-hover: rgba(255, 255, 255, 0.05);
   --color-surface-subtle: rgba(255, 255, 255, 0.05);
   --color-surface-pressed: rgba(255, 255, 255, 0.1);
-  --color-surface-strong: #e5e7eb;
+  --color-surface-strong: #d1d5db;
   --color-card-hover: rgba(38, 38, 38, 0.5);
   --color-surface-divider: #374151;
 
@@ -231,8 +231,8 @@ html[data-theme="dark"] {
   --color-overlay: rgba(0, 0, 0, 0.45);
   --shadow-elevated: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
 
-  --color-emphasis-bg: #ffffff;
-  --color-emphasis-bg-hover: #e5e7eb;
+  --color-emphasis-bg: #d1d5db;
+  --color-emphasis-bg-hover: #c4c9d1;
   --color-emphasis-text: #000000;
   --color-accent-glow: #646cffaa;
   --color-react-glow: #61dafbaa;
@@ -275,7 +275,7 @@ body {
     --color-surface-hover: rgba(255, 255, 255, 0.05);
     --color-surface-subtle: rgba(255, 255, 255, 0.05);
     --color-surface-pressed: rgba(255, 255, 255, 0.1);
-    --color-surface-strong: #e5e7eb;
+    --color-surface-strong: #d1d5db;
     --color-card-hover: rgba(38, 38, 38, 0.5);
     --color-surface-divider: #374151;
 
@@ -303,8 +303,8 @@ body {
     --color-overlay: rgba(0, 0, 0, 0.45);
     --shadow-elevated: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
 
-    --color-emphasis-bg: #ffffff;
-    --color-emphasis-bg-hover: #e5e7eb;
+    --color-emphasis-bg: #d1d5db;
+    --color-emphasis-bg-hover: #c4c9d1;
     --color-emphasis-text: #000000;
     --color-accent-glow: #646cffaa;
     --color-react-glow: #61dafbaa;

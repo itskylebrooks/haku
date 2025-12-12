@@ -165,7 +165,7 @@ export default function SettingsModal({
                     <button
                       type="button"
                       onClick={() => onThemeChange("system")}
-                      className={`grid h-10 w-10 place-items-center rounded-lg ${borderClass} transition ${themeMode === "system" ? "bg-[var(--color-text-primary)] text-[var(--color-text-inverse)]" : "text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-hover)]"
+                      className={`grid h-10 w-10 place-items-center rounded-lg ${borderClass} transition ${themeMode === "system" ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)]" : "text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-hover)]"
                         }`}
                       title="System"
                     >
@@ -178,7 +178,7 @@ export default function SettingsModal({
                     <button
                       type="button"
                       onClick={() => onThemeChange("light")}
-                      className={`grid h-10 w-10 place-items-center rounded-lg ${borderClass} transition ${themeMode === "light" ? "bg-[var(--color-text-primary)] text-[var(--color-text-inverse)]" : "text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-hover)]"
+                      className={`grid h-10 w-10 place-items-center rounded-lg ${borderClass} transition ${themeMode === "light" ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)]" : "text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-hover)]"
                         }`}
                       title="Light"
                     >
@@ -192,7 +192,7 @@ export default function SettingsModal({
                     <button
                       type="button"
                       onClick={() => onThemeChange("dark")}
-                      className={`grid h-10 w-10 place-items-center rounded-lg ${borderClass} transition ${themeMode === "dark" ? "bg-[var(--color-text-primary)] text-[var(--color-text-inverse)]" : "text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-hover)]"
+                      className={`grid h-10 w-10 place-items-center rounded-lg ${borderClass} transition ${themeMode === "dark" ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)]" : "text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-hover)]"
                         }`}
                       title="Dark"
                     >
@@ -314,7 +314,7 @@ export default function SettingsModal({
             <div className="mt-5">
               <button
                 onClick={beginClose}
-                className="w-full rounded-2xl px-4 py-3 text-sm font-semibold bg-[var(--color-text-primary)] text-[var(--color-text-inverse)] hover:opacity-90 transition"
+                className="w-full rounded-2xl px-4 py-3 text-sm font-semibold bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] hover:bg-[var(--color-emphasis-bg-hover)] transition"
               >
                 Done
               </button>

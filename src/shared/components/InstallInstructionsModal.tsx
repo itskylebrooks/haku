@@ -55,7 +55,7 @@ export default function InstallInstructionsModal({
                         <div className="mt-6">
                             <button
                                 onClick={onClose}
-                                className="w-full rounded-xl px-4 py-3 text-sm font-semibold bg-[var(--color-text-primary)] text-[var(--color-text-inverse)] hover:opacity-90 transition"
+                                className="w-full rounded-xl px-4 py-3 text-sm font-semibold bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] hover:bg-[var(--color-emphasis-bg-hover)] transition"
                             >
                                 Got it
                             </button>

@@ -128,10 +128,10 @@ export default function ConfirmModal({
           </button>
           <button
             type="button"
-            className={`rounded-md px-3 py-2 text-sm font-semibold text-[var(--color-text-inverse)] transition ${
+            className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
               destructive
-                ? "bg-[var(--color-danger-text)] hover:opacity-90"
-                : "bg-[var(--color-text-primary)] hover:opacity-90"
+                ? "bg-[var(--color-danger-text)] text-[var(--color-text-inverse)] hover:opacity-90"
+                : "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] hover:bg-[var(--color-emphasis-bg-hover)]"
             }`}
             onClick={() => {
               if (!closing) {
