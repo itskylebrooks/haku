@@ -705,7 +705,6 @@ const BoardPage = () => {
                                 >
                                   {canShowDesktopAddSlot ? (
                                     <EmptySlot
-                                      label={`Add to ${label}`}
                                       onClick={() => handleOpenCreateModal(bucket)}
                                     />
                                   ) : (

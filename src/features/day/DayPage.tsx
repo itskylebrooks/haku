@@ -621,7 +621,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                                         onDrop={(event) => handleDropOnToday(event, dropIndex)}
                                       >
                                         {canShowDesktopAddSlot ? (
-                                          <EmptySlot label="Add to Today" onClick={handleOpenCreateModal} />
+                                          <EmptySlot onClick={handleOpenCreateModal} />
                                         ) : (
                                           <div className="min-h-[38px]" />
                                         )}

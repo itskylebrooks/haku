@@ -57,7 +57,7 @@ export const DesktopEmptySlot = ({ onClick, label = "New activity" }: { onClick:
         {label}
       </p>
     </div>
-    <div className="flex-shrink-0 opacity-0 group-hover/empty:opacity-100 transition-opacity lg:-translate-x-2">
+    <div className="flex-shrink-0 opacity-0 group-hover/empty:opacity-100 transition-opacity lg:-translate-x-1.5">
       <CirclePlus className="h-4 w-4 text-[var(--color-text-meta)]" />
     </div>
   </div>

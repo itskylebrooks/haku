@@ -901,10 +901,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                           : undefined
                       }
                     >
-                      <EmptySlot
-                        label={`Add to ${label}`}
-                        onClick={() => handleOpenCreateModal({ placement })}
-                      />
+                      <EmptySlot onClick={() => handleOpenCreateModal({ placement })} />
                     </div>
                   </>
                 ) : (
