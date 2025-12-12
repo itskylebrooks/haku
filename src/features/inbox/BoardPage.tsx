@@ -104,7 +104,6 @@ const BoardPage = () => {
   const [draggedCardHeight, setDraggedCardHeight] = useState<number>(72);
   const [previewInbox, setPreviewInbox] = useState<Activity[] | null>(null);
   const [previewLater, setPreviewLater] = useState<Activity[] | null>(null);
-  const dragLeaveTimeoutRef = useRef<number | null>(null);
   const inboxContainerRef = useRef<HTMLDivElement>(null);
   const laterContainerRef = useRef<HTMLDivElement>(null);
   const [scrollContainer, setScrollContainer] = useState<HTMLElement | Window | null>(null);
@@ -131,19 +130,6 @@ const BoardPage = () => {
   });
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  // Disable layout/appear animations for the Later column when the Board page
-  // is opened on desktop to avoid a distracting mass-appear effect. Enable the
-  // layout animations only after the first render so interactions still animate.
-  const [enableLaterLayoutAnimation, setEnableLaterLayoutAnimation] = useState(false);
-  useEffect(() => {
-    // Enable after mount so the cards don't animate into view on initial page open.
-    // Use requestAnimationFrame to avoid a layout-change animation on mount.
-    if (typeof window !== "undefined") {
-      const raf = window.requestAnimationFrame(() => setEnableLaterLayoutAnimation(true));
-      return () => window.cancelAnimationFrame(raf);
-    }
-    setEnableLaterLayoutAnimation(true);
-  }, []);
   const [isTouchDrag, setIsTouchDrag] = useState(false);
   const [touchDragOverBucket, setTouchDragOverBucket] = useState<Extract<Bucket, "inbox" | "later"> | null>(null);
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -161,6 +147,7 @@ const BoardPage = () => {
     (order: Activity[] | null) => setPreviewLater(order),
     32
   );
+  const lastDesktopPreviewKeyRef = useRef<string | null>(null);
 
   // Cleanup effect to ensure styles are always reset on unmount
   useEffect(() => {
@@ -249,15 +236,23 @@ const BoardPage = () => {
     return items.filter((activity) => activity.id !== excludeId).map((activity) => activity.id);
   };
 
-  const resetDragState = () => {
+  const resetDragState = useCallback(() => {
     setDraggingId(null);
     setPreviewInbox(null);
     setPreviewLater(null);
-    if (dragLeaveTimeoutRef.current !== null) {
-      window.clearTimeout(dragLeaveTimeoutRef.current);
-      dragLeaveTimeoutRef.current = null;
-    }
-  };
+    lastDesktopPreviewKeyRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    if (!isDesktop || isTouchDrag || !draggingId) return;
+    const reset = () => resetDragState();
+    window.addEventListener("dragend", reset, true);
+    window.addEventListener("drop", reset, true);
+    return () => {
+      window.removeEventListener("dragend", reset, true);
+      window.removeEventListener("drop", reset, true);
+    };
+  }, [isDesktop, isTouchDrag, draggingId, resetDragState]);
 
   const handleDragStart = (event: React.DragEvent<HTMLDivElement>, activity: Activity) => {
     event.dataTransfer.effectAllowed = "move";
@@ -279,90 +274,74 @@ const BoardPage = () => {
 
   const handleDragOver = (
     event: React.DragEvent<HTMLDivElement>,
-    bucket: Extract<Bucket, "inbox" | "later">,
-    _targetIndex: number
+    bucket: Extract<Bucket, "inbox" | "later">
   ) => {
     event.preventDefault();
     event.stopPropagation();
     event.dataTransfer.dropEffect = "move";
-
-    if (dragLeaveTimeoutRef.current !== null) {
-      window.clearTimeout(dragLeaveTimeoutRef.current);
-      dragLeaveTimeoutRef.current = null;
-    }
 
     if (!draggingId) return;
 
     const draggedActivity = activities.find((a) => a.id === draggingId);
     if (!draggedActivity) return;
 
-    // Create placeholder for the gap
-    const placeholder: Activity = {
-      ...draggedActivity,
-      id: '__DRAG_PLACEHOLDER__',
-    };
+    const containerRef = bucket === "inbox" ? inboxContainerRef : laterContainerRef;
+    if (!containerRef.current) return;
 
-    // Desktop drag: show gap with placeholder
+    const cards = Array.from(containerRef.current.querySelectorAll("[data-activity-id]")).filter(
+      (node) => {
+        const id = (node as HTMLElement).dataset.activityId;
+        return id && id !== "__DRAG_PLACEHOLDER__";
+      }
+    );
+
+    let targetIndex = 0;
+    cards.forEach((card, index) => {
+      const rect = card.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (event.clientY > midY) {
+        targetIndex = index + 1;
+      }
+    });
+
+    const previewKey = `${bucket}:${draggingId}:${draggedActivity.bucket}:${targetIndex}`;
+    if (lastDesktopPreviewKeyRef.current === previewKey) return;
+    lastDesktopPreviewKeyRef.current = previewKey;
+
     if (bucket === "inbox") {
-      const targetList = draggedActivity.bucket === "inbox"
-        ? inboxActivities
-        : [...inboxActivities];
-      const withoutDragged = targetList.filter((a) => a.id !== draggingId);
-      const clampedIndex = Math.min(Math.max(_targetIndex, 0), withoutDragged.length);
-      const newOrder = [
-        ...withoutDragged.slice(0, clampedIndex),
-        placeholder,
-        ...withoutDragged.slice(clampedIndex),
-      ];
-      setPreviewInbox(newOrder);
-      // If coming from later, remove from later preview
+      const newOrder = computePlaceholderPreview(inboxActivities, draggedActivity, targetIndex);
+      throttledSetPreviewInbox(newOrder);
       if (draggedActivity.bucket === "later") {
-        setPreviewLater(laterActivities.filter((a) => a.id !== draggingId));
+        throttledSetPreviewLater(laterActivities.filter((a) => a.id !== draggingId));
       } else {
-        setPreviewLater(null);
+        throttledSetPreviewLater(null);
       }
+      return;
+    }
+
+    const newOrder = computePlaceholderPreview(laterActivities, draggedActivity, targetIndex);
+    throttledSetPreviewLater(newOrder);
+    if (draggedActivity.bucket === "inbox") {
+      throttledSetPreviewInbox(inboxActivities.filter((a) => a.id !== draggingId));
     } else {
-      // bucket === "later"
-      const targetList = draggedActivity.bucket === "later"
-        ? laterActivities
-        : [...laterActivities];
-      const withoutDragged = targetList.filter((a) => a.id !== draggingId);
-      const clampedIndex = Math.min(Math.max(_targetIndex, 0), withoutDragged.length);
-      const newOrder = [
-        ...withoutDragged.slice(0, clampedIndex),
-        placeholder,
-        ...withoutDragged.slice(clampedIndex),
-      ];
-      setPreviewLater(newOrder);
-      // If coming from inbox, remove from inbox preview
-      if (draggedActivity.bucket === "inbox") {
-        setPreviewInbox(inboxActivities.filter((a) => a.id !== draggingId));
-      } else {
-        setPreviewInbox(null);
-      }
+      throttledSetPreviewInbox(null);
     }
   };
 
   const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+    if (isDesktop) return;
     const nextTarget = event.relatedTarget as Node | null;
     if (nextTarget && event.currentTarget.contains(nextTarget)) {
       return;
     }
 
-    if (dragLeaveTimeoutRef.current !== null) {
-      window.clearTimeout(dragLeaveTimeoutRef.current);
-    }
-    dragLeaveTimeoutRef.current = window.setTimeout(() => {
-      setPreviewInbox(null);
-      setPreviewLater(null);
-      dragLeaveTimeoutRef.current = null;
-    }, 50);
+    setPreviewInbox(null);
+    setPreviewLater(null);
   };
 
   const handleDrop = (
     event: React.DragEvent<HTMLDivElement>,
-    bucket: Extract<Bucket, "inbox" | "later">,
-    targetIndex: number
+    bucket: Extract<Bucket, "inbox" | "later">
   ) => {
     event.preventDefault();
     event.stopPropagation();
@@ -390,7 +369,25 @@ const BoardPage = () => {
 
     // Compute final order (exclude the dropped item first, then insert)
     const orderedIds = getBucketOrderedIds(bucket, droppedId);
-    const clampedIndex = Math.min(Math.max(targetIndex, 0), orderedIds.length);
+    const containerRef = bucket === "inbox" ? inboxContainerRef : laterContainerRef;
+    const cards =
+      containerRef.current
+        ? Array.from(containerRef.current.querySelectorAll("[data-activity-id]")).filter((node) => {
+          const id = (node as HTMLElement).dataset.activityId;
+          return id && id !== "__DRAG_PLACEHOLDER__";
+        })
+        : [];
+
+    let computedIndex = 0;
+    cards.forEach((card, index) => {
+      const rect = card.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (event.clientY > midY) {
+        computedIndex = index + 1;
+      }
+    });
+
+    const clampedIndex = Math.min(Math.max(computedIndex, 0), orderedIds.length);
     orderedIds.splice(clampedIndex, 0, droppedId);
     reorderInBucket(bucket, orderedIds);
 
@@ -638,7 +635,7 @@ const BoardPage = () => {
     }
     stopAutoScroll();
     resetDragState();
-  }, [clearLongPressTimer, activities, moveToInbox, moveToLater, reorderInBucket, stopAutoScroll, scrollContainer, previewInbox, previewLater]);
+  }, [clearLongPressTimer, activities, moveToInbox, moveToLater, reorderInBucket, stopAutoScroll, scrollContainer, previewInbox, previewLater, resetDragState]);
 
   const EmptySlot = ({ onClick, label = "New activity" }: { onClick: () => void; label?: string }) => (
     <div
@@ -682,8 +679,8 @@ const BoardPage = () => {
           <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
           <div
             className="min-h-20 relative mb-6 group/section"
-            onDragOver={(e) => handleDragOver(e, "inbox", displayInbox.length)}
-            onDrop={(e) => handleDrop(e, "inbox", displayInbox.length)}
+            onDragOver={(e) => handleDragOver(e, "inbox")}
+            onDrop={(e) => handleDrop(e, "inbox")}
           >
             {displayInbox.length === 0 && touchDragOverBucket !== "inbox" && (
               <div
@@ -698,13 +695,11 @@ const BoardPage = () => {
               </div>
             )}
             <AnimatePresence>
-              {displayInbox.map((activity, index) => (
+              {displayInbox.map((activity) => (
                 <motion.div
-                  layout
+                  layout={!isDesktop}
                   key={activity.id}
                   data-activity-id={activity.id}
-                  onDragOver={(e) => handleDragOver(e, "inbox", index)}
-                  onDrop={(e) => handleDrop(e, "inbox", index)}
                   initial={false}
                   transition={FAST_TRANSITION}
                 >
@@ -756,8 +751,8 @@ const BoardPage = () => {
           <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
           <div
             className="min-h-20 relative mb-4 group/section"
-            onDragOver={(e) => handleDragOver(e, "later", displayLater.length)}
-            onDrop={(e) => handleDrop(e, "later", displayLater.length)}
+            onDragOver={(e) => handleDragOver(e, "later")}
+            onDrop={(e) => handleDrop(e, "later")}
           >
             {displayLater.length === 0 && touchDragOverBucket !== "later" && (
               <div
@@ -772,16 +767,14 @@ const BoardPage = () => {
               </div>
             )}
             <AnimatePresence>
-              {displayLater.map((activity, index) => (
+              {displayLater.map((activity) => (
                 <motion.div
                   // Only enable layout animation for the later column after the
                   // initial mount when on desktop. Mobile and subsequent updates
                   // still animate as usual.
-                  layout={isDesktop ? enableLaterLayoutAnimation : true}
+                  layout={!isDesktop}
                   key={activity.id}
                   data-activity-id={activity.id}
-                  onDragOver={(e) => handleDragOver(e, "later", index)}
-                  onDrop={(e) => handleDrop(e, "later", index)}
                   initial={false}
                   transition={FAST_TRANSITION}
                 >

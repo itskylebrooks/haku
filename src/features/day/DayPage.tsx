@@ -111,7 +111,6 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [draggedCardHeight, setDraggedCardHeight] = useState<number>(72);
   const [previewOrder, setPreviewOrder] = useState<Activity[] | null>(null);
-  const dragLeaveTimeoutRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollContainer, setScrollContainer] = useState<HTMLElement | Window | null>(null);
   const preventDefaultTouchMoveRef = useRef<((e: TouchEvent) => void) | null>(null);
@@ -133,6 +132,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     (order: Activity[] | null) => setPreviewOrder(order),
     32
   );
+  const lastDesktopPreviewKeyRef = useRef<string | null>(null);
 
   // Cleanup effect to ensure styles are always reset on unmount or when drag ends unexpectedly
   useEffect(() => {
@@ -250,14 +250,22 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     handleCloseEditModal();
   };
 
-  const resetDragState = () => {
+  const resetDragState = useCallback(() => {
     setDraggingId(null);
     setPreviewOrder(null);
-    if (dragLeaveTimeoutRef.current !== null) {
-      window.clearTimeout(dragLeaveTimeoutRef.current);
-      dragLeaveTimeoutRef.current = null;
-    }
-  };
+    lastDesktopPreviewKeyRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    if (!isDesktop || isTouchDrag || !draggingId) return;
+    const reset = () => resetDragState();
+    window.addEventListener("dragend", reset, true);
+    window.addEventListener("drop", reset, true);
+    return () => {
+      window.removeEventListener("dragend", reset, true);
+      window.removeEventListener("drop", reset, true);
+    };
+  }, [isDesktop, isTouchDrag, draggingId, resetDragState]);
 
   const handleDragStart = (event: React.DragEvent<HTMLDivElement>, activity: Activity) => {
     event.dataTransfer.effectAllowed = "move";
@@ -281,11 +289,6 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     event.stopPropagation();
     event.dataTransfer.dropEffect = "move";
 
-    if (dragLeaveTimeoutRef.current !== null) {
-      window.clearTimeout(dragLeaveTimeoutRef.current);
-      dragLeaveTimeoutRef.current = null;
-    }
-
     if (!draggingId) return;
 
     const draggedActivity = activities.find((a) => a.id === draggingId);
@@ -294,7 +297,11 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     // Desktop drag from same day: show gap placeholder as before
     if (draggedActivity.bucket === "scheduled" && draggedActivity.date === activeDate) {
       const newOrder = computeDesktopPreviewOrder(todayActivities, draggingId, targetIndex);
-      setPreviewOrder(newOrder);
+      const key = `${draggingId}:${targetIndex}:${activeDate}:same-day`;
+      if (lastDesktopPreviewKeyRef.current !== key) {
+        lastDesktopPreviewKeyRef.current = key;
+        throttledSetPreviewOrder(newOrder);
+      }
       return;
     }
 
@@ -325,24 +332,54 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
         }
         return item;
       });
-      setPreviewOrder(ordered);
+      const key = `${draggingId}:${targetIndex}:${activeDate}:overdue`;
+      if (lastDesktopPreviewKeyRef.current !== key) {
+        lastDesktopPreviewKeyRef.current = key;
+        throttledSetPreviewOrder(ordered);
+      }
       return;
     }
   };
 
   const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+    if (isDesktop) return;
     const nextTarget = event.relatedTarget as Node | null;
     if (nextTarget && event.currentTarget.contains(nextTarget)) {
       return;
     }
 
-    if (dragLeaveTimeoutRef.current !== null) {
-      window.clearTimeout(dragLeaveTimeoutRef.current);
-    }
-    dragLeaveTimeoutRef.current = window.setTimeout(() => {
-      setPreviewOrder(null);
-      dragLeaveTimeoutRef.current = null;
-    }, 50);
+    setPreviewOrder(null);
+  };
+
+  const getDesktopTargetIndexFromY = (clientY: number): number => {
+    if (!containerRef.current) return 0;
+    const cards = Array.from(containerRef.current.querySelectorAll("[data-activity-id]")).filter((node) => {
+      const id = (node as HTMLElement).dataset.activityId;
+      return id && id !== "__DRAG_PLACEHOLDER__";
+    });
+
+    let targetIndex = 0;
+    cards.forEach((card, index) => {
+      const rect = card.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (clientY > midY) {
+        targetIndex = index + 1;
+      }
+    });
+
+    return targetIndex;
+  };
+
+  const handleDesktopDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    if (!isDesktop) return;
+    const targetIndex = getDesktopTargetIndexFromY(event.clientY);
+    handleDragOver(event, targetIndex);
+  };
+
+  const handleDesktopDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    if (!isDesktop) return;
+    const targetIndex = getDesktopTargetIndexFromY(event.clientY);
+    handleDrop(event, targetIndex);
   };
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>, targetIndex: number) => {
@@ -539,7 +576,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     }
     stopAutoScroll();
     resetDragState();
-  }, [clearLongPressTimer, previewOrder, reorderInDay, activeDate, stopAutoScroll, scrollContainer, activities, scheduleActivity, draggingId]);
+  }, [clearLongPressTimer, previewOrder, reorderInDay, activeDate, stopAutoScroll, scrollContainer, activities, scheduleActivity, draggingId, resetDragState]);
 
   const formattedDate = useMemo(() => {
     if (!activeDate) return "";
@@ -593,6 +630,8 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
             className={`mt-0 md:mt-5 lg:mt-0`}
             ref={containerRef}
             onDragLeave={handleDragLeave}
+            onDragOver={handleDesktopDragOver}
+            onDrop={handleDesktopDrop}
           >
             <div className="mb-2">
               <button
@@ -607,13 +646,11 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
             <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
             {hasDisplayActivities ? (
               <>
-                {displayActivities.map((activity, index) => (
+                {displayActivities.map((activity) => (
                   <motion.div
                     layout={!isDesktop}
                     key={activity.id}
                     data-activity-id={activity.id}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDrop={(e) => handleDrop(e, index)}
                     initial={false}
                     transition={FAST_TRANSITION}
                   >
@@ -638,8 +675,8 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                 ))}
                 {/* Drop zone + desktop add slot */}
                 <div
-                  onDragOver={(e) => handleDragOver(e, displayActivities.length)}
-                  onDrop={(e) => handleDrop(e, displayActivities.length)}
+                  onDragOver={handleDesktopDragOver}
+                  onDrop={handleDesktopDrop}
                 >
                   {canShowDesktopAddSlot ? (
                     <div className="hidden lg:block">
@@ -653,8 +690,8 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
             ) : (
               <div
                 className={`text-left ${canShowDesktopAddSlot ? "group/quiet" : ""}`}
-                onDragOver={(e) => handleDragOver(e, 0)}
-                onDrop={(e) => handleDrop(e, 0)}
+                onDragOver={handleDesktopDragOver}
+                onDrop={handleDesktopDrop}
               >
 
                 <div className="py-4 min-h-[44px] relative flex items-center justify-center px-2">
