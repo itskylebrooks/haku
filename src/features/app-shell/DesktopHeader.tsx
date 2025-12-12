@@ -118,10 +118,7 @@ const DesktopHeader = ({
                   onOpenAdd(placement);
                 }}
                 aria-label={`Add activity (${activeTab === "board" ? "Inbox" : "Date"})`}
-                className={`inline-flex h-8 items-center justify-center rounded-full px-3 text-[var(--color-text-contrast)] font-semibold shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99] ${activeTab === "board"
-                  ? "bg-[var(--color-emphasis-bg)]"
-                  : "bg-[var(--color-surface-strong)]"
-                  }`}
+                className="inline-flex h-8 items-center justify-center rounded-full bg-[var(--color-surface-strong)] px-3 text-[var(--color-text-contrast)] font-semibold shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99]"
               >
                 <Plus className="h-5 w-5" />
               </button>
