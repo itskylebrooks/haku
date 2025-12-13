@@ -17,6 +17,7 @@ import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
 import { AnimatePresence, motion } from "framer-motion";
 import { FAST_TRANSITION, SLIDE_VARIANTS } from "../../shared/theme/animations";
 import { useThrottledCallback } from "../../shared/hooks/useThrottle";
+import { useTouchDragAndDrop } from "../../shared/hooks/useTouchDragAndDrop";
 import { DesktopDivider as Divider, DesktopEmptySlot as EmptySlot } from "./DesktopColumnPrimitives";
 import { useDesktopLayout } from "../../shared/hooks/useDesktopLayout";
 import {
@@ -73,22 +74,17 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
   const bucketContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const bucketColumnMetaRef = useRef<Record<string, { bucket: Extract<Bucket, "inbox" | "later">; startIndex: number }>>({});
   const [scrollContainer, setScrollContainer] = useState<HTMLElement | Window | null>(null);
-  const longPressTimerRef = useRef<number | null>(null);
-  const touchStartYRef = useRef(0);
-  const touchStartXRef = useRef(0);
-  const isTouchDraggingRef = useRef(false);
   type TouchTarget = { type: "day"; date: string } | { type: "bucket"; bucket: Extract<Bucket, "inbox" | "later">; columnKey: string };
   const touchDragOriginRef = useRef<TouchTarget | null>(null);
   const touchDragTargetRef = useRef<TouchTarget | null>(null);
   const touchDragDateRef = useRef<string | null>(null);
-  const preventDefaultTouchMoveRef = useRef<((e: TouchEvent) => void) | null>(null);
+  const mobilePreviewOrderRef = useRef<Record<string, Activity[]>>({});
+  const bucketPreviewOrderRef = useRef<Partial<Record<Extract<Bucket, "inbox" | "later">, Activity[]>>>({});
 
   const { isDesktop, isDesktopNarrow, isWideDesktop, shouldUseTouch } = useDesktopLayout();
   const prefersTouchDrag = !isDesktop || shouldUseTouch;
   const enablePointerDrag = isDesktop && !shouldUseTouch;
   const [isTouchDrag, setIsTouchDrag] = useState(false);
-  const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const initialDragPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const overlayRef = useRef<TouchDragOverlayHandle>(null);
   // Cached date container rects to avoid layout thrashing during drag
   const cachedDateRectsRef = useRef<Record<string, DOMRect>>({});
@@ -117,35 +113,6 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     },
     32
   );
-
-  // Cleanup effect to ensure styles are always reset on unmount
-  useEffect(() => {
-    return () => {
-      if (preventDefaultTouchMoveRef.current) {
-        document.removeEventListener("touchmove", preventDefaultTouchMoveRef.current);
-        preventDefaultTouchMoveRef.current = null;
-      }
-      document.body.style.overflow = "";
-      document.body.style.touchAction = "";
-      document.body.style.overscrollBehavior = "";
-    };
-  }, []);
-
-  useEffect(() => {
-    if (isTouchDrag && !preventDefaultTouchMoveRef.current) {
-      const preventDefault = (e: TouchEvent) => {
-        e.preventDefault();
-      };
-      preventDefaultTouchMoveRef.current = preventDefault;
-      document.addEventListener("touchmove", preventDefault, { passive: false });
-      return () => {
-        if (preventDefaultTouchMoveRef.current) {
-          document.removeEventListener("touchmove", preventDefaultTouchMoveRef.current);
-          preventDefaultTouchMoveRef.current = null;
-        }
-      };
-    }
-  }, [isTouchDrag]);
 
   // Find the nearest main scroll container within AppShell (default) once mounted
   useEffect(() => {
@@ -524,14 +491,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     setMobilePreviewOrder({});
   };
 
-  // Touch drag handlers for mobile week view
-  const clearLongPressTimer = useCallback(() => {
-    if (longPressTimerRef.current !== null) {
-      window.clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-  }, []);
-
+  // Touch drag handlers for mobile/tablet week view
   const getMobileTargetIndexFromY = useCallback((clientY: number, date: string): number => {
     const container = mobileContainerRefs.current[date];
     if (!container) return 0;
@@ -607,37 +567,25 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     return null;
   }, [weekDates]);
 
-  const handleMobileTouchStart = useCallback((
-    event: React.TouchEvent<HTMLDivElement>,
-    activity: Activity,
-    origin: TouchTarget
-  ) => {
-    const touch = event.touches[0];
-    const rect = event.currentTarget.getBoundingClientRect();
-    const offsetX = touch.clientX - rect.left;
-    const offsetY = touch.clientY - rect.top;
-    setDraggedCardHeight(rect.height);
-
-    touchStartYRef.current = touch.clientY;
-    touchStartXRef.current = touch.clientX;
-    isTouchDraggingRef.current = false;
-    touchDragOriginRef.current = origin;
-    touchDragTargetRef.current = touchDragOriginRef.current;
-    touchDragDateRef.current = origin.type === "day" ? origin.date : null;
-
-    clearLongPressTimer();
-
-    longPressTimerRef.current = window.setTimeout(() => {
-      isTouchDraggingRef.current = true;
-      setDraggingId(activity.id);
+  const touchDnd = useTouchDragAndDrop<TouchTarget>({
+    enabled: prefersTouchDrag,
+    overlayRef,
+    scrollLock: {
+      getScrollContainer: () => scrollContainer,
+    },
+    onDragStart: ({ id, meta, rect }) => {
+      setDraggedCardHeight(rect.height);
+      setDraggingId(id);
       setIsTouchDrag(true);
-      // Store offset in ref for imperative updates (no re-render)
-      dragOffsetRef.current = { x: offsetX, y: offsetY };
-      initialDragPosRef.current = { x: touch.clientX - offsetX, y: touch.clientY - offsetY };
+      touchDragOriginRef.current = meta;
+      touchDragTargetRef.current = meta;
+      touchDragDateRef.current = meta.type === "day" ? meta.date : null;
+      mobilePreviewOrderRef.current = {};
+      bucketPreviewOrderRef.current = {};
       setMobilePreviewOrder({});
       setBucketPreviewOrder({});
-      setMobileDragOverDate(origin.type === "day" ? origin.date : null);
-      // Cache date container rects at drag start to avoid layout thrashing
+      setMobileDragOverDate(meta.type === "day" ? meta.date : null);
+
       cachedDateRectsRef.current = {};
       for (const d of weekDates) {
         const container = mobileContainerRefs.current[d];
@@ -645,180 +593,126 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
           cachedDateRectsRef.current[d] = container.getBoundingClientRect();
         }
       }
-      // Cache bucket column rects as well
       cachedBucketRectsRef.current = {};
       Object.entries(bucketContainerRefs.current).forEach(([key, container]) => {
         if (container) {
           cachedBucketRectsRef.current[key] = container.getBoundingClientRect();
         }
       });
-      // Disable scrolling and prevent pull-to-refresh on Android
-      const preventDefault = (e: TouchEvent) => e.preventDefault();
-      preventDefaultTouchMoveRef.current = preventDefault;
-      document.addEventListener("touchmove", preventDefault, { passive: false });
-      document.body.style.overscrollBehavior = "none";
-      if (scrollContainer && scrollContainer instanceof HTMLElement) {
-        scrollContainer.style.overflow = "hidden";
-        scrollContainer.style.touchAction = "none";
-        scrollContainer.style.overscrollBehavior = "none";
+    },
+    onDragMove: ({ id, clientX, clientY }) => {
+      const detectedTarget =
+        getTouchTargetAtPosition(clientX, clientY) ?? touchDragTargetRef.current;
+
+      if (detectedTarget) {
+        touchDragTargetRef.current = detectedTarget;
+      }
+
+      const activity = findActivityById(id);
+      if (!activity) return;
+
+      if (detectedTarget?.type === "day") {
+        const targetDate = detectedTarget.date;
+        touchDragDateRef.current = targetDate;
+        const now = Date.now();
+        if (now - lastDateUpdateRef.current > 50) {
+          lastDateUpdateRef.current = now;
+          setMobileDragOverDate(targetDate);
+        }
+
+        const targetIndex = getMobileTargetIndexFromY(clientY, targetDate);
+        const activitiesForDay = weekActivities[targetDate] ?? [];
+        const preview =
+          activity.bucket === "scheduled" && activity.date === targetDate
+            ? computeAnchoredPreviewOrder(activitiesForDay, id, targetIndex)
+            : computePlaceholderPreview(activitiesForDay, activity, targetIndex);
+
+        mobilePreviewOrderRef.current = { [targetDate]: preview };
+        bucketPreviewOrderRef.current = {};
+        throttledSetMobilePreview(targetDate, preview);
+        throttledSetBucketPreview(null, null);
+      } else if (detectedTarget?.type === "bucket") {
+        setMobileDragOverDate(null);
+        const targetMeta = getBucketTargetIndexFromY(clientY, detectedTarget.columnKey);
+        if (!targetMeta) return;
+        touchDragDateRef.current = null;
+
+        const targetList = targetMeta.bucket === "inbox" ? inboxActivities : laterActivities;
+        const preview =
+          activity.bucket === targetMeta.bucket
+            ? computeAnchoredPreviewOrder(targetList, id, targetMeta.index)
+            : computePlaceholderPreview(targetList, activity, targetMeta.index);
+
+        bucketPreviewOrderRef.current = { [targetMeta.bucket]: preview };
+        mobilePreviewOrderRef.current = {};
+        throttledSetBucketPreview(targetMeta.bucket, preview);
+        throttledSetMobilePreview(null, null);
       } else {
-        document.body.style.overflow = "hidden";
-        document.body.style.touchAction = "none";
+        setMobileDragOverDate(null);
+        mobilePreviewOrderRef.current = {};
+        bucketPreviewOrderRef.current = {};
+        throttledSetMobilePreview(null, null);
+        throttledSetBucketPreview(null, null);
       }
-    }, 150);
-  }, [clearLongPressTimer, scrollContainer, weekDates]);
 
-  const handleMobileTouchMove = useCallback((
-    event: React.TouchEvent<HTMLDivElement>,
-    activityId: string
-  ) => {
-    const touch = event.touches[0];
+      startAutoScroll(clientY);
+    },
+    onDragEnd: ({ id, cancelled }) => {
+      if (!cancelled) {
+        const activity = findActivityById(id);
+        const target = touchDragTargetRef.current;
+        if (activity && target?.type === "day") {
+          const targetDate = target.date;
+          const preview = mobilePreviewOrderRef.current[targetDate];
+          if (preview) {
+            if (!(activity.bucket === "scheduled" && activity.date === targetDate)) {
+              scheduleActivity(id, targetDate);
+            }
 
-    if (!isTouchDraggingRef.current) {
-      const deltaX = Math.abs(touch.clientX - touchStartXRef.current);
-      const deltaY = Math.abs(touch.clientY - touchStartYRef.current);
+            const orderedIds = preview.map((a) =>
+              a.id === DRAG_PLACEHOLDER_ID ? id : a.id
+            );
+            reorderInDay(targetDate, orderedIds);
 
-      if (deltaX > 10 || deltaY > 10) {
-        clearLongPressTimer();
+            const origin = touchDragOriginRef.current;
+            const movedFromOtherDay = origin?.type === "day" && origin.date !== targetDate;
+            if (movedFromOtherDay && activity.bucket === "scheduled") {
+              const remainingSource = getFlexibleIdsForDate(origin.date, activity.id);
+              reorderInDay(origin.date, remainingSource);
+            }
+          }
+        } else if (activity && target?.type === "bucket") {
+          const preview = bucketPreviewOrderRef.current[target.bucket];
+          if (preview) {
+            if (target.bucket === "inbox") {
+              moveToInbox(activity.id);
+            } else {
+              moveToLater(activity.id);
+            }
+
+            const finalOrderedIds = preview.map((a) =>
+              a.id === DRAG_PLACEHOLDER_ID ? id : a.id
+            );
+            reorderInBucket(target.bucket, finalOrderedIds);
+
+            const origin = touchDragOriginRef.current;
+            if (origin?.type === "day" && activity.bucket === "scheduled") {
+              const remainingSource = getFlexibleIdsForDate(origin.date, activity.id);
+              reorderInDay(origin.date, remainingSource);
+            }
+          }
+        }
       }
-      return;
-    }
 
-    event.preventDefault();
-
-    // Update overlay position imperatively (no React re-render) for smooth 60fps
-    overlayRef.current?.updatePosition(
-      touch.clientX - dragOffsetRef.current.x,
-      touch.clientY - dragOffsetRef.current.y
-    );
-
-    const detectedTarget = getTouchTargetAtPosition(touch.clientX, touch.clientY)
-      ?? touchDragTargetRef.current;
-
-    if (detectedTarget) {
-      touchDragTargetRef.current = detectedTarget;
-    }
-
-    const activity = findActivityById(activityId);
-    if (!activity) return;
-
-    if (detectedTarget?.type === "day") {
-      const activeDate = detectedTarget.date;
-      touchDragDateRef.current = activeDate;
-      const now = Date.now();
-      if (now - lastDateUpdateRef.current > 50) {
-        lastDateUpdateRef.current = now;
-        setMobileDragOverDate(activeDate);
-      }
-      const targetIndex = getMobileTargetIndexFromY(touch.clientY, activeDate);
-      const activitiesForDay = weekActivities[activeDate] ?? [];
-      const preview =
-        activity.bucket === "scheduled" && activity.date === activeDate
-          ? computeAnchoredPreviewOrder(activitiesForDay, activityId, targetIndex)
-          : computePlaceholderPreview(activitiesForDay, activity, targetIndex);
-      throttledSetMobilePreview(activeDate, preview);
-      throttledSetBucketPreview(null, null);
-    } else if (detectedTarget?.type === "bucket") {
-      setMobileDragOverDate(null);
-      const targetMeta = getBucketTargetIndexFromY(touch.clientY, detectedTarget.columnKey);
-      if (!targetMeta) return;
       touchDragDateRef.current = null;
-      const now = Date.now();
-      if (now - lastDateUpdateRef.current > 50) {
-        lastDateUpdateRef.current = now;
-      }
-      const targetList = targetMeta.bucket === "inbox" ? inboxActivities : laterActivities;
-      const preview =
-        activity.bucket === targetMeta.bucket
-          ? computeAnchoredPreviewOrder(targetList, activityId, targetMeta.index)
-          : computePlaceholderPreview(targetList, activity, targetMeta.index);
-      throttledSetBucketPreview(targetMeta.bucket, preview);
-      throttledSetMobilePreview(null, null);
-    } else {
+      mobilePreviewOrderRef.current = {};
+      bucketPreviewOrderRef.current = {};
+      setIsTouchDrag(false);
       setMobileDragOverDate(null);
-      throttledSetMobilePreview(null, null);
-      throttledSetBucketPreview(null, null);
-    }
-
-    // Auto-scroll when near edges
-    startAutoScroll(touch.clientY);
-  }, [clearLongPressTimer, getTouchTargetAtPosition, startAutoScroll, getMobileTargetIndexFromY, getBucketTargetIndexFromY, findActivityById, weekActivities, throttledSetMobilePreview, throttledSetBucketPreview, inboxActivities, laterActivities]);
-
-  const handleMobileTouchEnd = useCallback((
-    activityId: string
-  ) => {
-    clearLongPressTimer();
-
-    if (isTouchDraggingRef.current) {
-      const activity = findActivityById(activityId);
-      const target = touchDragTargetRef.current;
-
-      if (activity && target?.type === "day") {
-        const targetDate = target.date;
-        const preview = mobilePreviewOrder[targetDate];
-
-        if (preview) {
-          if (!(activity.bucket === "scheduled" && activity.date === targetDate)) {
-            scheduleActivity(activityId, targetDate);
-          }
-
-          const orderedIds = preview.map((a) =>
-            a.id === DRAG_PLACEHOLDER_ID ? activityId : a.id
-          );
-          reorderInDay(targetDate, orderedIds);
-
-          const origin = touchDragOriginRef.current;
-          const movedFromOtherDay = origin?.type === "day" && origin.date !== targetDate;
-          if (movedFromOtherDay && activity.bucket === "scheduled") {
-            const remainingSource = getFlexibleIdsForDate(origin.date, activity.id);
-            reorderInDay(origin.date, remainingSource);
-          }
-        }
-      } else if (activity && target?.type === "bucket") {
-        const preview = bucketPreviewOrder[target.bucket];
-        if (preview) {
-          if (target.bucket === "inbox") {
-            moveToInbox(activity.id);
-          } else {
-            moveToLater(activity.id);
-          }
-
-          const finalOrderedIds = preview.map((a) =>
-            a.id === DRAG_PLACEHOLDER_ID ? activityId : a.id
-          );
-          reorderInBucket(target.bucket, finalOrderedIds);
-
-          const origin = touchDragOriginRef.current;
-          if (origin?.type === "day" && activity.bucket === "scheduled") {
-            const remainingSource = getFlexibleIdsForDate(origin.date, activity.id);
-            reorderInDay(origin.date, remainingSource);
-          }
-        }
-      }
-    }
-
-    isTouchDraggingRef.current = false;
-    touchDragDateRef.current = null;
-    setIsTouchDrag(false);
-    setMobileDragOverDate(null);
-    // Reset all scroll-related styles including overscrollBehavior
-    document.body.style.overscrollBehavior = "";
-    if (scrollContainer && scrollContainer instanceof HTMLElement) {
-      scrollContainer.style.overflow = "";
-      scrollContainer.style.touchAction = "";
-      scrollContainer.style.overscrollBehavior = "";
-    } else {
-      document.body.style.overflow = "";
-      document.body.style.touchAction = "";
-    }
-    if (preventDefaultTouchMoveRef.current) {
-      document.removeEventListener("touchmove", preventDefaultTouchMoveRef.current);
-      preventDefaultTouchMoveRef.current = null;
-    }
-    stopAutoScroll();
-    resetDragState();
-    setMobilePreviewOrder({});
-  }, [clearLongPressTimer, findActivityById, scheduleActivity, reorderInDay, stopAutoScroll, scrollContainer, mobilePreviewOrder, bucketPreviewOrder, moveToInbox, moveToLater, reorderInBucket, getFlexibleIdsForDate]);
+      stopAutoScroll();
+      resetDragState();
+    },
+  });
 
   const renderBucketColumn = (
     label: string,
@@ -895,7 +789,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                     layout
                     initial={false}
                     transition={FAST_TRANSITION}
-                    key={`${activity.id}-${zoneIndex}`}
+                    key={`${columnKey}-${activity.id}`}
                     data-activity-id={activity.id}
                   >
                     <Divider
@@ -918,9 +812,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                         onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, zoneKey) : undefined}
                         onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, zoneKey) : undefined}
                         onDrop={enablePointerDrag ? (event) => handleDropToBucket(event, placement, dropIndex) : undefined}
-                        onTouchStart={prefersTouchDrag ? (e) => handleMobileTouchStart(e, activity, { type: "bucket", bucket: placement, columnKey }) : undefined}
-                        onTouchMove={prefersTouchDrag ? (e) => handleMobileTouchMove(e, activity.id) : undefined}
-                        onTouchEnd={prefersTouchDrag ? () => handleMobileTouchEnd(activity.id) : undefined}
+                        onTouchStart={prefersTouchDrag ? touchDnd.getTouchStartProps(activity.id, { type: "bucket", bucket: placement, columnKey }).onTouchStart : undefined}
                       />
                     )}
                   </motion.div>
@@ -1039,7 +931,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                   layout
                   initial={false}
                   transition={FAST_TRANSITION}
-                  key={`${activity.id}-${zoneIndex}`}
+                  key={`${date}-${activity.id}`}
                   data-activity-id={activity.id}
                 >
                   <Divider
@@ -1063,9 +955,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                       onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, zoneKey) : undefined}
                       onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, zoneKey) : undefined}
                       onDrop={enablePointerDrag ? (event) => handleDropOnDay(event, date, dropIndex) : undefined}
-                      onTouchStart={prefersTouchDrag ? (e) => handleMobileTouchStart(e, activity, { type: "day", date }) : undefined}
-                      onTouchMove={prefersTouchDrag ? (e) => handleMobileTouchMove(e, activity.id) : undefined}
-                      onTouchEnd={prefersTouchDrag ? () => handleMobileTouchEnd(activity.id) : undefined}
+                      onTouchStart={prefersTouchDrag ? touchDnd.getTouchStartProps(activity.id, { type: "day", date }).onTouchStart : undefined}
                     />
                   )}
                 </motion.div>
@@ -1191,9 +1081,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                               disableHover={draggingId !== null}
                               onDragStart={(e) => handleDragStart(e, activity)}
                               onDragEnd={handleDragEnd}
-                              onTouchStart={(e) => handleMobileTouchStart(e, activity, { type: "day", date })}
-                              onTouchMove={(e) => handleMobileTouchMove(e, activity.id)}
-                              onTouchEnd={() => handleMobileTouchEnd(activity.id)}
+                              onTouchStart={touchDnd.getTouchStartProps(activity.id, { type: "day", date }).onTouchStart}
                             />
                           )}
                         </motion.div>
@@ -1321,8 +1209,8 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
       {isTouchDrag && draggingId && (
         <TouchDragOverlay
           ref={overlayRef}
-          initialX={initialDragPosRef.current.x}
-          initialY={initialDragPosRef.current.y}
+          initialX={touchDnd.initialPositionRef.current.x}
+          initialY={touchDnd.initialPositionRef.current.y}
         >
           <div className="w-[calc(100vw-32px)] max-w-xl pointer-events-none">
             {(() => {

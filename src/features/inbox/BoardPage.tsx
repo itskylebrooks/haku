@@ -12,6 +12,7 @@ import AddActivityModal from "../../shared/components/AddActivityModal";
 import { TouchDragOverlay, type TouchDragOverlayHandle } from "../../shared/components/TouchDragOverlay";
 import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
 import { useThrottledCallback } from "../../shared/hooks/useThrottle";
+import { useTouchDragAndDrop } from "../../shared/hooks/useTouchDragAndDrop";
 import WeekActivityRow from "../week/WeekActivityRow";
 import { DesktopDivider as Divider, DesktopEmptySlot as EmptySlot } from "../week/DesktopColumnPrimitives";
 import { useDesktopLayout } from "../../shared/hooks/useDesktopLayout";
@@ -38,14 +39,11 @@ const BoardPage = () => {
   const [draggedCardHeight, setDraggedCardHeight] = useState<number>(72);
   const [previewInbox, setPreviewInbox] = useState<Activity[] | null>(null);
   const [previewLater, setPreviewLater] = useState<Activity[] | null>(null);
+  const previewInboxRef = useRef<Activity[] | null>(null);
+  const previewLaterRef = useRef<Activity[] | null>(null);
   const inboxContainerRef = useRef<HTMLDivElement>(null);
   const laterContainerRef = useRef<HTMLDivElement>(null);
   const [scrollContainer, setScrollContainer] = useState<HTMLElement | Window | null>(null);
-  const preventDefaultTouchMoveRef = useRef<((e: TouchEvent) => void) | null>(null);
-  const longPressTimerRef = useRef<number | null>(null);
-  const touchStartYRef = useRef(0);
-  const touchStartXRef = useRef(0);
-  const isTouchDraggingRef = useRef(false);
   const touchDragBucketRef = useRef<Extract<Bucket, "inbox" | "later"> | null>(null);
 
   // Callback to refresh cached container rects during autoscroll
@@ -68,8 +66,6 @@ const BoardPage = () => {
   const enablePointerDrag = isDesktop && !shouldUseTouch;
   const [isTouchDrag, setIsTouchDrag] = useState(false);
   const [touchDragOverBucket, setTouchDragOverBucket] = useState<Extract<Bucket, "inbox" | "later"> | null>(null);
-  const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const initialDragPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const overlayRef = useRef<TouchDragOverlayHandle>(null);
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
   const dragLeaveTimeoutRef = useRef<number | null>(null);
@@ -85,35 +81,6 @@ const BoardPage = () => {
     (order: Activity[] | null) => setPreviewLater(order),
     32
   );
-
-  // Cleanup effect to ensure styles are always reset on unmount
-  useEffect(() => {
-    return () => {
-      if (preventDefaultTouchMoveRef.current) {
-        document.removeEventListener("touchmove", preventDefaultTouchMoveRef.current);
-        preventDefaultTouchMoveRef.current = null;
-      }
-      document.body.style.overflow = "";
-      document.body.style.touchAction = "";
-      document.body.style.overscrollBehavior = "";
-    };
-  }, []);
-
-  useEffect(() => {
-    if (isTouchDrag && !preventDefaultTouchMoveRef.current) {
-      const preventDefault = (e: TouchEvent) => {
-        e.preventDefault();
-      };
-      preventDefaultTouchMoveRef.current = preventDefault;
-      document.addEventListener("touchmove", preventDefault, { passive: false });
-      return () => {
-        if (preventDefaultTouchMoveRef.current) {
-          document.removeEventListener("touchmove", preventDefaultTouchMoveRef.current);
-          preventDefaultTouchMoveRef.current = null;
-        }
-      };
-    }
-  }, [isTouchDrag]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -182,6 +149,8 @@ const BoardPage = () => {
     setDraggingId(null);
     setPreviewInbox(null);
     setPreviewLater(null);
+    previewInboxRef.current = null;
+    previewLaterRef.current = null;
     setDragOverKey(null);
     throttledSetPreviewInbox.cancel();
     throttledSetPreviewLater.cancel();
@@ -308,14 +277,6 @@ const BoardPage = () => {
     resetDragState();
   };
 
-  // Touch drag handlers for mobile
-  const clearLongPressTimer = useCallback(() => {
-    if (longPressTimerRef.current !== null) {
-      window.clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-  }, []);
-
   const getTargetIndexFromY = useCallback((
     clientY: number,
     bucket: Extract<Bucket, "inbox" | "later">
@@ -365,192 +326,108 @@ const BoardPage = () => {
     return null;
   }, []);
 
-  const handleTouchStart = useCallback((
-    event: React.TouchEvent<HTMLDivElement>,
-    activity: Activity,
-    bucket: Extract<Bucket, "inbox" | "later">
-  ) => {
-    const touch = event.touches[0];
-    const rect = event.currentTarget.getBoundingClientRect();
-    const offsetX = touch.clientX - rect.left;
-    const offsetY = touch.clientY - rect.top;
-    setDraggedCardHeight(rect.height);
-
-    touchStartYRef.current = touch.clientY;
-    touchStartXRef.current = touch.clientX;
-    isTouchDraggingRef.current = false;
-    touchDragBucketRef.current = bucket;
-
-    clearLongPressTimer();
-
-    longPressTimerRef.current = window.setTimeout(() => {
-      isTouchDraggingRef.current = true;
-      setDraggingId(activity.id);
+  const touchDnd = useTouchDragAndDrop<Extract<Bucket, "inbox" | "later">>({
+    enabled: prefersTouchDrag,
+    overlayRef,
+    scrollLock: {
+      getScrollContainer: () => scrollContainer,
+      getFallbackElement: () => inboxContainerRef.current ?? laterContainerRef.current,
+    },
+    onDragStart: ({ id, meta, rect }) => {
+      setDraggedCardHeight(rect.height);
+      setDraggingId(id);
       setIsTouchDrag(true);
-      // Store offset in ref for imperative updates (no re-render)
-      dragOffsetRef.current = { x: offsetX, y: offsetY };
-      initialDragPosRef.current = { x: touch.clientX - offsetX, y: touch.clientY - offsetY };
+      touchDragBucketRef.current = meta;
+      setTouchDragOverBucket(meta);
       setPreviewInbox(null);
       setPreviewLater(null);
-      const preventDefault = (e: TouchEvent) => e.preventDefault();
-      preventDefaultTouchMoveRef.current = preventDefault;
-      document.addEventListener("touchmove", preventDefault, { passive: false });
-      // Cache container rects at drag start to avoid layout thrashing
-      if (inboxContainerRef.current) {
-        inboxRectRef.current = inboxContainerRef.current.getBoundingClientRect();
+      previewInboxRef.current = null;
+      previewLaterRef.current = null;
+      refreshCachedRects();
+    },
+    onDragMove: ({ id, clientX, clientY }) => {
+      const originalBucket = touchDragBucketRef.current ?? "inbox";
+      const detectedBucket =
+        getBucketAtPosition(clientX, clientY) ??
+        touchDragBucketRef.current ??
+        originalBucket;
+
+      if (detectedBucket !== touchDragBucketRef.current) {
+        touchDragBucketRef.current = detectedBucket;
       }
-      if (laterContainerRef.current) {
-        laterRectRef.current = laterContainerRef.current.getBoundingClientRect();
+
+      const now = Date.now();
+      if (now - lastBucketUpdateRef.current > 50) {
+        lastBucketUpdateRef.current = now;
+        setTouchDragOverBucket(detectedBucket);
       }
-      // Prevent pull-to-refresh on Android
-      document.body.style.overscrollBehavior = "none";
-      const containerRef = bucket === "inbox" ? inboxContainerRef : laterContainerRef;
-      if (scrollContainer && scrollContainer instanceof HTMLElement) {
-        scrollContainer.style.overflow = "hidden";
-        scrollContainer.style.touchAction = "none";
-        scrollContainer.style.overscrollBehavior = "none";
-      } else if (containerRef.current) {
-        containerRef.current.style.overflow = "hidden";
-        containerRef.current.style.touchAction = "none";
-        containerRef.current.style.overscrollBehavior = "none";
-      } else {
-        document.body.style.overflow = "hidden";
-        document.body.style.touchAction = "none";
-      }
-    }, 150);
-  }, [clearLongPressTimer, scrollContainer, inboxContainerRef, laterContainerRef]);
 
-  const handleTouchMove = useCallback((
-    event: React.TouchEvent<HTMLDivElement>,
-    activityId: string,
-    originalBucket: Extract<Bucket, "inbox" | "later">
-  ) => {
-    const touch = event.touches[0];
+      const targetBucket = touchDragBucketRef.current ?? originalBucket;
+      const targetIndex = getTargetIndexFromY(clientY, targetBucket);
+      const draggedActivity = activities.find((a) => a.id === id);
+      if (!draggedActivity) return;
 
-    if (!isTouchDraggingRef.current) {
-      const deltaX = Math.abs(touch.clientX - touchStartXRef.current);
-      const deltaY = Math.abs(touch.clientY - touchStartYRef.current);
-
-      if (deltaX > 10 || deltaY > 10) {
-        clearLongPressTimer();
-      }
-      return;
-    }
-
-    event.preventDefault();
-
-    // Update overlay position imperatively (no React re-render) for smooth 60fps
-    overlayRef.current?.updatePosition(
-      touch.clientX - dragOffsetRef.current.x,
-      touch.clientY - dragOffsetRef.current.y
-    );
-
-    const detectedBucket =
-      getBucketAtPosition(touch.clientX, touch.clientY) ??
-      touchDragBucketRef.current ??
-      originalBucket;
-
-    if (detectedBucket !== touchDragBucketRef.current) {
-      touchDragBucketRef.current = detectedBucket;
-    }
-
-    const now = Date.now();
-    if (now - lastBucketUpdateRef.current > 50) {
-      lastBucketUpdateRef.current = now;
-      setTouchDragOverBucket(detectedBucket);
-    }
-
-    const targetBucket = touchDragBucketRef.current ?? originalBucket;
-    const targetIndex = getTargetIndexFromY(touch.clientY, targetBucket);
-    const draggedActivity = activities.find((a) => a.id === activityId);
-    if (!draggedActivity) return;
-
-    if (draggedActivity.bucket === targetBucket) {
-      const sourceList = targetBucket === "inbox" ? inboxActivities : laterActivities;
-      const newOrder = computeAnchoredPreviewOrder(sourceList, activityId, targetIndex);
-      if (targetBucket === "inbox") {
-        throttledSetPreviewInbox(newOrder);
-        setPreviewLater(null);
-      } else {
-        throttledSetPreviewLater(newOrder);
-        setPreviewInbox(null);
-      }
-    } else {
-      const targetList = targetBucket === "inbox" ? inboxActivities : laterActivities;
-      const newOrder = computePlaceholderPreview(targetList, draggedActivity, targetIndex);
-      if (targetBucket === "inbox") {
-        throttledSetPreviewInbox(newOrder);
-        setPreviewLater(null);
-      } else {
-        throttledSetPreviewLater(newOrder);
-        setPreviewInbox(null);
-      }
-    }
-
-    // Auto-scroll when near edges
-    startAutoScroll(touch.clientY);
-  }, [clearLongPressTimer, getBucketAtPosition, startAutoScroll, getTargetIndexFromY, activities, inboxActivities, laterActivities, throttledSetPreviewInbox, throttledSetPreviewLater]);
-
-  const handleTouchEnd = useCallback((
-    activityId: string,
-    originalBucket: Extract<Bucket, "inbox" | "later">
-  ) => {
-    clearLongPressTimer();
-
-    if (isTouchDraggingRef.current) {
-      const draggedActivity = activities.find((a) => a.id === activityId);
-      const targetBucket = touchDragBucketRef.current || originalBucket;
-      const preview = targetBucket === "inbox" ? previewInbox : previewLater;
-
-      if (draggedActivity && preview) {
-        if (draggedActivity.bucket !== targetBucket) {
-          if (targetBucket === "inbox") {
-            moveToInbox(activityId);
-          } else {
-            moveToLater(activityId);
-          }
+      if (draggedActivity.bucket === targetBucket) {
+        const sourceList = targetBucket === "inbox" ? inboxActivities : laterActivities;
+        const newOrder = computeAnchoredPreviewOrder(sourceList, id, targetIndex);
+        if (targetBucket === "inbox") {
+          previewInboxRef.current = newOrder;
+          throttledSetPreviewInbox(newOrder);
+          setPreviewLater(null);
+          previewLaterRef.current = null;
+        } else {
+          previewLaterRef.current = newOrder;
+          throttledSetPreviewLater(newOrder);
+          setPreviewInbox(null);
+          previewInboxRef.current = null;
         }
+      } else {
+        const targetList = targetBucket === "inbox" ? inboxActivities : laterActivities;
+        const newOrder = computePlaceholderPreview(targetList, draggedActivity, targetIndex);
+        if (targetBucket === "inbox") {
+          previewInboxRef.current = newOrder;
+          throttledSetPreviewInbox(newOrder);
+          setPreviewLater(null);
+          previewLaterRef.current = null;
+        } else {
+          previewLaterRef.current = newOrder;
+          throttledSetPreviewLater(newOrder);
+          setPreviewInbox(null);
+          previewInboxRef.current = null;
+        }
+      }
 
-        const finalOrderedIds = preview.map((a) =>
-          a.id === DRAG_PLACEHOLDER_ID ? activityId : a.id
-        );
-        reorderInBucket(targetBucket, finalOrderedIds);
-      }
-    }
+      startAutoScroll(clientY);
+    },
+    onDragEnd: ({ id, cancelled }) => {
+      if (!cancelled) {
+        const draggedActivity = activities.find((a) => a.id === id);
+        const targetBucket = touchDragBucketRef.current;
+        const preview = targetBucket === "later" ? previewLaterRef.current : previewInboxRef.current;
 
-    isTouchDraggingRef.current = false;
-    touchDragBucketRef.current = null;
-    setIsTouchDrag(false);
-    setTouchDragOverBucket(null);
-    // Reset all scroll-related styles including overscrollBehavior
-    document.body.style.overscrollBehavior = "";
-    if (scrollContainer && scrollContainer instanceof HTMLElement) {
-      scrollContainer.style.overflow = "";
-      scrollContainer.style.touchAction = "";
-      scrollContainer.style.overscrollBehavior = "";
-    } else {
-      if (inboxContainerRef.current) {
-        inboxContainerRef.current.style.overflow = "";
-        inboxContainerRef.current.style.touchAction = "";
-        inboxContainerRef.current.style.overscrollBehavior = "";
+        if (draggedActivity && targetBucket && preview) {
+          if (draggedActivity.bucket !== targetBucket) {
+            if (targetBucket === "inbox") {
+              moveToInbox(id);
+            } else {
+              moveToLater(id);
+            }
+          }
+
+          const finalOrderedIds = preview.map((a) =>
+            a.id === DRAG_PLACEHOLDER_ID ? id : a.id
+          );
+          reorderInBucket(targetBucket, finalOrderedIds);
+        }
       }
-      if (laterContainerRef.current) {
-        laterContainerRef.current.style.overflow = "";
-        laterContainerRef.current.style.touchAction = "";
-        laterContainerRef.current.style.overscrollBehavior = "";
-      }
-      if (!inboxContainerRef.current && !laterContainerRef.current) {
-        document.body.style.overflow = "";
-        document.body.style.touchAction = "";
-      }
-    }
-    if (preventDefaultTouchMoveRef.current) {
-      document.removeEventListener("touchmove", preventDefaultTouchMoveRef.current);
-      preventDefaultTouchMoveRef.current = null;
-    }
-    stopAutoScroll();
-    resetDragState();
-  }, [clearLongPressTimer, activities, moveToInbox, moveToLater, reorderInBucket, stopAutoScroll, scrollContainer, previewInbox, previewLater, resetDragState]);
+
+      touchDragBucketRef.current = null;
+      setIsTouchDrag(false);
+      setTouchDragOverBucket(null);
+      stopAutoScroll();
+      resetDragState();
+    },
+  });
 
   // top date removed; no formattedDate needed
 
@@ -619,9 +496,7 @@ const BoardPage = () => {
                               onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, zoneKey) : undefined}
                               onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, zoneKey) : undefined}
                               onDrop={enablePointerDrag ? (event) => handleDropOnBucket(event, bucket, dropIndex) : undefined}
-                              onTouchStart={prefersTouchDrag ? (e) => handleTouchStart(e, activity, bucket) : undefined}
-                              onTouchMove={prefersTouchDrag ? (e) => handleTouchMove(e, activity.id, bucket) : undefined}
-                              onTouchEnd={prefersTouchDrag ? () => handleTouchEnd(activity.id, bucket) : undefined}
+                              onTouchStart={prefersTouchDrag ? touchDnd.getTouchStartProps(activity.id, bucket).onTouchStart : undefined}
                             />
                           </motion.div>
                         );
@@ -713,9 +588,7 @@ const BoardPage = () => {
                           disableHover={draggingId !== null}
                           onDragStart={(e) => handleDragStart(e, activity)}
                           onDragEnd={handleDragEnd}
-                          onTouchStart={(e) => handleTouchStart(e, activity, "inbox")}
-                          onTouchMove={(e) => handleTouchMove(e, activity.id, "inbox")}
-                          onTouchEnd={() => handleTouchEnd(activity.id, "inbox")}
+                          onTouchStart={touchDnd.getTouchStartProps(activity.id, "inbox").onTouchStart}
                         />
                       )}
                     </motion.div>
@@ -763,9 +636,7 @@ const BoardPage = () => {
                           disableHover={draggingId !== null}
                           onDragStart={(e) => handleDragStart(e, activity)}
                           onDragEnd={handleDragEnd}
-                          onTouchStart={(e) => handleTouchStart(e, activity, "later")}
-                          onTouchMove={(e) => handleTouchMove(e, activity.id, "later")}
-                          onTouchEnd={() => handleTouchEnd(activity.id, "later")}
+                          onTouchStart={touchDnd.getTouchStartProps(activity.id, "later").onTouchStart}
                         />
                       )}
                     </motion.div>
@@ -798,8 +669,8 @@ const BoardPage = () => {
       {isTouchDrag && draggingId && (
         <TouchDragOverlay
           ref={overlayRef}
-          initialX={initialDragPosRef.current.x}
-          initialY={initialDragPosRef.current.y}
+          initialX={touchDnd.initialPositionRef.current.x}
+          initialY={touchDnd.initialPositionRef.current.y}
         >
           <div className="w-[calc(100vw-32px)] max-w-xl pointer-events-none">
             {(() => {

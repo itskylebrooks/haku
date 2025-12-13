@@ -8,6 +8,7 @@ import AddActivityModal from "../../shared/components/AddActivityModal";
 import { TouchDragOverlay, type TouchDragOverlayHandle } from "../../shared/components/TouchDragOverlay";
 import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
 import { useThrottledCallback } from "../../shared/hooks/useThrottle";
+import { useTouchDragAndDrop } from "../../shared/hooks/useTouchDragAndDrop";
 import { AnimatePresence, motion } from "framer-motion";
 import { FAST_TRANSITION, SLIDE_VARIANTS } from "../../shared/theme/animations";
 import WeekActivityRow from "../week/WeekActivityRow";
@@ -39,20 +40,14 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [draggedCardHeight, setDraggedCardHeight] = useState<number>(72);
   const [previewOrder, setPreviewOrder] = useState<Activity[] | null>(null);
+  const previewOrderRef = useRef<Activity[] | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollContainer, setScrollContainer] = useState<HTMLElement | Window | null>(null);
-  const preventDefaultTouchMoveRef = useRef<((e: TouchEvent) => void) | null>(null);
-  const longPressTimerRef = useRef<number | null>(null);
-  const touchStartYRef = useRef(0);
-  const touchStartXRef = useRef(0);
-  const isTouchDraggingRef = useRef(false);
 
   const { isDesktop, shouldUseTouch } = useDesktopLayout();
   const prefersTouchDrag = !isDesktop || shouldUseTouch;
   const enablePointerDrag = isDesktop && !shouldUseTouch;
   const [isTouchDrag, setIsTouchDrag] = useState(false);
-  const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const initialDragPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const overlayRef = useRef<TouchDragOverlayHandle>(null);
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
   const dragLeaveTimeoutRef = useRef<number | null>(null);
@@ -64,36 +59,6 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     (order: Activity[] | null) => setPreviewOrder(order),
     32
   );
-
-  // Cleanup effect to ensure styles are always reset on unmount or when drag ends unexpectedly
-  useEffect(() => {
-    return () => {
-      // Cleanup on unmount
-      if (preventDefaultTouchMoveRef.current) {
-        document.removeEventListener("touchmove", preventDefaultTouchMoveRef.current);
-        preventDefaultTouchMoveRef.current = null;
-      }
-      document.body.style.overflow = "";
-      document.body.style.touchAction = "";
-      document.body.style.overscrollBehavior = "";
-    };
-  }, []);
-
-  useEffect(() => {
-    if (isTouchDrag && !preventDefaultTouchMoveRef.current) {
-      const preventDefault = (e: TouchEvent) => {
-        e.preventDefault();
-      };
-      preventDefaultTouchMoveRef.current = preventDefault;
-      document.addEventListener("touchmove", preventDefault, { passive: false });
-      return () => {
-        if (preventDefaultTouchMoveRef.current) {
-          document.removeEventListener("touchmove", preventDefaultTouchMoveRef.current);
-          preventDefaultTouchMoveRef.current = null;
-        }
-      };
-    }
-  }, [isTouchDrag]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -186,6 +151,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
   const resetDragState = useCallback(() => {
     setDraggingId(null);
     setPreviewOrder(null);
+    previewOrderRef.current = null;
     setDragOverKey(null);
     throttledSetPreviewOrder.cancel();
     if (dragLeaveTimeoutRef.current !== null) {
@@ -317,14 +283,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     resetDragState();
   };
 
-  // Touch drag handlers for mobile
-  const clearLongPressTimer = useCallback(() => {
-    if (longPressTimerRef.current !== null) {
-      window.clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-  }, []);
-
+  // Touch drag handlers for mobile/tablet
   const getTargetIndexFromY = useCallback((clientY: number): number => {
     if (!containerRef.current) return 0;
     const cards = containerRef.current.querySelectorAll("[data-activity-id]");
@@ -341,125 +300,52 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     return targetIndex;
   }, []);
 
-  const handleTouchStart = useCallback((event: React.TouchEvent<HTMLDivElement>, activity: Activity) => {
-    const touch = event.touches[0];
-    const rect = event.currentTarget.getBoundingClientRect();
-    const offsetX = touch.clientX - rect.left;
-    const offsetY = touch.clientY - rect.top;
-    setDraggedCardHeight(rect.height);
-
-    touchStartYRef.current = touch.clientY;
-    touchStartXRef.current = touch.clientX;
-    isTouchDraggingRef.current = false;
-
-    clearLongPressTimer();
-
-    longPressTimerRef.current = window.setTimeout(() => {
-      isTouchDraggingRef.current = true;
-      setDraggingId(activity.id);
+  const touchDnd = useTouchDragAndDrop<null>({
+    enabled: prefersTouchDrag,
+    overlayRef,
+    scrollLock: {
+      getScrollContainer: () => scrollContainer,
+      getFallbackElement: () => containerRef.current,
+    },
+    onDragStart: ({ id, rect }) => {
+      setDraggedCardHeight(rect.height);
+      setDraggingId(id);
       setIsTouchDrag(true);
-      // Store offset in ref for imperative updates (no re-render)
-      dragOffsetRef.current = { x: offsetX, y: offsetY };
-      initialDragPosRef.current = { x: touch.clientX - offsetX, y: touch.clientY - offsetY };
       setPreviewOrder(null);
-      const preventDefault = (e: TouchEvent) => e.preventDefault();
-      preventDefaultTouchMoveRef.current = preventDefault;
-      document.addEventListener("touchmove", preventDefault, { passive: false });
-      // Prevent pull-to-refresh on Android
-      document.body.style.overscrollBehavior = "none";
-      if (scrollContainer && scrollContainer instanceof HTMLElement) {
-        scrollContainer.style.overflow = "hidden";
-        scrollContainer.style.touchAction = "none";
-        scrollContainer.style.overscrollBehavior = "none";
-      } else if (containerRef.current) {
-        containerRef.current.style.overflow = "hidden";
-        containerRef.current.style.touchAction = "none";
-        containerRef.current.style.overscrollBehavior = "none";
-      } else {
-        document.body.style.overflow = "hidden";
-        document.body.style.touchAction = "none";
-      }
-    }, 150);
-  }, [clearLongPressTimer, containerRef, scrollContainer]);
+      previewOrderRef.current = null;
+    },
+    onDragMove: ({ id, clientY }) => {
+      const targetIndex = getTargetIndexFromY(clientY);
+      const draggedActivity = activities.find((a) => a.id === id);
+      if (!draggedActivity) return;
 
-  const handleTouchMove = useCallback((event: React.TouchEvent<HTMLDivElement>, activityId: string) => {
-    const touch = event.touches[0];
+      const nextPreview =
+        draggedActivity.bucket === "scheduled" && draggedActivity.date === activeDate
+          ? computeAnchoredPreviewOrder(todayActivities, id, targetIndex)
+          : computePlaceholderPreview(todayActivities, draggedActivity, targetIndex);
 
-    if (!isTouchDraggingRef.current) {
-      const deltaX = Math.abs(touch.clientX - touchStartXRef.current);
-      const deltaY = Math.abs(touch.clientY - touchStartYRef.current);
+      previewOrderRef.current = nextPreview;
+      throttledSetPreviewOrder(nextPreview);
+      startAutoScroll(clientY);
+    },
+    onDragEnd: ({ id, cancelled }) => {
+      if (!cancelled && previewOrderRef.current) {
+        const draggedActivity = activities.find((a) => a.id === id);
+        if (draggedActivity && !(draggedActivity.bucket === "scheduled" && draggedActivity.date === activeDate)) {
+          scheduleActivity(id, activeDate);
+        }
 
-      if (deltaX > 10 || deltaY > 10) {
-        clearLongPressTimer();
-      }
-      return;
-    }
-
-    event.preventDefault();
-
-    // Update overlay position imperatively (no React re-render) for smooth 60fps
-    overlayRef.current?.updatePosition(
-      touch.clientX - dragOffsetRef.current.x,
-      touch.clientY - dragOffsetRef.current.y
-    );
-
-    const targetIndex = getTargetIndexFromY(touch.clientY);
-    const draggedActivity = activities.find((a) => a.id === activityId);
-    if (!draggedActivity) return;
-
-    // If dragged activity is already in today's list, reuse anchored preview ordering
-    if (draggedActivity.bucket === "scheduled" && draggedActivity.date === activeDate) {
-      const newOrder = computeAnchoredPreviewOrder(todayActivities, activityId, targetIndex);
-      // Throttled to prevent too many re-renders
-      throttledSetPreviewOrder(newOrder);
-    } else {
-      // External drag (from Overdue): build placeholder and insert into today's list
-      const ordered = computePlaceholderPreview(todayActivities, draggedActivity, targetIndex);
-      // Throttled to prevent too many re-renders
-      throttledSetPreviewOrder(ordered);
-    }
-
-    // Auto-scroll when near edges
-    startAutoScroll(touch.clientY);
-  }, [clearLongPressTimer, getTargetIndexFromY, todayActivities, startAutoScroll, throttledSetPreviewOrder, activities, activeDate]);
-
-  const handleTouchEnd = useCallback((_activityId: string) => {
-    clearLongPressTimer();
-
-    if (isTouchDraggingRef.current && previewOrder) {
-      const droppedId = draggingId ?? _activityId;
-      const draggedActivity = activities.find((a) => a.id === droppedId);
-      if (draggedActivity && !(draggedActivity.bucket === "scheduled" && draggedActivity.date === activeDate)) {
-        scheduleActivity(droppedId, activeDate);
+        const finalOrderedIds = previewOrderRef.current.map((a) =>
+          a.id === DRAG_PLACEHOLDER_ID ? id : a.id
+        );
+        reorderInDay(activeDate, finalOrderedIds);
       }
 
-      const finalOrderedIds = previewOrder.map((a) => (a.id === DRAG_PLACEHOLDER_ID ? droppedId : a.id));
-      reorderInDay(activeDate, finalOrderedIds);
-    }
-
-    isTouchDraggingRef.current = false;
-    setIsTouchDrag(false);
-    // Reset all scroll-related styles including overscrollBehavior
-    document.body.style.overscrollBehavior = "";
-    if (scrollContainer && scrollContainer instanceof HTMLElement) {
-      scrollContainer.style.overflow = "";
-      scrollContainer.style.touchAction = "";
-      scrollContainer.style.overscrollBehavior = "";
-    } else if (containerRef.current) {
-      containerRef.current.style.overflow = "";
-      containerRef.current.style.touchAction = "";
-      containerRef.current.style.overscrollBehavior = "";
-    } else {
-      document.body.style.overflow = "";
-      document.body.style.touchAction = "";
-    }
-    if (preventDefaultTouchMoveRef.current) {
-      document.removeEventListener("touchmove", preventDefaultTouchMoveRef.current);
-      preventDefaultTouchMoveRef.current = null;
-    }
-    stopAutoScroll();
-    resetDragState();
-  }, [clearLongPressTimer, previewOrder, reorderInDay, activeDate, stopAutoScroll, scrollContainer, activities, scheduleActivity, draggingId, resetDragState]);
+      setIsTouchDrag(false);
+      stopAutoScroll();
+      resetDragState();
+    },
+  });
 
   const formattedDate = useMemo(() => {
     if (!activeDate) return "";
@@ -516,10 +402,11 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                           onDrop={(event) => handleDropOnToday(event, zoneIndex)}
                         >
                           <>
-                            {todayActivities.map((activity) => {
+                            {displayActivities.map((activity) => {
                               const dropIndex = zoneIndex;
                               const zoneKey = makeTodayZoneKey(zoneIndex);
                               zoneIndex += 1;
+                              const isPlaceholder = activity.id === DRAG_PLACEHOLDER_ID;
 
                               return (
                                 <motion.div
@@ -535,23 +422,25 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                                     onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, zoneKey) : undefined}
                                     onDrop={enablePointerDrag ? (event) => handleDropOnToday(event, dropIndex) : undefined}
                                   />
-                                  <WeekActivityRow
-                                    activity={activity}
-                                    onToggleDone={handleToggleDone}
-                                    onEdit={handleEdit}
-                                    draggable={enablePointerDrag}
-                                    isDragging={draggingId === activity.id}
-                                    disableHover={draggingId !== null}
-                                    showNote
-                                    onDragStart={enablePointerDrag ? (event) => handleDragStart(event, activity) : undefined}
-                                    onDragEnd={enablePointerDrag ? handleDragEnd : undefined}
-                                    onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, zoneKey) : undefined}
-                                    onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, zoneKey) : undefined}
-                                    onDrop={enablePointerDrag ? (event) => handleDropOnToday(event, dropIndex) : undefined}
-                                    onTouchStart={prefersTouchDrag ? (e) => handleTouchStart(e, activity) : undefined}
-                                    onTouchMove={prefersTouchDrag ? (e) => handleTouchMove(e, activity.id) : undefined}
-                                    onTouchEnd={prefersTouchDrag ? () => handleTouchEnd(activity.id) : undefined}
-                                  />
+                                  {isPlaceholder ? (
+                                    <div style={{ height: `${draggedCardHeight}px` }} />
+                                  ) : (
+                                    <WeekActivityRow
+                                      activity={activity}
+                                      onToggleDone={handleToggleDone}
+                                      onEdit={handleEdit}
+                                      draggable={enablePointerDrag}
+                                      isDragging={draggingId === activity.id}
+                                      disableHover={draggingId !== null}
+                                      showNote
+                                      onDragStart={enablePointerDrag ? (event) => handleDragStart(event, activity) : undefined}
+                                      onDragEnd={enablePointerDrag ? handleDragEnd : undefined}
+                                      onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, zoneKey) : undefined}
+                                      onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, zoneKey) : undefined}
+                                      onDrop={enablePointerDrag ? (event) => handleDropOnToday(event, dropIndex) : undefined}
+                                      onTouchStart={prefersTouchDrag ? touchDnd.getTouchStartProps(activity.id, null).onTouchStart : undefined}
+                                    />
+                                  )}
                                 </motion.div>
                               );
                             })}
@@ -622,9 +511,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                               showNote
                               onDragStart={enablePointerDrag ? (event) => handleDragStart(event, activity) : undefined}
                               onDragEnd={enablePointerDrag ? handleDragEnd : undefined}
-                              onTouchStart={prefersTouchDrag ? (e) => handleTouchStart(e, activity) : undefined}
-                              onTouchMove={prefersTouchDrag ? (e) => handleTouchMove(e, activity.id) : undefined}
-                              onTouchEnd={prefersTouchDrag ? () => handleTouchEnd(activity.id) : undefined}
+                              onTouchStart={prefersTouchDrag ? touchDnd.getTouchStartProps(activity.id, null).onTouchStart : undefined}
                             />
                           </div>
                         ))}
@@ -669,9 +556,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                             disableHover={draggingId !== null}
                             onDragStart={(e) => handleDragStart(e, activity)}
                             onDragEnd={handleDragEnd}
-                            onTouchStart={(e) => handleTouchStart(e, activity)}
-                            onTouchMove={(e) => handleTouchMove(e, activity.id)}
-                            onTouchEnd={() => handleTouchEnd(activity.id)}
+                            onTouchStart={touchDnd.getTouchStartProps(activity.id, null).onTouchStart}
                           />
                         )}
                       </motion.div>
@@ -705,9 +590,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                           disableHover={draggingId !== null}
                           onDragStart={(e) => handleDragStart(e, activity)}
                           onDragEnd={handleDragEnd}
-                          onTouchStart={(e) => handleTouchStart(e, activity)}
-                          onTouchMove={(e) => handleTouchMove(e, activity.id)}
-                          onTouchEnd={() => handleTouchEnd(activity.id)}
+                          onTouchStart={touchDnd.getTouchStartProps(activity.id, null).onTouchStart}
                         />
                       ))}
                     </div>
@@ -743,8 +626,8 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
       {isTouchDrag && draggingId && (
         <TouchDragOverlay
           ref={overlayRef}
-          initialX={initialDragPosRef.current.x}
-          initialY={initialDragPosRef.current.y}
+          initialX={touchDnd.initialPositionRef.current.x}
+          initialY={touchDnd.initialPositionRef.current.y}
         >
           <div className="w-[calc(100vw-32px)] max-w-xl pointer-events-none">
             {(() => {
