@@ -63,7 +63,9 @@ const BoardPage = () => {
     onScrolling: refreshCachedRects,
   });
 
-  const { isDesktop } = useDesktopLayout();
+  const { isDesktop, shouldUseTouch } = useDesktopLayout();
+  const prefersTouchDrag = !isDesktop || shouldUseTouch;
+  const enablePointerDrag = isDesktop && !shouldUseTouch;
   const [isTouchDrag, setIsTouchDrag] = useState(false);
   const [touchDragOverBucket, setTouchDragOverBucket] = useState<Extract<Bucket, "inbox" | "later"> | null>(null);
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -191,7 +193,7 @@ const BoardPage = () => {
   }, [throttledSetPreviewInbox, throttledSetPreviewLater, stopAutoScroll]);
 
   useEffect(() => {
-    if (!isDesktop || isTouchDrag || !draggingId) return;
+    if (!isDesktop || isTouchDrag || !draggingId || !enablePointerDrag) return;
     const reset = () => resetDragState();
     const resetIfDroppedOutside = (event: DragEvent) => {
       const target = event.target as Node | null;
@@ -210,7 +212,7 @@ const BoardPage = () => {
       window.removeEventListener("dragend", reset, true);
       window.removeEventListener("drop", resetIfDroppedOutside, true);
     };
-  }, [isDesktop, isTouchDrag, draggingId, resetDragState]);
+  }, [isDesktop, isTouchDrag, draggingId, enablePointerDrag, resetDragState]);
 
   const handleDragStart = (event: React.DragEvent<HTMLDivElement>, activity: Activity) => {
     event.dataTransfer.effectAllowed = "move";
@@ -372,6 +374,7 @@ const BoardPage = () => {
     const rect = event.currentTarget.getBoundingClientRect();
     const offsetX = touch.clientX - rect.left;
     const offsetY = touch.clientY - rect.top;
+    setDraggedCardHeight(rect.height);
 
     touchStartYRef.current = touch.clientY;
     touchStartXRef.current = touch.clientX;
@@ -579,9 +582,9 @@ const BoardPage = () => {
                     </div>
                   </div>
                   <div
-                    onDragOver={(event) => handleDragOverZone(event, appendKey)}
-                    onDragLeave={(event) => handleDragLeaveZone(event, appendKey)}
-                    onDrop={(event) => handleDropOnBucket(event, bucket, zoneIndex)}
+                    onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, appendKey) : undefined}
+                    onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, appendKey) : undefined}
+                    onDrop={enablePointerDrag ? (event) => handleDropOnBucket(event, bucket, zoneIndex) : undefined}
                   >
                     <>
                       {bucketActivities.map((activity) => {
@@ -595,26 +598,30 @@ const BoardPage = () => {
                             initial={false}
                             transition={FAST_TRANSITION}
                             key={activity.id}
+                            data-activity-id={activity.id}
                           >
                             <Divider
                               isActive={dragOverKey === zoneKey}
-                              onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                              onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
-                              onDrop={(event) => handleDropOnBucket(event, bucket, dropIndex)}
+                              onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, zoneKey) : undefined}
+                              onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, zoneKey) : undefined}
+                              onDrop={enablePointerDrag ? (event) => handleDropOnBucket(event, bucket, dropIndex) : undefined}
                             />
                             <WeekActivityRow
                               activity={activity}
                               onToggleDone={handleToggleDone}
                               onEdit={handleEdit}
-                              draggable
+                              draggable={enablePointerDrag}
                               isDragging={draggingId === activity.id}
                               disableHover={draggingId !== null}
                               showNote
-                              onDragStart={(event) => handleDragStart(event, activity)}
-                              onDragEnd={handleDragEnd}
-                              onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                              onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
-                              onDrop={(event) => handleDropOnBucket(event, bucket, dropIndex)}
+                              onDragStart={enablePointerDrag ? (event) => handleDragStart(event, activity) : undefined}
+                              onDragEnd={enablePointerDrag ? handleDragEnd : undefined}
+                              onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, zoneKey) : undefined}
+                              onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, zoneKey) : undefined}
+                              onDrop={enablePointerDrag ? (event) => handleDropOnBucket(event, bucket, dropIndex) : undefined}
+                              onTouchStart={prefersTouchDrag ? (e) => handleTouchStart(e, activity, bucket) : undefined}
+                              onTouchMove={prefersTouchDrag ? (e) => handleTouchMove(e, activity.id, bucket) : undefined}
+                              onTouchEnd={prefersTouchDrag ? () => handleTouchEnd(activity.id, bucket) : undefined}
                             />
                           </motion.div>
                         );
@@ -632,14 +639,14 @@ const BoardPage = () => {
                               <>
                                 <Divider
                                   isActive={dragOverKey === activeKey}
-                                  onDragOver={(event) => handleDragOverZone(event, activeKey)}
-                                  onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
-                                  onDrop={(event) => handleDropOnBucket(event, bucket, dropIndex)}
+                                  onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, activeKey) : undefined}
+                                  onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, activeKey) : undefined}
+                                  onDrop={enablePointerDrag ? (event) => handleDropOnBucket(event, bucket, dropIndex) : undefined}
                                 />
                                 <div
-                                  onDragOver={(event) => handleDragOverZone(event, activeKey)}
-                                  onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
-                                  onDrop={(event) => handleDropOnBucket(event, bucket, dropIndex)}
+                                  onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, activeKey) : undefined}
+                                  onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, activeKey) : undefined}
+                                  onDrop={enablePointerDrag ? (event) => handleDropOnBucket(event, bucket, dropIndex) : undefined}
                                 >
                                   {canShowDesktopAddSlot ? (
                                     <EmptySlot

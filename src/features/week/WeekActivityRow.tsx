@@ -13,6 +13,9 @@ interface WeekActivityRowProps {
   onDragOver?: (event: React.DragEvent<HTMLDivElement>) => void;
   onDragLeave?: (event: React.DragEvent<HTMLDivElement>) => void;
   onDrop?: (event: React.DragEvent<HTMLDivElement>) => void;
+  onTouchStart?: (event: React.TouchEvent<HTMLDivElement>) => void;
+  onTouchMove?: (event: React.TouchEvent<HTMLDivElement>) => void;
+  onTouchEnd?: (event: React.TouchEvent<HTMLDivElement>) => void;
   disableHover?: boolean;
   showNote?: boolean;
 }
@@ -49,6 +52,9 @@ const WeekActivityRow = ({
   onDragOver,
   onDragLeave,
   onDrop,
+  onTouchStart,
+  onTouchMove,
+  onTouchEnd,
   disableHover = false,
   showNote = false,
 }: WeekActivityRowProps) => {
@@ -94,6 +100,9 @@ const WeekActivityRow = ({
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
       className={`group flex min-h-[38px] items-stretch rounded-lg px-1.5 py-1 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${isDone ? "bg-transparent" : ""
         } ${hoverClasses} ${draggable ? "cursor-grab active:cursor-grabbing" : ""} ${isDragging ? "opacity-50" : ""}`}
     >

@@ -67,23 +67,32 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
   const [mobilePreviewOrder, setMobilePreviewOrder] = useState<Record<string, Activity[]>>({});
   const [mobileDragOverDate, setMobileDragOverDate] = useState<string | null>(null);
+  const [bucketPreviewOrder, setBucketPreviewOrder] = useState<Partial<Record<Extract<Bucket, "inbox" | "later">, Activity[]>>>({});
   const dragLeaveTimeoutRef = useRef<number | null>(null);
   const mobileContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const bucketContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const bucketColumnMetaRef = useRef<Record<string, { bucket: Extract<Bucket, "inbox" | "later">; startIndex: number }>>({});
   const [scrollContainer, setScrollContainer] = useState<HTMLElement | Window | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
   const touchStartYRef = useRef(0);
   const touchStartXRef = useRef(0);
   const isTouchDraggingRef = useRef(false);
+  type TouchTarget = { type: "day"; date: string } | { type: "bucket"; bucket: Extract<Bucket, "inbox" | "later">; columnKey: string };
+  const touchDragOriginRef = useRef<TouchTarget | null>(null);
+  const touchDragTargetRef = useRef<TouchTarget | null>(null);
   const touchDragDateRef = useRef<string | null>(null);
   const preventDefaultTouchMoveRef = useRef<((e: TouchEvent) => void) | null>(null);
 
-  const { isDesktop, isDesktopNarrow, isWideDesktop } = useDesktopLayout();
+  const { isDesktop, isDesktopNarrow, isWideDesktop, shouldUseTouch } = useDesktopLayout();
+  const prefersTouchDrag = !isDesktop || shouldUseTouch;
+  const enablePointerDrag = isDesktop && !shouldUseTouch;
   const [isTouchDrag, setIsTouchDrag] = useState(false);
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const initialDragPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const overlayRef = useRef<TouchDragOverlayHandle>(null);
   // Cached date container rects to avoid layout thrashing during drag
   const cachedDateRectsRef = useRef<Record<string, DOMRect>>({});
+  const cachedBucketRectsRef = useRef<Record<string, DOMRect>>({});
   const lastDateUpdateRef = useRef<number>(0);
   const throttledSetMobilePreview = useThrottledCallback(
     (date: string | null, order: Activity[] | null) => {
@@ -92,6 +101,19 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
         return;
       }
       setMobilePreviewOrder({ [date]: order });
+    },
+    32
+  );
+  const throttledSetBucketPreview = useThrottledCallback(
+    (
+      bucket: Extract<Bucket, "inbox" | "later"> | null,
+      order: Activity[] | null
+    ) => {
+      if (!bucket || !order) {
+        setBucketPreviewOrder({});
+        return;
+      }
+      setBucketPreviewOrder((prev) => ({ ...prev, [bucket]: order }));
     },
     32
   );
@@ -159,6 +181,11 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
         cachedDateRectsRef.current[date] = container.getBoundingClientRect();
       }
     }
+    Object.entries(bucketContainerRefs.current).forEach(([key, container]) => {
+      if (container) {
+        cachedBucketRectsRef.current[key] = container.getBoundingClientRect();
+      }
+    });
   }, [weekDates]);
 
   const { startAutoScroll, stopAutoScroll } = useAutoScroll({
@@ -177,13 +204,21 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     () => getLaterActivities(activities),
     [activities]
   );
+  const displayInboxActivities = useMemo(
+    () => prefersTouchDrag ? (bucketPreviewOrder.inbox ?? inboxActivities) : inboxActivities,
+    [prefersTouchDrag, bucketPreviewOrder.inbox, inboxActivities]
+  );
+  const displayLaterActivities = useMemo(
+    () => prefersTouchDrag ? (bucketPreviewOrder.later ?? laterActivities) : laterActivities,
+    [prefersTouchDrag, bucketPreviewOrder.later, laterActivities]
+  );
   const [inboxPrimary, inboxSecondary] = useMemo(
-    () => distributeIntoTwoColumns(inboxActivities),
-    [inboxActivities]
+    () => distributeIntoTwoColumns(displayInboxActivities),
+    [displayInboxActivities]
   );
   const [laterPrimary, laterSecondary] = useMemo(
-    () => distributeIntoTwoColumns(laterActivities),
-    [laterActivities]
+    () => distributeIntoTwoColumns(displayLaterActivities),
+    [displayLaterActivities]
   );
   const desktopMaxDividerCount = useMemo(() => {
     const counts = topWeekDates.map((date) => weekActivities[date]?.length ?? 0);
@@ -240,9 +275,15 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
   const resetDragState = useCallback(() => {
     setDraggingId(null);
     setDragOverKey(null);
+    setMobilePreviewOrder({});
+    setBucketPreviewOrder({});
+    setMobileDragOverDate(null);
+    touchDragOriginRef.current = null;
+    touchDragTargetRef.current = null;
     throttledSetMobilePreview.cancel();
+    throttledSetBucketPreview.cancel();
     stopAutoScroll();
-  }, [throttledSetMobilePreview, stopAutoScroll]);
+  }, [throttledSetMobilePreview, throttledSetBucketPreview, stopAutoScroll]);
 
   const getBucketOrderedIds = (
     bucket: Extract<Bucket, "inbox" | "later">,
@@ -508,7 +549,32 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     return targetIndex;
   }, []);
 
-  const getDateAtPosition = useCallback((clientX: number, clientY: number): string | null => {
+  const getBucketTargetIndexFromY = useCallback((
+    clientY: number,
+    columnKey: string
+  ): { bucket: Extract<Bucket, "inbox" | "later">; index: number } | null => {
+    const meta = bucketColumnMetaRef.current[columnKey];
+    const container = bucketContainerRefs.current[columnKey];
+    if (!meta || !container) return null;
+
+    const cards = container.querySelectorAll("[data-activity-id]");
+    let targetIndex = 0;
+
+    cards.forEach((card, index) => {
+      const rect = card.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (clientY > midY) {
+        targetIndex = index + 1;
+      }
+    });
+
+    return { bucket: meta.bucket, index: meta.startIndex + targetIndex };
+  }, []);
+
+  const getTouchTargetAtPosition = useCallback((
+    clientX: number,
+    clientY: number
+  ): (TouchTarget | null) => {
     // Use cached rects to avoid layout thrashing
     for (const date of weekDates) {
       const rect = cachedDateRectsRef.current[date];
@@ -519,27 +585,45 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
           clientY >= rect.top &&
           clientY <= rect.bottom
         ) {
-          return date;
+          return { type: "day", date };
         }
       }
     }
+
+    for (const [columnKey, rect] of Object.entries(cachedBucketRectsRef.current)) {
+      if (
+        clientX >= rect.left &&
+        clientX <= rect.right &&
+        clientY >= rect.top &&
+        clientY <= rect.bottom
+      ) {
+        const meta = bucketColumnMetaRef.current[columnKey];
+        if (meta) {
+          return { type: "bucket", bucket: meta.bucket, columnKey };
+        }
+      }
+    }
+
     return null;
   }, [weekDates]);
 
   const handleMobileTouchStart = useCallback((
     event: React.TouchEvent<HTMLDivElement>,
     activity: Activity,
-    date: string
+    origin: TouchTarget
   ) => {
     const touch = event.touches[0];
     const rect = event.currentTarget.getBoundingClientRect();
     const offsetX = touch.clientX - rect.left;
     const offsetY = touch.clientY - rect.top;
+    setDraggedCardHeight(rect.height);
 
     touchStartYRef.current = touch.clientY;
     touchStartXRef.current = touch.clientX;
     isTouchDraggingRef.current = false;
-    touchDragDateRef.current = date;
+    touchDragOriginRef.current = origin;
+    touchDragTargetRef.current = touchDragOriginRef.current;
+    touchDragDateRef.current = origin.type === "day" ? origin.date : null;
 
     clearLongPressTimer();
 
@@ -551,6 +635,8 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
       dragOffsetRef.current = { x: offsetX, y: offsetY };
       initialDragPosRef.current = { x: touch.clientX - offsetX, y: touch.clientY - offsetY };
       setMobilePreviewOrder({});
+      setBucketPreviewOrder({});
+      setMobileDragOverDate(origin.type === "day" ? origin.date : null);
       // Cache date container rects at drag start to avoid layout thrashing
       cachedDateRectsRef.current = {};
       for (const d of weekDates) {
@@ -559,6 +645,13 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
           cachedDateRectsRef.current[d] = container.getBoundingClientRect();
         }
       }
+      // Cache bucket column rects as well
+      cachedBucketRectsRef.current = {};
+      Object.entries(bucketContainerRefs.current).forEach(([key, container]) => {
+        if (container) {
+          cachedBucketRectsRef.current[key] = container.getBoundingClientRect();
+        }
+      });
       // Disable scrolling and prevent pull-to-refresh on Android
       const preventDefault = (e: TouchEvent) => e.preventDefault();
       preventDefaultTouchMoveRef.current = preventDefault;
@@ -573,12 +666,11 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
         document.body.style.touchAction = "none";
       }
     }, 150);
-  }, [clearLongPressTimer, scrollContainer]);
+  }, [clearLongPressTimer, scrollContainer, weekDates]);
 
   const handleMobileTouchMove = useCallback((
     event: React.TouchEvent<HTMLDivElement>,
-    activityId: string,
-    originalDate: string
+    activityId: string
   ) => {
     const touch = event.touches[0];
 
@@ -600,57 +692,108 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
       touch.clientY - dragOffsetRef.current.y
     );
 
-    const detectedDate =
-      getDateAtPosition(touch.clientX, touch.clientY) ??
-      touchDragDateRef.current ??
-      originalDate;
+    const detectedTarget = getTouchTargetAtPosition(touch.clientX, touch.clientY)
+      ?? touchDragTargetRef.current;
 
-    if (detectedDate !== touchDragDateRef.current) {
-      touchDragDateRef.current = detectedDate;
+    if (detectedTarget) {
+      touchDragTargetRef.current = detectedTarget;
     }
 
-    const now = Date.now();
-    if (now - lastDateUpdateRef.current > 50) {
-      lastDateUpdateRef.current = now;
-      setMobileDragOverDate(detectedDate);
-    }
-
-    const activeDate = touchDragDateRef.current ?? originalDate;
-    const targetIndex = getMobileTargetIndexFromY(touch.clientY, activeDate);
     const activity = findActivityById(activityId);
     if (!activity) return;
 
-    const activitiesForDay = weekActivities[activeDate] ?? [];
-    const preview =
-      activity.date === activeDate
-        ? computeAnchoredPreviewOrder(activitiesForDay, activityId, targetIndex)
-        : computePlaceholderPreview(activitiesForDay, activity, targetIndex);
-    throttledSetMobilePreview(activeDate, preview);
+    if (detectedTarget?.type === "day") {
+      const activeDate = detectedTarget.date;
+      touchDragDateRef.current = activeDate;
+      const now = Date.now();
+      if (now - lastDateUpdateRef.current > 50) {
+        lastDateUpdateRef.current = now;
+        setMobileDragOverDate(activeDate);
+      }
+      const targetIndex = getMobileTargetIndexFromY(touch.clientY, activeDate);
+      const activitiesForDay = weekActivities[activeDate] ?? [];
+      const preview =
+        activity.bucket === "scheduled" && activity.date === activeDate
+          ? computeAnchoredPreviewOrder(activitiesForDay, activityId, targetIndex)
+          : computePlaceholderPreview(activitiesForDay, activity, targetIndex);
+      throttledSetMobilePreview(activeDate, preview);
+      throttledSetBucketPreview(null, null);
+    } else if (detectedTarget?.type === "bucket") {
+      setMobileDragOverDate(null);
+      const targetMeta = getBucketTargetIndexFromY(touch.clientY, detectedTarget.columnKey);
+      if (!targetMeta) return;
+      touchDragDateRef.current = null;
+      const now = Date.now();
+      if (now - lastDateUpdateRef.current > 50) {
+        lastDateUpdateRef.current = now;
+      }
+      const targetList = targetMeta.bucket === "inbox" ? inboxActivities : laterActivities;
+      const preview =
+        activity.bucket === targetMeta.bucket
+          ? computeAnchoredPreviewOrder(targetList, activityId, targetMeta.index)
+          : computePlaceholderPreview(targetList, activity, targetMeta.index);
+      throttledSetBucketPreview(targetMeta.bucket, preview);
+      throttledSetMobilePreview(null, null);
+    } else {
+      setMobileDragOverDate(null);
+      throttledSetMobilePreview(null, null);
+      throttledSetBucketPreview(null, null);
+    }
 
     // Auto-scroll when near edges
     startAutoScroll(touch.clientY);
-  }, [clearLongPressTimer, getDateAtPosition, startAutoScroll, getMobileTargetIndexFromY, findActivityById, weekActivities, throttledSetMobilePreview]);
+  }, [clearLongPressTimer, getTouchTargetAtPosition, startAutoScroll, getMobileTargetIndexFromY, getBucketTargetIndexFromY, findActivityById, weekActivities, throttledSetMobilePreview, throttledSetBucketPreview, inboxActivities, laterActivities]);
 
   const handleMobileTouchEnd = useCallback((
-    activityId: string,
-    originalDate: string
+    activityId: string
   ) => {
     clearLongPressTimer();
 
     if (isTouchDraggingRef.current) {
       const activity = findActivityById(activityId);
-      const targetDate = touchDragDateRef.current || originalDate;
-      const preview = mobilePreviewOrder[targetDate];
+      const target = touchDragTargetRef.current;
 
-      if (activity && preview) {
-        if (!(activity.bucket === "scheduled" && activity.date === targetDate)) {
-          scheduleActivity(activityId, targetDate);
+      if (activity && target?.type === "day") {
+        const targetDate = target.date;
+        const preview = mobilePreviewOrder[targetDate];
+
+        if (preview) {
+          if (!(activity.bucket === "scheduled" && activity.date === targetDate)) {
+            scheduleActivity(activityId, targetDate);
+          }
+
+          const orderedIds = preview.map((a) =>
+            a.id === DRAG_PLACEHOLDER_ID ? activityId : a.id
+          );
+          reorderInDay(targetDate, orderedIds);
+
+          const origin = touchDragOriginRef.current;
+          const movedFromOtherDay = origin?.type === "day" && origin.date !== targetDate;
+          if (movedFromOtherDay && activity.bucket === "scheduled") {
+            const remainingSource = getFlexibleIdsForDate(origin.date, activity.id);
+            reorderInDay(origin.date, remainingSource);
+          }
         }
+      } else if (activity && target?.type === "bucket") {
+        const preview = bucketPreviewOrder[target.bucket];
+        if (preview) {
+          if (target.bucket === "inbox") {
+            moveToInbox(activity.id);
+          } else {
+            moveToLater(activity.id);
+          }
 
-        const orderedIds = preview.map((a) =>
-          a.id === DRAG_PLACEHOLDER_ID ? activityId : a.id
-        );
-        reorderInDay(targetDate, orderedIds);
+          const finalOrderedIds = preview.map((a) =>
+            a.id === DRAG_PLACEHOLDER_ID ? activityId : a.id
+          );
+          reorderInBucket(target.bucket, finalOrderedIds);
+
+          const origin = touchDragOriginRef.current;
+          if (origin?.type === "day" && activity.bucket === "scheduled") {
+            const remainingSource = getFlexibleIdsForDate(origin.date, activity.id);
+            reorderInDay(origin.date, remainingSource);
+          }
+        }
       }
     }
 
@@ -675,7 +818,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     stopAutoScroll();
     resetDragState();
     setMobilePreviewOrder({});
-  }, [clearLongPressTimer, findActivityById, scheduleActivity, reorderInDay, stopAutoScroll, scrollContainer, mobilePreviewOrder]);
+  }, [clearLongPressTimer, findActivityById, scheduleActivity, reorderInDay, stopAutoScroll, scrollContainer, mobilePreviewOrder, bucketPreviewOrder, moveToInbox, moveToLater, reorderInBucket, getFlexibleIdsForDate]);
 
   const renderBucketColumn = (
     label: string,
@@ -695,20 +838,25 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     const appendKey = makeBucketZoneKey(placement, totalCount);
     const ownsAppendHighlight = appendKey !== null && isPrimaryColumn;
     const interactionsEnabled = isPrimaryColumn || columnHasItems || isSecondaryEmpty;
+    const columnKey = `${placement}-${columnIndex}`;
 
     return (
       <div
         className="flex min-h-64 flex-col gap-2 px-1 py-3"
+        ref={(el) => {
+          bucketContainerRefs.current[columnKey] = el;
+          bucketColumnMetaRef.current[columnKey] = { bucket: placement, startIndex };
+        }}
         onDragOver={
-          interactionsEnabled
+          enablePointerDrag && interactionsEnabled
             ? (event) => handleDragOverZone(event, appendKey)
             : undefined
         }
         onDragLeave={
-          interactionsEnabled ? (event) => handleDragLeaveZone(event, appendKey) : undefined
+          enablePointerDrag && interactionsEnabled ? (event) => handleDragLeaveZone(event, appendKey) : undefined
         }
         onDrop={
-          interactionsEnabled
+          enablePointerDrag && interactionsEnabled
             ? (event) =>
               handleDropToBucket(event, placement, startIndex + bucketActivities.length)
             : undefined
@@ -742,34 +890,42 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                 dropIndex === totalCount;
               const dividerActive =
                 !isSecondaryEmpty && (dragOverKey === zoneKey || isAppendHighlight);
-              return (
-                <motion.div
-                  layout
-                  initial={false}
-                  transition={FAST_TRANSITION}
-                  key={activity.id}
-                >
-                  <Divider
-                    isActive={dividerActive}
-                    onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                    onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
-                    onDrop={(event) => handleDropToBucket(event, placement, dropIndex)}
-                  />
-                  <WeekActivityRow
-                    activity={activity}
-                    onToggleDone={handleToggleDone}
-                    onEdit={handleEdit}
-                    draggable
-                    disableHover={draggingId !== null}
-                    onDragStart={(event) => handleDragStart(event, activity)}
-                    onDragEnd={handleDragEnd}
-                    onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                    onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
-                    onDrop={(event) => handleDropToBucket(event, placement, dropIndex)}
-                  />
-                </motion.div>
-              );
-            })()
+                return (
+                  <motion.div
+                    layout
+                    initial={false}
+                    transition={FAST_TRANSITION}
+                    key={`${activity.id}-${zoneIndex}`}
+                    data-activity-id={activity.id}
+                  >
+                    <Divider
+                      isActive={dividerActive}
+                      onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, zoneKey) : undefined}
+                      onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, zoneKey) : undefined}
+                      onDrop={enablePointerDrag ? (event) => handleDropToBucket(event, placement, dropIndex) : undefined}
+                    />
+                    {activity.id === DRAG_PLACEHOLDER_ID ? (
+                      <div style={{ height: `${draggedCardHeight}px` }} />
+                    ) : (
+                      <WeekActivityRow
+                        activity={activity}
+                        onToggleDone={handleToggleDone}
+                        onEdit={handleEdit}
+                        draggable={enablePointerDrag}
+                        disableHover={draggingId !== null}
+                        onDragStart={enablePointerDrag ? (event) => handleDragStart(event, activity) : undefined}
+                        onDragEnd={enablePointerDrag ? handleDragEnd : undefined}
+                        onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, zoneKey) : undefined}
+                        onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, zoneKey) : undefined}
+                        onDrop={enablePointerDrag ? (event) => handleDropToBucket(event, placement, dropIndex) : undefined}
+                        onTouchStart={prefersTouchDrag ? (e) => handleMobileTouchStart(e, activity, { type: "bucket", bucket: placement, columnKey }) : undefined}
+                        onTouchMove={prefersTouchDrag ? (e) => handleMobileTouchMove(e, activity.id) : undefined}
+                        onTouchEnd={prefersTouchDrag ? () => handleMobileTouchEnd(activity.id) : undefined}
+                      />
+                    )}
+                  </motion.div>
+                );
+              })()
           ))}
           {Array.from({ length: placeholderCount }).map((_, idx) => (
             <div key={`${placement}-placeholder-${idx}`}>
@@ -801,26 +957,26 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                         (dragOverKey === activeKey || isAppendHighlight)
                       }
                       onDragOver={
-                        handlerKey ? (event) => handleDragOverZone(event, handlerKey) : undefined
+                        enablePointerDrag && handlerKey ? (event) => handleDragOverZone(event, handlerKey) : undefined
                       }
                       onDragLeave={
-                        handlerKey ? (event) => handleDragLeaveZone(event, handlerKey) : undefined
+                        enablePointerDrag && handlerKey ? (event) => handleDragLeaveZone(event, handlerKey) : undefined
                       }
                       onDrop={
-                        handlerKey
+                        enablePointerDrag && handlerKey
                           ? (event) => handleDropToBucket(event, placement, dropIndex)
                           : undefined
                       }
                     />
                     <div
                       onDragOver={
-                        handlerKey ? (event) => handleDragOverZone(event, handlerKey) : undefined
+                        enablePointerDrag && handlerKey ? (event) => handleDragOverZone(event, handlerKey) : undefined
                       }
                       onDragLeave={
-                        handlerKey ? (event) => handleDragLeaveZone(event, handlerKey) : undefined
+                        enablePointerDrag && handlerKey ? (event) => handleDragLeaveZone(event, handlerKey) : undefined
                       }
                       onDrop={
-                        handlerKey
+                        enablePointerDrag && handlerKey
                           ? (event) => handleDropToBucket(event, placement, dropIndex)
                           : undefined
                       }
@@ -844,11 +1000,14 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
 
   const renderDesktopDayColumn = (date: string, targetSlotCount: number) => {
     const activitiesForDay = weekActivities[date] ?? [];
+    const displayActivitiesForDay = prefersTouchDrag
+      ? (mobilePreviewOrder[date] ?? activitiesForDay)
+      : activitiesForDay;
     const { weekday, monthDay } = formatDesktopDayLabel(date);
     const isToday = date === todayIso;
     let zoneIndex = 0;
     const appendKey = makeDayAppendKey(date);
-    const totalSlots = Math.max(targetSlotCount - activitiesForDay.length, 1);
+    const totalSlots = Math.max(targetSlotCount - displayActivitiesForDay.length, 1);
 
     return (
       <div
@@ -863,42 +1022,52 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
           <div className="text-base text-[var(--color-text-meta)] mr-3">{monthDay}</div>
         </div>
         <div
-          onDragOver={(event) => handleDragOverZone(event, appendKey)}
-          onDragLeave={(event) => handleDragLeaveZone(event, appendKey)}
-          onDrop={(event) => handleDropOnDay(event, date, zoneIndex)}
+          ref={(el) => { mobileContainerRefs.current[date] = el; }}
+          onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, appendKey) : undefined}
+          onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, appendKey) : undefined}
+          onDrop={enablePointerDrag ? (event) => handleDropOnDay(event, date, zoneIndex) : undefined}
         >
           <>
-            {activitiesForDay.map((activity) => {
+            {displayActivitiesForDay.map((activity) => {
               const dropIndex = zoneIndex;
               const zoneKey = makeDayZoneKey(date, zoneIndex);
               zoneIndex += 1;
+              const isPlaceholder = activity.id === DRAG_PLACEHOLDER_ID;
 
               return (
                 <motion.div
                   layout
                   initial={false}
                   transition={FAST_TRANSITION}
-                  key={activity.id}
+                  key={`${activity.id}-${zoneIndex}`}
+                  data-activity-id={activity.id}
                 >
                   <Divider
                     isActive={dragOverKey === zoneKey}
-                    onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                    onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
-                    onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
+                    onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, zoneKey) : undefined}
+                    onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, zoneKey) : undefined}
+                    onDrop={enablePointerDrag ? (event) => handleDropOnDay(event, date, dropIndex) : undefined}
                   />
-                  <WeekActivityRow
-                    activity={activity}
-                    onToggleDone={handleToggleDone}
-                    onEdit={handleEdit}
-                    draggable
-                    isDragging={draggingId === activity.id}
-                    disableHover={draggingId !== null}
-                    onDragStart={(event) => handleDragStart(event, activity)}
-                    onDragEnd={handleDragEnd}
-                    onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                    onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
-                    onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
-                  />
+                  {isPlaceholder ? (
+                    <div style={{ height: `${draggedCardHeight}px` }} />
+                  ) : (
+                    <WeekActivityRow
+                      activity={activity}
+                      onToggleDone={handleToggleDone}
+                      onEdit={handleEdit}
+                      draggable={enablePointerDrag}
+                      isDragging={draggingId === activity.id}
+                      disableHover={draggingId !== null}
+                      onDragStart={enablePointerDrag ? (event) => handleDragStart(event, activity) : undefined}
+                      onDragEnd={enablePointerDrag ? handleDragEnd : undefined}
+                      onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, zoneKey) : undefined}
+                      onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, zoneKey) : undefined}
+                      onDrop={enablePointerDrag ? (event) => handleDropOnDay(event, date, dropIndex) : undefined}
+                      onTouchStart={prefersTouchDrag ? (e) => handleMobileTouchStart(e, activity, { type: "day", date }) : undefined}
+                      onTouchMove={prefersTouchDrag ? (e) => handleMobileTouchMove(e, activity.id) : undefined}
+                      onTouchEnd={prefersTouchDrag ? () => handleMobileTouchEnd(activity.id) : undefined}
+                    />
+                  )}
                 </motion.div>
               );
             })}
@@ -916,14 +1085,14 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                     <>
                       <Divider
                         isActive={dragOverKey === activeKey}
-                        onDragOver={(event) => handleDragOverZone(event, activeKey)}
-                        onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
-                        onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
+                        onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, activeKey) : undefined}
+                        onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, activeKey) : undefined}
+                        onDrop={enablePointerDrag ? (event) => handleDropOnDay(event, date, dropIndex) : undefined}
                       />
                       <div
-                        onDragOver={(event) => handleDragOverZone(event, activeKey)}
-                        onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
-                        onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
+                        onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, activeKey) : undefined}
+                        onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, activeKey) : undefined}
+                        onDrop={enablePointerDrag ? (event) => handleDropOnDay(event, date, dropIndex) : undefined}
                       >
                         <EmptySlot onClick={() => handleOpenCreateModal({ date })} />
                       </div>
@@ -1022,9 +1191,9 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                               disableHover={draggingId !== null}
                               onDragStart={(e) => handleDragStart(e, activity)}
                               onDragEnd={handleDragEnd}
-                              onTouchStart={(e) => handleMobileTouchStart(e, activity, date)}
-                              onTouchMove={(e) => handleMobileTouchMove(e, activity.id, date)}
-                              onTouchEnd={() => handleMobileTouchEnd(activity.id, date)}
+                              onTouchStart={(e) => handleMobileTouchStart(e, activity, { type: "day", date })}
+                              onTouchMove={(e) => handleMobileTouchMove(e, activity.id)}
+                              onTouchEnd={() => handleMobileTouchEnd(activity.id)}
                             />
                           )}
                         </motion.div>
@@ -1078,7 +1247,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                         inboxPrimary,
                         "inbox",
                         true,
-                        inboxActivities.length,
+                        displayInboxActivities.length,
                         0,
                         0
                       )}
@@ -1089,7 +1258,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                         inboxSecondary,
                         "inbox",
                         false,
-                        inboxActivities.length,
+                        displayInboxActivities.length,
                         inboxPrimary.length,
                         1
                       )}
@@ -1100,7 +1269,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                         laterPrimary,
                         "later",
                         true,
-                        laterActivities.length,
+                        displayLaterActivities.length,
                         0,
                         0
                       )}
@@ -1111,7 +1280,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                         laterSecondary,
                         "later",
                         false,
-                        laterActivities.length,
+                        displayLaterActivities.length,
                         laterPrimary.length,
                         1
                       )}

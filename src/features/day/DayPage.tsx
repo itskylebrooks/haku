@@ -47,7 +47,9 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
   const touchStartXRef = useRef(0);
   const isTouchDraggingRef = useRef(false);
 
-  const { isDesktop } = useDesktopLayout();
+  const { isDesktop, shouldUseTouch } = useDesktopLayout();
+  const prefersTouchDrag = !isDesktop || shouldUseTouch;
+  const enablePointerDrag = isDesktop && !shouldUseTouch;
   const [isTouchDrag, setIsTouchDrag] = useState(false);
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const initialDragPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -194,7 +196,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
   }, [throttledSetPreviewOrder, stopAutoScroll]);
 
   useEffect(() => {
-    if (!isDesktop || isTouchDrag || !draggingId) return;
+    if (!isDesktop || isTouchDrag || !draggingId || !enablePointerDrag) return;
     const reset = () => resetDragState();
     const resetIfDroppedOutside = (event: DragEvent) => {
       const target = event.target as Node | null;
@@ -209,7 +211,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
       window.removeEventListener("dragend", reset, true);
       window.removeEventListener("drop", resetIfDroppedOutside, true);
     };
-  }, [isDesktop, isTouchDrag, draggingId, resetDragState]);
+  }, [isDesktop, isTouchDrag, draggingId, enablePointerDrag, resetDragState]);
 
   const handleDragStart = (event: React.DragEvent<HTMLDivElement>, activity: Activity) => {
     event.dataTransfer.effectAllowed = "move";
@@ -344,6 +346,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const offsetX = touch.clientX - rect.left;
     const offsetY = touch.clientY - rect.top;
+    setDraggedCardHeight(rect.height);
 
     touchStartYRef.current = touch.clientY;
     touchStartXRef.current = touch.clientX;
@@ -524,26 +527,30 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                                   initial={false}
                                   transition={FAST_TRANSITION}
                                   key={activity.id}
+                                  data-activity-id={activity.id}
                                 >
                                   <Divider
                                     isActive={dragOverKey === zoneKey}
-                                    onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                                    onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
-                                    onDrop={(event) => handleDropOnToday(event, dropIndex)}
+                                    onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, zoneKey) : undefined}
+                                    onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, zoneKey) : undefined}
+                                    onDrop={enablePointerDrag ? (event) => handleDropOnToday(event, dropIndex) : undefined}
                                   />
                                   <WeekActivityRow
                                     activity={activity}
                                     onToggleDone={handleToggleDone}
                                     onEdit={handleEdit}
-                                    draggable
+                                    draggable={enablePointerDrag}
                                     isDragging={draggingId === activity.id}
                                     disableHover={draggingId !== null}
                                     showNote
-                                    onDragStart={(event) => handleDragStart(event, activity)}
-                                    onDragEnd={handleDragEnd}
-                                    onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                                    onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
-                                    onDrop={(event) => handleDropOnToday(event, dropIndex)}
+                                    onDragStart={enablePointerDrag ? (event) => handleDragStart(event, activity) : undefined}
+                                    onDragEnd={enablePointerDrag ? handleDragEnd : undefined}
+                                    onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, zoneKey) : undefined}
+                                    onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, zoneKey) : undefined}
+                                    onDrop={enablePointerDrag ? (event) => handleDropOnToday(event, dropIndex) : undefined}
+                                    onTouchStart={prefersTouchDrag ? (e) => handleTouchStart(e, activity) : undefined}
+                                    onTouchMove={prefersTouchDrag ? (e) => handleTouchMove(e, activity.id) : undefined}
+                                    onTouchEnd={prefersTouchDrag ? () => handleTouchEnd(activity.id) : undefined}
                                   />
                                 </motion.div>
                               );
@@ -560,14 +567,14 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                                     <>
                                       <Divider
                                         isActive={dragOverKey === activeKey}
-                                        onDragOver={(event) => handleDragOverZone(event, activeKey)}
-                                        onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
-                                        onDrop={(event) => handleDropOnToday(event, dropIndex)}
+                                        onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, activeKey) : undefined}
+                                        onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, activeKey) : undefined}
+                                        onDrop={enablePointerDrag ? (event) => handleDropOnToday(event, dropIndex) : undefined}
                                       />
                                       <div
-                                        onDragOver={(event) => handleDragOverZone(event, activeKey)}
-                                        onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
-                                        onDrop={(event) => handleDropOnToday(event, dropIndex)}
+                                        onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, activeKey) : undefined}
+                                        onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, activeKey) : undefined}
+                                        onDrop={enablePointerDrag ? (event) => handleDropOnToday(event, dropIndex) : undefined}
                                       >
                                         {canShowDesktopAddSlot ? (
                                           <EmptySlot onClick={handleOpenCreateModal} />
@@ -609,12 +616,15 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                               activity={activity}
                               onToggleDone={handleToggleDone}
                               onEdit={handleEdit}
-                              draggable
+                              draggable={enablePointerDrag}
                               isDragging={draggingId === activity.id}
                               disableHover={draggingId !== null}
                               showNote
-                              onDragStart={(event) => handleDragStart(event, activity)}
-                              onDragEnd={handleDragEnd}
+                              onDragStart={enablePointerDrag ? (event) => handleDragStart(event, activity) : undefined}
+                              onDragEnd={enablePointerDrag ? handleDragEnd : undefined}
+                              onTouchStart={prefersTouchDrag ? (e) => handleTouchStart(e, activity) : undefined}
+                              onTouchMove={prefersTouchDrag ? (e) => handleTouchMove(e, activity.id) : undefined}
+                              onTouchEnd={prefersTouchDrag ? () => handleTouchEnd(activity.id) : undefined}
                             />
                           </div>
                         ))}
