@@ -222,7 +222,8 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
       window.clearTimeout(dragLeaveTimeoutRef.current);
       dragLeaveTimeoutRef.current = null;
     }
-  }, [throttledSetPreviewOrder]);
+    stopAutoScroll();
+  }, [throttledSetPreviewOrder, stopAutoScroll]);
 
   useEffect(() => {
     if (!isDesktop || isTouchDrag || !draggingId) return;
@@ -274,6 +275,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     if (dragOverKey !== key) {
       setDragOverKey(key);
     }
+    startAutoScroll(event.clientY);
   };
 
   const handleDragLeaveZone = (

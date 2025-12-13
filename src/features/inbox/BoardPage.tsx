@@ -253,7 +253,8 @@ const BoardPage = () => {
       window.clearTimeout(dragLeaveTimeoutRef.current);
       dragLeaveTimeoutRef.current = null;
     }
-  }, [throttledSetPreviewInbox, throttledSetPreviewLater]);
+    stopAutoScroll();
+  }, [throttledSetPreviewInbox, throttledSetPreviewLater, stopAutoScroll]);
 
   useEffect(() => {
     if (!isDesktop || isTouchDrag || !draggingId) return;
@@ -315,6 +316,7 @@ const BoardPage = () => {
     if (dragOverKey !== key) {
       setDragOverKey(key);
     }
+    startAutoScroll(event.clientY);
   };
 
   const handleDragLeaveZone = (

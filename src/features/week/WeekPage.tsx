@@ -321,7 +321,8 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     setDraggingId(null);
     setDragOverKey(null);
     throttledSetMobilePreview.cancel();
-  }, [throttledSetMobilePreview]);
+    stopAutoScroll();
+  }, [throttledSetMobilePreview, stopAutoScroll]);
 
   const getBucketOrderedIds = (
     bucket: Extract<Bucket, "inbox" | "later">,
@@ -358,6 +359,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     if (dragOverKey !== key) {
       setDragOverKey(key);
     }
+    startAutoScroll(event.clientY);
   };
 
   const clearDragKey = (key: string) => {
@@ -1116,7 +1118,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
 
           {isDesktopNarrow && (
             <div className="w-full">
-              <h1 className="mx-auto w-full bg-[var(--color-surface)] px-3 pb-3 pl-4">
+              <h1 className="mx-auto w-full max-w-xl bg-[var(--color-surface)] px-4 pb-3">
                 <button
                   type="button"
                   onClick={onResetToday}
@@ -1125,7 +1127,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                   {formattedMonthYear}
                 </button>
               </h1>
-              <div className="mx-auto w-full px-4 pb-6">
+              <div className="mx-auto w-full max-w-xl px-4 pb-6">
                 <div className="space-y-6">
                   {weekDates.map((date) => renderDesktopDayColumn(date, 5))}
                 </div>
