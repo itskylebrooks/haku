@@ -1040,7 +1040,14 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                         <span>{mobileLabel.weekday}</span>
                         {isToday && <FlagTriangleRight className="h-3.5 w-3.5" />}
                       </div>
-                      <span className="text-right text-[var(--color-text-meta)]">{mobileLabel.monthDay}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenCreateModal({ date })}
+                        className="text-right text-[var(--color-text-meta)] transition-colors hover:text-[var(--color-text-secondary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
+                        aria-label={`Add activity on ${mobileLabel.weekday} ${mobileLabel.monthDay}`}
+                      >
+                        {mobileLabel.monthDay}
+                      </button>
                     </div>
                     <Divider />
                     <div
