@@ -12,13 +12,13 @@ import {
   getWeekStartDate,
 } from "./weekSelectors";
 import { distributeIntoTwoColumns } from "./columnDistribution";
-import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
 import { TouchDragOverlay, type TouchDragOverlayHandle } from "../../shared/components/TouchDragOverlay";
 import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
 import { AnimatePresence, motion } from "framer-motion";
 import { FAST_TRANSITION, SLIDE_VARIANTS } from "../../shared/theme/animations";
 import { useThrottledCallback } from "../../shared/hooks/useThrottle";
 import { DesktopDivider as Divider, DesktopEmptySlot as EmptySlot } from "./DesktopColumnPrimitives";
+import { useDesktopLayout } from "../../shared/hooks/useDesktopLayout";
 
 interface WeekPageProps {
   activeDate: string;
@@ -157,7 +157,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
   const touchDragDateRef = useRef<string | null>(null);
   const preventDefaultTouchMoveRef = useRef<((e: TouchEvent) => void) | null>(null);
 
-  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const { isDesktop, isDesktopNarrow, isWideDesktop } = useDesktopLayout();
   const [isTouchDrag, setIsTouchDrag] = useState(false);
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const initialDragPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -270,6 +270,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     const maxCount = counts.length > 0 ? Math.max(...counts) : 0;
     return Math.max(5, maxCount);
   }, [weekActivities, topWeekDates]);
+  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   const handleToggleDone = (id: string) => {
     toggleDone(id);
@@ -919,6 +920,107 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     );
   };
 
+  const renderDesktopDayColumn = (date: string, targetSlotCount: number) => {
+    const activitiesForDay = weekActivities[date] ?? [];
+    const { weekday, monthDay } = formatDesktopDayLabel(date);
+    const isToday = date === todayIso;
+    let zoneIndex = 0;
+    const appendKey = makeDayAppendKey(date);
+    const totalSlots = Math.max(targetSlotCount - activitiesForDay.length, 1);
+
+    return (
+      <div
+        key={date}
+        className="flex min-h-64 flex-col gap-2 px-1 py-3"
+      >
+        <div className="flex items-baseline justify-between gap-2 px-1">
+          <div className="flex items-center gap-1.5 text-base font-semibold text-[var(--color-text-primary)]">
+            {weekday}
+            {isToday && <FlagTriangleRight className="h-3.5 w-3.5" />}
+          </div>
+          <div className="text-base text-[var(--color-text-meta)] mr-3">{monthDay}</div>
+        </div>
+        <div
+          onDragOver={(event) => handleDragOverZone(event, appendKey)}
+          onDragLeave={(event) => handleDragLeaveZone(event, appendKey)}
+          onDrop={(event) => handleDropOnDay(event, date, zoneIndex)}
+        >
+          <>
+            {activitiesForDay.map((activity) => {
+              const dropIndex = zoneIndex;
+              const zoneKey = makeDayZoneKey(date, zoneIndex);
+              zoneIndex += 1;
+
+              return (
+                <motion.div
+                  layout
+                  initial={false}
+                  transition={FAST_TRANSITION}
+                  key={activity.id}
+                >
+                  <Divider
+                    isActive={dragOverKey === zoneKey}
+                    onDragOver={(event) => handleDragOverZone(event, zoneKey)}
+                    onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
+                    onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
+                  />
+                  <WeekActivityRow
+                    activity={activity}
+                    onToggleDone={handleToggleDone}
+                    onEdit={handleEdit}
+                    draggable
+                    isDragging={draggingId === activity.id}
+                    disableHover={draggingId !== null}
+                    onDragStart={(event) => handleDragStart(event, activity)}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={(event) => handleDragOverZone(event, zoneKey)}
+                    onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
+                    onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
+                  />
+                </motion.div>
+              );
+            })}
+            {Array.from({ length: totalSlots }).map((_, idx) => {
+              const dropIndex = zoneIndex;
+              const zoneKey = makeDayZoneKey(date, zoneIndex);
+
+              zoneIndex += 1;
+
+              const isPrimaryDrop = idx === 0;
+              const activeKey = isPrimaryDrop ? appendKey : zoneKey;
+              return (
+                <div key={`placeholder-${date}-${idx}`}>
+                  {isPrimaryDrop ? (
+                    <>
+                      <Divider
+                        isActive={dragOverKey === activeKey}
+                        onDragOver={(event) => handleDragOverZone(event, activeKey)}
+                        onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
+                        onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
+                      />
+                      <div
+                        onDragOver={(event) => handleDragOverZone(event, activeKey)}
+                        onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
+                        onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
+                      >
+                        <EmptySlot onClick={() => handleOpenCreateModal({ date })} />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Divider />
+                      <div className="min-h-[38px]" />
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </>
+        </div>
+      </div>
+    );
+  };
+
   const formattedMonthYear = useMemo(() => {
     if (!activeDate) return "";
     const date = new Date(`${activeDate}T00:00:00Z`);
@@ -928,7 +1030,6 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
       year: "numeric",
     });
   }, [activeDate]);
-  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   return (
     <>
@@ -943,8 +1044,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
           transition={FAST_TRANSITION}
           className="w-full"
         >
-          {/* Mobile stacked week */}
-          <div className="lg:hidden">
+          {!isDesktop && (
             <div className="space-y-8 px-4 pt-4 pb-4">
               {weekDates.map((date) => {
                 const activitiesForDay = weekActivities[date] ?? [];
@@ -985,325 +1085,124 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                           transition={FAST_TRANSITION}
                           key={activity.id}
                           data-activity-id={activity.id}
-                      onDragOver={(e) => handleMobileDragOver(e, date, index)}
-                      onDrop={(e) => handleMobileDrop(e, date, index)}
-                    >
-                      {activity.id === "__DRAG_PLACEHOLDER__" ? (
-                        <div style={{ height: `${draggedCardHeight}px` }} />
-                      ) : (
-                        <ActivityCard
-                          activity={activity}
-                          onToggleDone={handleToggleDone}
-                          onEdit={handleEdit}
-                          draggable={isDesktop}
-                          isDragging={draggingId === activity.id}
-                          disableHover={draggingId !== null}
-                          onDragStart={(e) => handleDragStart(e, activity)}
-                          onDragEnd={handleDragEnd}
-                          onTouchStart={(e) => handleMobileTouchStart(e, activity, date)}
-                          onTouchMove={(e) => handleMobileTouchMove(e, activity.id, date)}
-                          onTouchEnd={() => handleMobileTouchEnd(activity.id, date)}
-                        />
-                      )}
-                    </motion.div>
-                  ))}
-                </div>
-              </section>
-            );
+                          onDragOver={(e) => handleMobileDragOver(e, date, index)}
+                          onDrop={(e) => handleMobileDrop(e, date, index)}
+                        >
+                          {activity.id === "__DRAG_PLACEHOLDER__" ? (
+                            <div style={{ height: `${draggedCardHeight}px` }} />
+                          ) : (
+                            <ActivityCard
+                              activity={activity}
+                              onToggleDone={handleToggleDone}
+                              onEdit={handleEdit}
+                              draggable={isDesktop}
+                              isDragging={draggingId === activity.id}
+                              disableHover={draggingId !== null}
+                              onDragStart={(e) => handleDragStart(e, activity)}
+                              onDragEnd={handleDragEnd}
+                              onTouchStart={(e) => handleMobileTouchStart(e, activity, date)}
+                              onTouchMove={(e) => handleMobileTouchMove(e, activity.id, date)}
+                              onTouchEnd={() => handleMobileTouchEnd(activity.id, date)}
+                            />
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  </section>
+                );
               })}
             </div>
-          </div>
+          )}
 
-          {/* Desktop grid with Sunday + Inbox/Later row */}
-          <div className="hidden lg:block">
-            <h1 className="mx-auto w-full bg-[var(--color-surface)] px-3 pb-3 pl-4">
-              <button
-                type="button"
-                onClick={onResetToday}
-                className="text-xl font-semibold text-[var(--color-text-primary)] transition-colors hover:text-[var(--color-text-secondary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
-              >
-                {formattedMonthYear}
-              </button>
-            </h1>
-            <div className="mx-auto w-full px-3">
-              <div className="grid grid-cols-6 gap-0">
-                {topWeekDates.map((date) => {
-                  const activitiesForDay = weekActivities[date] ?? [];
-                  const { weekday, monthDay } = formatDesktopDayLabel(date);
-                  const isToday = date === todayIso;
-                  let zoneIndex = 0;
-                  const appendKey = makeDayAppendKey(date);
-
-                  return (
-                    <div
-                      key={date}
-                      className="flex min-h-64 flex-col gap-2 px-1 py-3"
-                    >
-                      <div className="flex items-baseline justify-between gap-2 px-1">
-                        <div className="flex items-center gap-1.5 text-base font-semibold text-[var(--color-text-primary)]">
-                          {weekday}
-                          {isToday && <FlagTriangleRight className="h-3.5 w-3.5" />}
-                        </div>
-                        <div className="text-base text-[var(--color-text-meta)] mr-3">{monthDay}</div>
-                      </div>
-                      <div
-                        onDragOver={(event) => handleDragOverZone(event, appendKey)}
-                        onDragLeave={(event) => handleDragLeaveZone(event, appendKey)}
-                        onDrop={(event) => handleDropOnDay(event, date, zoneIndex)}
-                      >
-                        {(() => {
-                          const placeholderCount = Math.max(
-                            desktopMaxDividerCount - activitiesForDay.length,
-                            0
-                          );
-                          // Ensure at least 1 slot for "Add activity" even if list is full
-                          const totalSlots = Math.max(placeholderCount, 1);
-
-                          return (
-                            <>
-                              {activitiesForDay.map((activity) => {
-                                const dropIndex = zoneIndex;
-                                const zoneKey = makeDayZoneKey(date, zoneIndex);
-                                zoneIndex += 1;
-
-                                return (
-                                  <motion.div
-                                    layout
-                                    initial={false}
-                                    transition={FAST_TRANSITION}
-                                    key={activity.id}
-                                  >
-                                    <Divider
-                                      isActive={dragOverKey === zoneKey}
-                                      onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                                      onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
-                                      onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
-                                    />
-                                    <WeekActivityRow
-                                      activity={activity}
-                                      onToggleDone={handleToggleDone}
-                                      onEdit={handleEdit}
-                                      draggable
-                                      isDragging={draggingId === activity.id}
-                                      disableHover={draggingId !== null}
-                                      onDragStart={(event) => handleDragStart(event, activity)}
-                                      onDragEnd={handleDragEnd}
-                                      onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                                      onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
-                                      onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
-                                    />
-                                  </motion.div>
-                                );
-                              })}
-                              {Array.from({ length: totalSlots }).map((_, idx) => {
-                                const dropIndex = zoneIndex;
-                                const zoneKey = makeDayZoneKey(date, zoneIndex);
-
-                                zoneIndex += 1;
-
-                                const isPrimaryDrop = idx === 0;
-                                const activeKey = isPrimaryDrop ? appendKey : zoneKey;
-                                return (
-                                  <div key={`placeholder-${idx}`}>
-                                    {isPrimaryDrop ? (
-                                      <>
-                                        <Divider
-                                          isActive={dragOverKey === activeKey}
-                                          onDragOver={(event) => handleDragOverZone(event, activeKey)}
-                                          onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
-                                          onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
-                                        />
-                                        <div
-                                          onDragOver={(event) => handleDragOverZone(event, activeKey)}
-                                          onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
-                                          onDrop={(event) => handleDropOnDay(event, date, dropIndex)}
-                                        >
-                                          <EmptySlot onClick={() => handleOpenCreateModal({ date })} />
-                                        </div>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Divider />
-                                        <div className="min-h-[38px]" />
-                                      </>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {extraDate && (
-                <div className="mt-10 grid grid-cols-6 gap-0">
-                  <div>
-                    {renderBucketColumn(
-                      "Inbox",
-                      inboxPrimary,
-                      "inbox",
-                      true,
-                      inboxActivities.length,
-                      0,
-                      0
-                    )}
-                  </div>
-                  <div>
-                    {renderBucketColumn(
-                      "Inbox",
-                      inboxSecondary,
-                      "inbox",
-                      false,
-                      inboxActivities.length,
-                      inboxPrimary.length,
-                      1
-                    )}
-                  </div>
-                  <div>
-                    {renderBucketColumn(
-                      "Later",
-                      laterPrimary,
-                      "later",
-                      true,
-                      laterActivities.length,
-                      0,
-                      0
-                    )}
-                  </div>
-                  <div>
-                    {renderBucketColumn(
-                      "Later",
-                      laterSecondary,
-                      "later",
-                      false,
-                      laterActivities.length,
-                      laterPrimary.length,
-                      1
-                    )}
-                  </div>
-                  <div className="min-h-64" aria-hidden />
-                  <div>
-                    {(() => {
-                      const activitiesForDay = weekActivities[extraDate!] ?? [];
-                      const { weekday, monthDay } = formatDesktopDayLabel(extraDate!);
-                      const isToday = extraDate === todayIso;
-                      let zoneIndex = 0;
-                      const appendKey = makeDayAppendKey(extraDate!);
-                      return (
-                        <div className="flex min-h-64 flex-col gap-2 px-1 py-3">
-                          <div className="flex items-baseline justify-between gap-2 px-1">
-                            <div className="flex items-center gap-1.5 text-base font-semibold text-[var(--color-text-primary)]">
-                              <span>{weekday}</span>
-                              {isToday && <FlagTriangleRight className="h-3.5 w-3.5" />}
-                            </div>
-                            <div className="text-base text-[var(--color-text-meta)] mr-3">{monthDay}</div>
-                          </div>
-                          <div
-                            onDragOver={(event) => handleDragOverZone(event, appendKey)}
-                            onDragLeave={(event) => handleDragLeaveZone(event, appendKey)}
-                            onDrop={(event) => handleDropOnDay(event, extraDate!, zoneIndex)}
-                          >
-                            {(() => {
-                              const placeholderCount = Math.max(5 - activitiesForDay.length, 0);
-                              // Ensure at least 1 slot for "Add activity" even if list is full
-                              const totalSlots = Math.max(placeholderCount, 1);
-
-                              return (
-                                <>
-                                  {activitiesForDay.map((activity) => {
-                                    const dropIndex = zoneIndex;
-                                    const zoneKey = makeDayZoneKey(extraDate!, zoneIndex);
-                                    zoneIndex += 1;
-
-                                    return (
-                                      <motion.div
-                                        layout
-                                        initial={false}
-                                        transition={FAST_TRANSITION}
-                                        key={activity.id}
-                                      >
-                                        <Divider
-                                          isActive={dragOverKey === zoneKey}
-                                          onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                                          onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
-                                          onDrop={(event) =>
-                                            handleDropOnDay(event, extraDate!, dropIndex)
-                                          }
-                                        />
-                                        <WeekActivityRow
-                                          activity={activity}
-                                          onToggleDone={handleToggleDone}
-                                          onEdit={handleEdit}
-                                          draggable
-                                          isDragging={draggingId === activity.id}
-                                          disableHover={draggingId !== null}
-                                          onDragStart={(event) => handleDragStart(event, activity)}
-                                          onDragEnd={handleDragEnd}
-                                          onDragOver={(event) => handleDragOverZone(event, zoneKey)}
-                                          onDragLeave={(event) => handleDragLeaveZone(event, zoneKey)}
-                                          onDrop={(event) =>
-                                            handleDropOnDay(event, extraDate!, dropIndex)
-                                          }
-                                        />
-                                      </motion.div>
-                                    );
-                                  })}
-                                  {Array.from({ length: totalSlots }).map((_, idx) => {
-                                    const dropIndex = zoneIndex;
-                                    const zoneKey = makeDayZoneKey(extraDate!, zoneIndex);
-
-                                    zoneIndex += 1;
-
-                                    const isPrimaryDrop = idx === 0;
-                                    const activeKey = isPrimaryDrop ? appendKey : zoneKey;
-                                    return (
-                                      <div key={`sunday-placeholder-${idx}`}>
-                                        {isPrimaryDrop ? (
-                                          <>
-                                            <Divider
-                                              isActive={dragOverKey === activeKey}
-                                              onDragOver={(event) => handleDragOverZone(event, activeKey)}
-                                              onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
-                                              onDrop={(event) =>
-                                                handleDropOnDay(event, extraDate!, dropIndex)
-                                              }
-                                            />
-                                            <div
-                                              onDragOver={(event) => handleDragOverZone(event, activeKey)}
-                                              onDragLeave={(event) => handleDragLeaveZone(event, activeKey)}
-                                              onDrop={(event) =>
-                                                handleDropOnDay(event, extraDate!, dropIndex)
-                                              }
-                                            >
-                                              <EmptySlot
-                                                onClick={() => handleOpenCreateModal({ date: extraDate! })}
-                                              />
-                                            </div>
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Divider />
-                                            <div className="min-h-[38px]" />
-                                          </>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </>
-                              );
-                            })()}
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
+          {isDesktopNarrow && (
+            <div className="w-full">
+              <h1 className="mx-auto w-full bg-[var(--color-surface)] px-3 pb-3 pl-4">
+                <button
+                  type="button"
+                  onClick={onResetToday}
+                  className="text-xl font-semibold text-[var(--color-text-primary)] transition-colors hover:text-[var(--color-text-secondary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
+                >
+                  {formattedMonthYear}
+                </button>
+              </h1>
+              <div className="mx-auto w-full px-4 pb-6">
+                <div className="space-y-6">
+                  {weekDates.map((date) => renderDesktopDayColumn(date, 5))}
                 </div>
-              )}
+              </div>
             </div>
-          </div>
+          )}
+
+          {isWideDesktop && (
+            <div className="w-full">
+              <h1 className="mx-auto w-full bg-[var(--color-surface)] px-3 pb-3 pl-4">
+                <button
+                  type="button"
+                  onClick={onResetToday}
+                  className="text-xl font-semibold text-[var(--color-text-primary)] transition-colors hover:text-[var(--color-text-secondary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)]"
+                >
+                  {formattedMonthYear}
+                </button>
+              </h1>
+              <div className="mx-auto w-full px-3">
+                <div className="grid grid-cols-6 gap-0">
+                  {topWeekDates.map((date) => renderDesktopDayColumn(date, desktopMaxDividerCount))}
+                </div>
+                {extraDate && (
+                  <div className="mt-10 grid grid-cols-6 gap-0">
+                    <div>
+                      {renderBucketColumn(
+                        "Inbox",
+                        inboxPrimary,
+                        "inbox",
+                        true,
+                        inboxActivities.length,
+                        0,
+                        0
+                      )}
+                    </div>
+                    <div>
+                      {renderBucketColumn(
+                        "Inbox",
+                        inboxSecondary,
+                        "inbox",
+                        false,
+                        inboxActivities.length,
+                        inboxPrimary.length,
+                        1
+                      )}
+                    </div>
+                    <div>
+                      {renderBucketColumn(
+                        "Later",
+                        laterPrimary,
+                        "later",
+                        true,
+                        laterActivities.length,
+                        0,
+                        0
+                      )}
+                    </div>
+                    <div>
+                      {renderBucketColumn(
+                        "Later",
+                        laterSecondary,
+                        "later",
+                        false,
+                        laterActivities.length,
+                        laterPrimary.length,
+                        1
+                      )}
+                    </div>
+                    <div className="min-h-64" aria-hidden />
+                    <div>
+                      {renderDesktopDayColumn(extraDate, 5)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </motion.div>
       </AnimatePresence>
 

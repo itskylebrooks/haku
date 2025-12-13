@@ -5,7 +5,6 @@ import type { Activity } from "../../shared/types/activity";
 import ActivityCard from "./ActivityCard";
 import { getDayViewData } from "./daySelectors";
 import AddActivityModal from "../../shared/components/AddActivityModal";
-import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
 import { TouchDragOverlay, type TouchDragOverlayHandle } from "../../shared/components/TouchDragOverlay";
 import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
 import { useThrottledCallback } from "../../shared/hooks/useThrottle";
@@ -13,6 +12,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { FAST_TRANSITION, SLIDE_VARIANTS } from "../../shared/theme/animations";
 import WeekActivityRow from "../week/WeekActivityRow";
 import { DesktopDivider as Divider, DesktopEmptySlot as EmptySlot } from "../week/DesktopColumnPrimitives";
+import { useDesktopLayout } from "../../shared/hooks/useDesktopLayout";
 
 interface DayPageProps {
   activeDate: string;
@@ -79,7 +79,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
   const touchStartXRef = useRef(0);
   const isTouchDraggingRef = useRef(false);
 
-  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const { isDesktop } = useDesktopLayout();
   const [isTouchDrag, setIsTouchDrag] = useState(false);
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const initialDragPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -525,7 +525,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
 
   return (
     <>
-      <div className="mx-auto w-full max-w-xl px-4 pt-4 lg:pt-0">
+      <div className={`mx-auto w-full max-w-xl px-4 ${isDesktop ? "pt-0" : "pt-4"}`}>
         <AnimatePresence mode="popLayout" custom={direction} initial={false}>
           <motion.div
             key={activeDate}
@@ -535,7 +535,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
             animate="center"
             exit="exit"
             transition={FAST_TRANSITION}
-            className="mt-0 md:mt-5 lg:mt-0"
+            className={isDesktop ? "mt-0" : "mt-0 md:mt-5"}
             ref={containerRef}
           >
             {isDesktop ? (

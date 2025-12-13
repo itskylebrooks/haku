@@ -9,12 +9,12 @@ import {
 } from "../../shared/store/activitiesStore";
 import type { Activity, Bucket } from "../../shared/types/activity";
 import AddActivityModal from "../../shared/components/AddActivityModal";
-import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
 import { TouchDragOverlay, type TouchDragOverlayHandle } from "../../shared/components/TouchDragOverlay";
 import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
 import { useThrottledCallback } from "../../shared/hooks/useThrottle";
 import WeekActivityRow from "../week/WeekActivityRow";
 import { DesktopDivider as Divider, DesktopEmptySlot as EmptySlot } from "../week/DesktopColumnPrimitives";
+import { useDesktopLayout } from "../../shared/hooks/useDesktopLayout";
 
 /**
  * Reorders a list with the dragged activity in-place, keeping anchored items
@@ -129,7 +129,7 @@ const BoardPage = () => {
     onScrolling: refreshCachedRects,
   });
 
-  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const { isDesktop } = useDesktopLayout();
   const [isTouchDrag, setIsTouchDrag] = useState(false);
   const [touchDragOverBucket, setTouchDragOverBucket] = useState<Extract<Bucket, "inbox" | "later"> | null>(null);
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -617,7 +617,7 @@ const BoardPage = () => {
 
   return (
     <>
-      <div className="mx-auto w-full max-w-xl px-4 pt-4 lg:pt-0">
+      <div className={`mx-auto w-full max-w-xl px-4 ${isDesktop ? "pt-0" : "pt-4"}`}>
         {isDesktop ? (
           <div className="space-y-8">
             {(["inbox", "later"] as const).map((bucket) => {

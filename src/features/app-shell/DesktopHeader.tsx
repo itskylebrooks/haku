@@ -42,12 +42,12 @@ const DesktopHeader = ({
   const chevronsDisabled = selectedTab === "board";
 
   return (
-    <header className="sticky top-6 z-40 hidden bg-[var(--color-surface)] pb-4 pt-0 text-sm text-[var(--color-text-primary)] lg:block">
+    <header className="sticky top-6 z-40 bg-[var(--color-surface)] pb-4 pt-0 text-sm text-[var(--color-text-primary)]">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 -top-6 h-6 bg-[var(--color-surface)]"
       />
-      <div className="mx-auto w-full max-w-xl px-4 pt-4 lg:pt-0">
+      <div className="mx-auto w-full max-w-xl px-4 pt-0">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
           <div className="flex items-center justify-start gap-2">
             <div className="flex items-center gap-1">

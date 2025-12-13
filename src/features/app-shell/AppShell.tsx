@@ -1,6 +1,7 @@
 import DesktopHeader from "./DesktopHeader";
 import MobileHeader from "./MobileHeader";
 import MobileTabBar from "./MobileTabBar";
+import { useDesktopLayout } from "../../shared/hooks/useDesktopLayout";
 import type { Bucket } from "../../shared/types/activity";
 
 type ViewMode = "day" | "week";
@@ -33,6 +34,7 @@ const AppShell = ({
   onOpenAdd,
   children,
 }: AppShellProps) => {
+  const { isDesktop } = useDesktopLayout();
   // Calculate prev/next based on active tab
   const handlePrev = () => {
     if (activeTab === "board") return;
@@ -47,41 +49,49 @@ const AppShell = ({
   return (
     <>
       {/* Desktop Header - hidden on mobile */}
-      <DesktopHeader
-        mode={mode}
-        activeTab={activeTab}
-        currentDate={currentDate}
-        onTabChange={onTabChange}
-        onPrev={handlePrev}
-        onNext={handleNext}
-        onResetToday={onResetToday}
-        onOpenSettings={onOpenSettings}
-        onOpenAdd={onOpenAdd}
-      />
+      {isDesktop && (
+        <DesktopHeader
+          mode={mode}
+          activeTab={activeTab}
+          currentDate={currentDate}
+          onTabChange={onTabChange}
+          onPrev={handlePrev}
+          onNext={handleNext}
+          onResetToday={onResetToday}
+          onOpenSettings={onOpenSettings}
+          onOpenAdd={onOpenAdd}
+        />
+      )}
 
       {/* Mobile Header - hidden on desktop */}
-      <MobileHeader
-        activeTab={activeTab}
-        currentDate={currentDate}
-        onPrev={handlePrev}
-        onNext={handleNext}
-        onOpenSettings={onOpenSettings}
-        onResetToday={onResetToday}
-      />
+      {!isDesktop && (
+        <MobileHeader
+          activeTab={activeTab}
+          currentDate={currentDate}
+          onPrev={handlePrev}
+          onNext={handleNext}
+          onOpenSettings={onOpenSettings}
+          onResetToday={onResetToday}
+        />
+      )}
 
       {/* Main content area */}
       {/* Make the main content scrollable (when needed) and fill remaining height */}
       <main className="flex-1 overflow-auto overscroll-contain">
         {children}
-        <div aria-hidden className="h-[var(--mobile-tabbar-reserved-safe)] lg:hidden" />
+        {!isDesktop && (
+          <div aria-hidden className="h-[var(--mobile-tabbar-reserved-safe)]" />
+        )}
       </main>
 
       {/* Mobile Tab Bar - hidden on desktop */}
-      <MobileTabBar
-        activeTab={activeTab}
-        onTabChange={onTabChange}
-        onAdd={onOpenAdd}
-      />
+      {!isDesktop && (
+        <MobileTabBar
+          activeTab={activeTab}
+          onTabChange={onTabChange}
+          onAdd={onOpenAdd}
+        />
+      )}
     </>
   );
 };
