@@ -42,6 +42,14 @@ function App() {
   const { isInstallable, isInstalled, installPwa } = usePWA();
   const [isInstallInstructionsOpen, setIsInstallInstructionsOpen] = useState(false);
 
+  const scrollToTop = () => {
+    const main = document.querySelector("main");
+    if (main && typeof (main as HTMLElement).scrollTo === "function") {
+      (main as HTMLElement).scrollTo({ top: 0, behavior: "auto" });
+    }
+    window.scrollTo({ top: 0, behavior: "auto" });
+  };
+
   // Get settings from persisted store
   const weekStart = useHakuStore((state) => state.settings.weekStart);
   const themeMode = useHakuStore((state) => state.settings.themeMode);
@@ -114,6 +122,10 @@ function App() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [activeTab]);
+
+  useEffect(() => {
+    scrollToTop();
+  }, [activeTab, mode]);
 
   // Apply theme to document root
   useEffect(() => {
