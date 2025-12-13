@@ -8,8 +8,8 @@ import {
   Plus,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { SPRING_TRANSITION } from "../../shared/theme/animations";
-import type { Bucket } from "../../shared/types/activity";
+import { SPRING_TRANSITION } from "@/shared/ui/animations";
+import type { Bucket } from "@/shared/types/activity";
 
 type ViewMode = "day" | "week";
 type ActiveTab = "board" | "day" | "week";

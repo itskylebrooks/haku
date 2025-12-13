@@ -1,26 +1,31 @@
+import type React from "react";
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
-import ActivityCard from "../day/ActivityCard";
 import { AnimatePresence, motion } from "framer-motion";
-import { FAST_TRANSITION } from "../../shared/theme/animations";
 import {
-  useActivitiesStore,
-  getInboxActivities,
-  getLaterActivities,
-} from "../../shared/store/activitiesStore";
-import type { Activity, Bucket } from "../../shared/types/activity";
-import AddActivityModal from "../../shared/components/AddActivityModal";
-import { TouchDragOverlay, type TouchDragOverlayHandle } from "../../shared/components/TouchDragOverlay";
-import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
-import { useThrottledCallback } from "../../shared/hooks/useThrottle";
-import { useTouchDragAndDrop } from "../../shared/hooks/useTouchDragAndDrop";
-import WeekActivityRow from "../week/WeekActivityRow";
-import { DesktopDivider as Divider, DesktopEmptySlot as EmptySlot } from "../week/DesktopColumnPrimitives";
-import { useDesktopLayout } from "../../shared/hooks/useDesktopLayout";
+  ActivityCard,
+  AddActivityModal,
+  DesktopDivider as Divider,
+  DesktopEmptySlot as EmptySlot,
+  TouchDragOverlay,
+  type TouchDragOverlayHandle,
+  WeekActivityRow,
+} from "@/shared/ui";
+import { FAST_TRANSITION } from "@/shared/ui/animations";
+import { useAutoScroll } from "@/shared/hooks/useAutoScroll";
+import { useThrottledCallback } from "@/shared/hooks/useThrottle";
+import { useTouchDragAndDrop } from "@/shared/hooks/useTouchDragAndDrop";
+import { useDesktopLayout } from "@/shared/hooks/useDesktopLayout";
+import type { Activity, Bucket } from "@/shared/types/activity";
 import {
   computeAnchoredPreviewOrder,
   computePlaceholderPreview,
   DRAG_PLACEHOLDER_ID,
-} from "../../shared/utils/activityOrdering";
+} from "@/shared/utils/activityOrdering";
+import {
+  getInboxActivities,
+  getLaterActivities,
+  useActivitiesStore,
+} from "@/shared/state";
 
 const BoardPage = () => {
   const activities = useActivitiesStore((state) => state.activities);

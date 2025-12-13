@@ -1,6 +1,6 @@
 import { Share } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from "../theme/animations";
+import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from "@/shared/ui/animations";
 
 interface InstallInstructionsModalProps {
     open: boolean;

@@ -1,10 +1,11 @@
+import type React from "react";
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, Linkedin, User } from "lucide-react";
 import pkg from "../../../package.json";
-import { downloadStateAsJson, importStateFromFile, useHakuStore } from "../storage";
-import { AnimatePresence, motion } from "framer-motion";
-import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from "../theme/animations";
-import ConfirmModal from "./ConfirmModal";
+import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from "@/shared/ui/animations";
+import { ConfirmModal } from "@/shared/ui";
+import { downloadStateAsJson, importStateFromFile, useHakuStore } from "@/shared/state";
 
 
 interface SettingsModalProps {

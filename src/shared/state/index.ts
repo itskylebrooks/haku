@@ -1,8 +1,8 @@
 /**
- * Storage Module - Public API
- * 
- * This is the main entry point for the Haku persistence layer.
- * Import from this file for all storage-related functionality.
+ * State Module - Public API
+ *
+ * Main entry point for the Haku store and persistence layer.
+ * Import from this file for all state-related functionality.
  */
 
 // Types
@@ -35,6 +35,12 @@ export {
 } from "./store";
 
 export type { HakuStoreState } from "./store";
+
+// Backcompat alias for activity store naming
+export {
+  useActivitiesStore,
+} from "./activitiesStore";
+export type { ActivitiesState } from "./activitiesStore";
 
 // Local storage operations
 export {

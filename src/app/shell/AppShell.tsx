@@ -1,8 +1,9 @@
+import type React from "react";
 import DesktopHeader from "./DesktopHeader";
 import MobileHeader from "./MobileHeader";
 import MobileTabBar from "./MobileTabBar";
-import { useDesktopLayout } from "../../shared/hooks/useDesktopLayout";
-import type { Bucket } from "../../shared/types/activity";
+import { useDesktopLayout } from "@/shared/hooks/useDesktopLayout";
+import type { Bucket } from "@/shared/types/activity";
 
 type ViewMode = "day" | "week";
 type ActiveTab = "board" | "day" | "week";

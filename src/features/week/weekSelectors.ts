@@ -1,5 +1,4 @@
-import type { Activity } from "../../shared/types/activity";
-import { compareActivitiesByTime, isScheduled } from "../../shared/types/activity";
+import { compareActivitiesByTime, isScheduled, type Activity } from "@/shared/types/activity";
 
 export type WeekActivities = Record<string, Activity[]>;
 

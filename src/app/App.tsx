@@ -1,16 +1,15 @@
 import { useEffect, useState } from "react";
-import AddActivityModal from "./shared/components/AddActivityModal";
-import type { Bucket } from "./shared/types/activity";
-import AppShell from "./features/app-shell/AppShell";
-import DayPage from "./features/day/DayPage";
-import WeekPage from "./features/week/WeekPage";
-import BoardPage from "./features/inbox/BoardPage";
-import SettingsModal from "./shared/components/SettingsModal";
-import { useHakuStore, type ThemeMode } from "./shared/storage";
-import { usePWA } from "./shared/hooks/usePWA";
-import InstallInstructionsModal from "./shared/components/InstallInstructionsModal";
 import { AnimatePresence, motion } from "framer-motion";
-import { FAST_TRANSITION, PAGE_VARIANTS } from "./shared/theme/animations";
+import { AddActivityModal } from "@/shared/ui";
+import { InstallInstructionsModal, SettingsModal } from "@/features/settings";
+import { usePWA } from "@/shared/hooks/usePWA";
+import { useHakuStore, type ThemeMode } from "@/shared/state";
+import type { Bucket } from "@/shared/types/activity";
+import { FAST_TRANSITION, PAGE_VARIANTS } from "@/shared/ui/animations";
+import { AppShell } from "@/app/shell";
+import { DayPage } from "@/features/day";
+import { WeekPage } from "@/features/week";
+import { BoardPage } from "@/features/board";
 
 type ViewMode = "day" | "week";
 type ActiveTab = "board" | "day" | "week";

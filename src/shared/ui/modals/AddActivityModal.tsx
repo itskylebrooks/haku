@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Circle, Square, Diamond } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from "../theme/animations";
-import type { Activity, Bucket } from "../types/activity";
-import { useActivitiesStore } from "../store/activitiesStore";
-import SimpleDatePicker from "./date/SimpleDatePicker";
-import SimpleTimePicker from "./date/SimpleTimePicker";
+import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from "@/shared/ui/animations";
+import type { Activity, Bucket } from "@/shared/types/activity";
+import { useActivitiesStore } from "@/shared/state";
+import SimpleDatePicker from "../date/SimpleDatePicker";
+import SimpleTimePicker from "../date/SimpleTimePicker";
 
 // Date helpers
 const addDays = (date: Date, days: number): Date => {

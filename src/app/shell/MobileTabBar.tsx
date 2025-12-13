@@ -1,7 +1,8 @@
+import type React from "react";
 import { Circle, Grid2x2, Plus, Square } from "lucide-react";
 import { motion } from "framer-motion";
-import { SPRING_TRANSITION } from "../../shared/theme/animations";
-import type { Bucket } from "../../shared/types/activity";
+import { SPRING_TRANSITION } from "@/shared/ui/animations";
+import type { Bucket } from "@/shared/types/activity";
 
 type ActiveTab = "board" | "day" | "week";
 

@@ -1,3 +1,4 @@
+import type React from "react";
 import { useRef, useCallback } from "react";
 
 interface TouchDragConfig<T> {

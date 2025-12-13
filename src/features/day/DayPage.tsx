@@ -1,24 +1,29 @@
+import type React from "react";
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
-import { FlagTriangleRight } from "lucide-react";
-import { useActivitiesStore } from "../../shared/store/activitiesStore";
-import type { Activity } from "../../shared/types/activity";
-import ActivityCard from "./ActivityCard";
-import { getDayViewData } from "./daySelectors";
-import AddActivityModal from "../../shared/components/AddActivityModal";
-import { TouchDragOverlay, type TouchDragOverlayHandle } from "../../shared/components/TouchDragOverlay";
-import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
-import { useThrottledCallback } from "../../shared/hooks/useThrottle";
-import { useTouchDragAndDrop } from "../../shared/hooks/useTouchDragAndDrop";
 import { AnimatePresence, motion } from "framer-motion";
-import { FAST_TRANSITION, SLIDE_VARIANTS } from "../../shared/theme/animations";
-import WeekActivityRow from "../week/WeekActivityRow";
-import { DesktopDivider as Divider, DesktopEmptySlot as EmptySlot } from "../week/DesktopColumnPrimitives";
-import { useDesktopLayout } from "../../shared/hooks/useDesktopLayout";
+import { FlagTriangleRight } from "lucide-react";
+import {
+  ActivityCard,
+  AddActivityModal,
+  DesktopDivider as Divider,
+  DesktopEmptySlot as EmptySlot,
+  TouchDragOverlay,
+  type TouchDragOverlayHandle,
+  WeekActivityRow,
+} from "@/shared/ui";
+import { useAutoScroll } from "@/shared/hooks/useAutoScroll";
+import { useDesktopLayout } from "@/shared/hooks/useDesktopLayout";
+import { useThrottledCallback } from "@/shared/hooks/useThrottle";
+import { useTouchDragAndDrop } from "@/shared/hooks/useTouchDragAndDrop";
+import { FAST_TRANSITION, SLIDE_VARIANTS } from "@/shared/ui/animations";
+import type { Activity } from "@/shared/types/activity";
 import {
   computeAnchoredPreviewOrder,
   computePlaceholderPreview,
   DRAG_PLACEHOLDER_ID,
-} from "../../shared/utils/activityOrdering";
+} from "@/shared/utils/activityOrdering";
+import { useActivitiesStore } from "@/shared/state";
+import { getDayViewData } from "./daySelectors";
 
 interface DayPageProps {
   activeDate: string;

@@ -1,30 +1,38 @@
 import type React from "react";
 import { useMemo, useRef, useState, useCallback, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { FlagTriangleRight } from "lucide-react";
-import ActivityCard from "../day/ActivityCard";
-import { useActivitiesStore, getInboxActivities, getLaterActivities } from "../../shared/store/activitiesStore";
-import type { Activity, Bucket } from "../../shared/types/activity";
-import AddActivityModal from "../../shared/components/AddActivityModal";
-import WeekActivityRow from "./WeekActivityRow";
+import {
+  ActivityCard,
+  AddActivityModal,
+  DesktopDivider as Divider,
+  DesktopEmptySlot as EmptySlot,
+  TouchDragOverlay,
+  type TouchDragOverlayHandle,
+  WeekActivityRow,
+} from "@/shared/ui";
+import { useAutoScroll } from "@/shared/hooks/useAutoScroll";
+import { useDesktopLayout } from "@/shared/hooks/useDesktopLayout";
+import { useThrottledCallback } from "@/shared/hooks/useThrottle";
+import { useTouchDragAndDrop } from "@/shared/hooks/useTouchDragAndDrop";
+import { FAST_TRANSITION, SLIDE_VARIANTS } from "@/shared/ui/animations";
+import type { Activity, Bucket } from "@/shared/types/activity";
+import {
+  computeAnchoredPreviewOrder,
+  computePlaceholderPreview,
+  DRAG_PLACEHOLDER_ID,
+} from "@/shared/utils/activityOrdering";
+import {
+  getInboxActivities,
+  getLaterActivities,
+  useActivitiesStore,
+} from "@/shared/state";
 import {
   getWeekActivities,
   getWeekDates,
   getWeekStartDate,
 } from "./weekSelectors";
 import { distributeIntoTwoColumns } from "./columnDistribution";
-import { TouchDragOverlay, type TouchDragOverlayHandle } from "../../shared/components/TouchDragOverlay";
-import { useAutoScroll } from "../../shared/hooks/useAutoScroll";
-import { AnimatePresence, motion } from "framer-motion";
-import { FAST_TRANSITION, SLIDE_VARIANTS } from "../../shared/theme/animations";
-import { useThrottledCallback } from "../../shared/hooks/useThrottle";
-import { useTouchDragAndDrop } from "../../shared/hooks/useTouchDragAndDrop";
-import { DesktopDivider as Divider, DesktopEmptySlot as EmptySlot } from "./DesktopColumnPrimitives";
-import { useDesktopLayout } from "../../shared/hooks/useDesktopLayout";
-import {
-  computeAnchoredPreviewOrder,
-  computePlaceholderPreview,
-  DRAG_PLACEHOLDER_ID,
-} from "../../shared/utils/activityOrdering";
 
 interface WeekPageProps {
   activeDate: string;

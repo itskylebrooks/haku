@@ -101,6 +101,15 @@ A longer, essay-style writeup about Haku’s story and philosophy will live on m
 - **Icons & motion**: Lucide, Framer Motion (used sparingly)  
 - **PWA**: Manifest + service worker for offline support and installability  
 
+## Project structure
+
+- `src/app` – entry composition for the app plus layout primitives in `src/app/shell`.
+- `src/features` – isolated product areas (`day`, `week`, `board`, `settings`), each with an `index.ts` barrel.
+- `src/shared/ui` – design system pieces (activity cards/rows, modals, date/time pickers, drag overlay, animations).
+- `src/shared/state` – single Zustand store with persistence, import/export helpers, and storage lifecycle hooks.
+- `src/shared/hooks` – cross-cutting hooks (PWA install flow, media queries, drag/scroll helpers, throttling).
+- `src/shared/utils` / `src/shared/types` – reusable helpers and domain types shared across features.
+
 
 ## Getting started
 

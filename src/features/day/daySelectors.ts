@@ -1,5 +1,4 @@
-import type { Activity } from "../../shared/types/activity";
-import { compareActivitiesByTime } from "../../shared/types/activity";
+import { compareActivitiesByTime, type Activity } from "@/shared/types/activity";
 
 export interface DayViewData {
   overdue: Activity[];

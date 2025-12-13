@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { RefObject, TouchEvent as ReactTouchEvent } from "react";
-import type { TouchDragOverlayHandle } from "../components/TouchDragOverlay";
+import type { TouchDragOverlayHandle } from "@/shared/ui/drag";
 
 type Point = { x: number; y: number };
 

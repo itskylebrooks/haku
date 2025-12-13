@@ -1,4 +1,4 @@
-import type { Activity } from "../../shared/types/activity";
+import type { Activity } from "@/shared/types/activity";
 
 /**
  * Distributes activities into two columns with the following rules:

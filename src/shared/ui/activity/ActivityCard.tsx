@@ -1,6 +1,6 @@
 import type React from "react";
 import { Circle, CheckCircle2 } from "lucide-react";
-import type { Activity } from "../../shared/types/activity";
+import type { Activity } from "@/shared/types/activity";
 
 interface ActivityCardProps {
   activity: Activity;
