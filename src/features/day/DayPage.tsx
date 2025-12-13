@@ -13,49 +13,17 @@ import { FAST_TRANSITION, SLIDE_VARIANTS } from "../../shared/theme/animations";
 import WeekActivityRow from "../week/WeekActivityRow";
 import { DesktopDivider as Divider, DesktopEmptySlot as EmptySlot } from "../week/DesktopColumnPrimitives";
 import { useDesktopLayout } from "../../shared/hooks/useDesktopLayout";
+import {
+  computeAnchoredPreviewOrder,
+  computePlaceholderPreview,
+  DRAG_PLACEHOLDER_ID,
+} from "../../shared/utils/activityOrdering";
 
 interface DayPageProps {
   activeDate: string;
   onResetToday?: () => void;
   direction?: number;
 }
-
-/**
- * Computes a preview order for activities when dragging.
- * Follows the same rules as the WeekPage: anchored activities (with time)
- * maintain their relative time-based order; flexible activities can be reordered freely.
- */
-const computePreviewOrder = (
-  activities: Activity[],
-  draggedId: string,
-  targetIndex: number
-): Activity[] => {
-  const dragged = activities.find((a) => a.id === draggedId);
-  if (!dragged) return activities;
-
-  const withoutDragged = activities.filter((a) => a.id !== draggedId);
-  const clampedIndex = Math.min(Math.max(targetIndex, 0), withoutDragged.length);
-
-  const merged = [
-    ...withoutDragged.slice(0, clampedIndex),
-    dragged,
-    ...withoutDragged.slice(clampedIndex),
-  ];
-
-  // Anchored activities must maintain their time order
-  const anchored = merged.filter((a) => a.time !== null).sort((a, b) => {
-    if (a.time === null || b.time === null) return 0;
-    return a.time.localeCompare(b.time);
-  });
-
-  let anchoredPtr = 0;
-  return merged.map((item) => {
-    if (item.time !== null) {
-      return anchored[anchoredPtr++];
-    }
-    return item;
-  });
-};
 
 const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
   const activities = useActivitiesStore((state) => state.activities);
@@ -436,36 +404,14 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     const draggedActivity = activities.find((a) => a.id === activityId);
     if (!draggedActivity) return;
 
-    // If dragged activity is already in today's list, use computePreviewOrder
+    // If dragged activity is already in today's list, reuse anchored preview ordering
     if (draggedActivity.bucket === "scheduled" && draggedActivity.date === activeDate) {
-      const newOrder = computePreviewOrder(todayActivities, activityId, targetIndex);
+      const newOrder = computeAnchoredPreviewOrder(todayActivities, activityId, targetIndex);
       // Throttled to prevent too many re-renders
       throttledSetPreviewOrder(newOrder);
     } else {
       // External drag (from Overdue): build placeholder and insert into today's list
-      const placeholder: Activity = {
-        ...draggedActivity,
-        id: '__DRAG_PLACEHOLDER__',
-      };
-      const without = [...todayActivities];
-      const clampedIndex = Math.min(Math.max(targetIndex, 0), without.length);
-      const merged = [
-        ...without.slice(0, clampedIndex),
-        placeholder,
-        ...without.slice(clampedIndex),
-      ];
-      // Maintain anchored order
-      const anchored = merged.filter((a) => a.time !== null).sort((a, b) => {
-        if (a.time === null || b.time === null) return 0;
-        return a.time.localeCompare(b.time);
-      });
-      let anchoredPtr = 0;
-      const ordered = merged.map((item) => {
-        if (item.time !== null) {
-          return anchored[anchoredPtr++];
-        }
-        return item;
-      });
+      const ordered = computePlaceholderPreview(todayActivities, draggedActivity, targetIndex);
       // Throttled to prevent too many re-renders
       throttledSetPreviewOrder(ordered);
     }
@@ -484,7 +430,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
         scheduleActivity(droppedId, activeDate);
       }
 
-      const finalOrderedIds = previewOrder.map((a) => (a.id === '__DRAG_PLACEHOLDER__' ? droppedId : a.id));
+      const finalOrderedIds = previewOrder.map((a) => (a.id === DRAG_PLACEHOLDER_ID ? droppedId : a.id));
       reorderInDay(activeDate, finalOrderedIds);
     }
 
@@ -696,12 +642,12 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                     {displayActivities.map((activity) => (
                       <motion.div
                         layout
-                        key={activity.id}
-                        data-activity-id={activity.id}
-                        initial={false}
-                        transition={FAST_TRANSITION}
-                      >
-                        {activity.id === '__DRAG_PLACEHOLDER__' ? (
+                      key={activity.id}
+                      data-activity-id={activity.id}
+                      initial={false}
+                      transition={FAST_TRANSITION}
+                    >
+                        {activity.id === DRAG_PLACEHOLDER_ID ? (
                           <div style={{ height: `${draggedCardHeight}px` }} />
                         ) : (
                           <ActivityCard

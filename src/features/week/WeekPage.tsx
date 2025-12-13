@@ -19,6 +19,11 @@ import { FAST_TRANSITION, SLIDE_VARIANTS } from "../../shared/theme/animations";
 import { useThrottledCallback } from "../../shared/hooks/useThrottle";
 import { DesktopDivider as Divider, DesktopEmptySlot as EmptySlot } from "./DesktopColumnPrimitives";
 import { useDesktopLayout } from "../../shared/hooks/useDesktopLayout";
+import {
+  computeAnchoredPreviewOrder,
+  computePlaceholderPreview,
+  DRAG_PLACEHOLDER_ID,
+} from "../../shared/utils/activityOrdering";
 
 interface WeekPageProps {
   activeDate: string;
@@ -39,92 +44,7 @@ const formatMobileDayLabel = (isoDate: string): { weekday: string; monthDay: str
   return { weekday, monthDay };
 };
 
-const formatDesktopDayLabel = (isoDate: string): { weekday: string; monthDay: string } => {
-  const date = new Date(`${isoDate}T00:00:00Z`);
-  if (Number.isNaN(date.getTime())) {
-    return { weekday: isoDate, monthDay: "" };
-  }
-
-  const weekday = date.toLocaleDateString(undefined, { weekday: "long" });
-  const monthDay = date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  });
-  return { weekday, monthDay };
-};
-
-/**
- * Computes a preview order for activities when dragging on mobile.
- * Follows the same rules as desktop: anchored activities (with time)
- * maintain their relative time-based order; flexible activities can be reordered freely.
- */
-const computeMobilePreviewOrder = (
-  activities: Activity[],
-  draggedId: string,
-  targetIndex: number
-): Activity[] => {
-  const dragged = activities.find((a) => a.id === draggedId);
-  if (!dragged) return activities;
-
-  const withoutDragged = activities.filter((a) => a.id !== draggedId);
-  const clampedIndex = Math.min(Math.max(targetIndex, 0), withoutDragged.length);
-
-  const merged = [
-    ...withoutDragged.slice(0, clampedIndex),
-    dragged,
-    ...withoutDragged.slice(clampedIndex),
-  ];
-
-  // Anchored activities must maintain their time order
-  const anchored = merged.filter((a) => a.time !== null).sort((a, b) => {
-    if (a.time === null || b.time === null) return 0;
-    return a.time.localeCompare(b.time);
-  });
-
-  let anchoredPtr = 0;
-  return merged.map((item) => {
-    if (item.time !== null) {
-      return anchored[anchoredPtr++];
-    }
-    return item;
-  });
-};
-
-/**
- * Builds a preview order with a placeholder gap when dragging into a new date.
- */
-const computePlaceholderPreview = (
-  activities: Activity[],
-  draggedActivity: Activity,
-  targetIndex: number
-): Activity[] => {
-  const withoutDragged = activities.filter((a) => a.id !== draggedActivity.id);
-  const clampedIndex = Math.min(Math.max(targetIndex, 0), withoutDragged.length);
-
-  const placeholder: Activity = {
-    ...draggedActivity,
-    id: "__DRAG_PLACEHOLDER__",
-  };
-
-  const merged = [
-    ...withoutDragged.slice(0, clampedIndex),
-    placeholder,
-    ...withoutDragged.slice(clampedIndex),
-  ];
-
-  const anchored = merged.filter((a) => a.time !== null).sort((a, b) => {
-    if (a.time === null || b.time === null) return 0;
-    return a.time.localeCompare(b.time);
-  });
-
-  let anchoredPtr = 0;
-  return merged.map((item) => {
-    if (item.time !== null) {
-      return anchored[anchoredPtr++];
-    }
-    return item;
-  });
-};
+const formatDesktopDayLabel = formatMobileDayLabel;
 
 const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPageProps) => {
   const activities = useActivitiesStore((state) => state.activities);
@@ -513,7 +433,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
 
     if (draggingId) {
       const activitiesForDay = weekActivities[date] ?? [];
-      const newOrder = computeMobilePreviewOrder(activitiesForDay, draggingId, targetIndex);
+      const newOrder = computeAnchoredPreviewOrder(activitiesForDay, draggingId, targetIndex);
       setMobilePreviewOrder((prev) => ({ ...prev, [date]: newOrder }));
     }
   };
@@ -555,7 +475,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     }
 
     const activitiesForDay = weekActivities[date] ?? [];
-    const finalOrder = computeMobilePreviewOrder(activitiesForDay, droppedId, targetIndex);
+    const finalOrder = computeAnchoredPreviewOrder(activitiesForDay, droppedId, targetIndex);
     const orderedIds = finalOrder.map((a) => a.id);
     reorderInDay(date, orderedIds);
 
@@ -703,7 +623,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     const activitiesForDay = weekActivities[activeDate] ?? [];
     const preview =
       activity.date === activeDate
-        ? computeMobilePreviewOrder(activitiesForDay, activityId, targetIndex)
+        ? computeAnchoredPreviewOrder(activitiesForDay, activityId, targetIndex)
         : computePlaceholderPreview(activitiesForDay, activity, targetIndex);
     throttledSetMobilePreview(activeDate, preview);
 
@@ -728,7 +648,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
         }
 
         const orderedIds = preview.map((a) =>
-          a.id === "__DRAG_PLACEHOLDER__" ? activityId : a.id
+          a.id === DRAG_PLACEHOLDER_ID ? activityId : a.id
         );
         reorderInDay(targetDate, orderedIds);
       }
@@ -1084,13 +1004,13 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                         <motion.div
                           layout
                           initial={false}
-                          transition={FAST_TRANSITION}
-                          key={activity.id}
-                          data-activity-id={activity.id}
-                          onDragOver={(e) => handleMobileDragOver(e, date, index)}
-                          onDrop={(e) => handleMobileDrop(e, date, index)}
-                        >
-                          {activity.id === "__DRAG_PLACEHOLDER__" ? (
+                        transition={FAST_TRANSITION}
+                        key={activity.id}
+                        data-activity-id={activity.id}
+                        onDragOver={(e) => handleMobileDragOver(e, date, index)}
+                        onDrop={(e) => handleMobileDrop(e, date, index)}
+                      >
+                          {activity.id === DRAG_PLACEHOLDER_ID ? (
                             <div style={{ height: `${draggedCardHeight}px` }} />
                           ) : (
                             <ActivityCard

@@ -15,77 +15,11 @@ import { useThrottledCallback } from "../../shared/hooks/useThrottle";
 import WeekActivityRow from "../week/WeekActivityRow";
 import { DesktopDivider as Divider, DesktopEmptySlot as EmptySlot } from "../week/DesktopColumnPrimitives";
 import { useDesktopLayout } from "../../shared/hooks/useDesktopLayout";
-
-/**
- * Reorders a list with the dragged activity in-place, keeping anchored items
- * sorted by time while flexible items can move freely.
- */
-const computePreviewOrder = (
-  activities: Activity[],
-  draggedId: string,
-  targetIndex: number
-): Activity[] => {
-  const dragged = activities.find((a) => a.id === draggedId);
-  if (!dragged) return activities;
-
-  const withoutDragged = activities.filter((a) => a.id !== draggedId);
-  const clampedIndex = Math.min(Math.max(targetIndex, 0), withoutDragged.length);
-
-  const merged = [
-    ...withoutDragged.slice(0, clampedIndex),
-    dragged,
-    ...withoutDragged.slice(clampedIndex),
-  ];
-
-  const anchored = merged.filter((a) => a.time !== null).sort((a, b) => {
-    if (a.time === null || b.time === null) return 0;
-    return a.time.localeCompare(b.time);
-  });
-
-  let anchoredPtr = 0;
-  return merged.map((item) => {
-    if (item.time !== null) {
-      return anchored[anchoredPtr++];
-    }
-    return item;
-  });
-};
-
-/**
- * Builds a preview list that shows a placeholder gap at the drop target.
- */
-const computePlaceholderPreview = (
-  activities: Activity[],
-  draggedActivity: Activity,
-  targetIndex: number
-): Activity[] => {
-  const withoutDragged = activities.filter((a) => a.id !== draggedActivity.id);
-  const clampedIndex = Math.min(Math.max(targetIndex, 0), withoutDragged.length);
-
-  const placeholder: Activity = {
-    ...draggedActivity,
-    id: "__DRAG_PLACEHOLDER__",
-  };
-
-  const merged = [
-    ...withoutDragged.slice(0, clampedIndex),
-    placeholder,
-    ...withoutDragged.slice(clampedIndex),
-  ];
-
-  const anchored = merged.filter((a) => a.time !== null).sort((a, b) => {
-    if (a.time === null || b.time === null) return 0;
-    return a.time.localeCompare(b.time);
-  });
-
-  let anchoredPtr = 0;
-  return merged.map((item) => {
-    if (item.time !== null) {
-      return anchored[anchoredPtr++];
-    }
-    return item;
-  });
-};
+import {
+  computeAnchoredPreviewOrder,
+  computePlaceholderPreview,
+  DRAG_PLACEHOLDER_ID,
+} from "../../shared/utils/activityOrdering";
 
 const BoardPage = () => {
   const activities = useActivitiesStore((state) => state.activities);
@@ -530,7 +464,7 @@ const BoardPage = () => {
 
     if (draggedActivity.bucket === targetBucket) {
       const sourceList = targetBucket === "inbox" ? inboxActivities : laterActivities;
-      const newOrder = computePreviewOrder(sourceList, activityId, targetIndex);
+      const newOrder = computeAnchoredPreviewOrder(sourceList, activityId, targetIndex);
       if (targetBucket === "inbox") {
         throttledSetPreviewInbox(newOrder);
         setPreviewLater(null);
@@ -575,7 +509,7 @@ const BoardPage = () => {
         }
 
         const finalOrderedIds = preview.map((a) =>
-          a.id === "__DRAG_PLACEHOLDER__" ? activityId : a.id
+          a.id === DRAG_PLACEHOLDER_ID ? activityId : a.id
         );
         reorderInBucket(targetBucket, finalOrderedIds);
       }
@@ -760,7 +694,7 @@ const BoardPage = () => {
                       initial={false}
                       transition={FAST_TRANSITION}
                     >
-                      {activity.id === '__DRAG_PLACEHOLDER__' ? (
+                      {activity.id === DRAG_PLACEHOLDER_ID ? (
                         <div style={{ height: `${draggedCardHeight}px` }} />
                       ) : (
                         <ActivityCard
@@ -810,7 +744,7 @@ const BoardPage = () => {
                       initial={false}
                       transition={FAST_TRANSITION}
                     >
-                      {activity.id === '__DRAG_PLACEHOLDER__' ? (
+                      {activity.id === DRAG_PLACEHOLDER_ID ? (
                         <div style={{ height: `${draggedCardHeight}px` }} />
                       ) : (
                         <ActivityCard
