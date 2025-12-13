@@ -247,11 +247,13 @@ const BoardPage = () => {
     setPreviewInbox(null);
     setPreviewLater(null);
     setDragOverKey(null);
+    throttledSetPreviewInbox.cancel();
+    throttledSetPreviewLater.cancel();
     if (dragLeaveTimeoutRef.current !== null) {
       window.clearTimeout(dragLeaveTimeoutRef.current);
       dragLeaveTimeoutRef.current = null;
     }
-  }, []);
+  }, [throttledSetPreviewInbox, throttledSetPreviewLater]);
 
   useEffect(() => {
     if (!isDesktop || isTouchDrag || !draggingId) return;

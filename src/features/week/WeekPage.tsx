@@ -316,10 +316,11 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
   const findActivityById = (id: string | null): Activity | null =>
     id ? activities.find((activity) => activity.id === id) ?? null : null;
 
-  const resetDragState = () => {
+  const resetDragState = useCallback(() => {
     setDraggingId(null);
     setDragOverKey(null);
-  };
+    throttledSetMobilePreview.cancel();
+  }, [throttledSetMobilePreview]);
 
   const getBucketOrderedIds = (
     bucket: Extract<Bucket, "inbox" | "later">,

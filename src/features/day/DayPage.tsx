@@ -217,11 +217,12 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     setDraggingId(null);
     setPreviewOrder(null);
     setDragOverKey(null);
+    throttledSetPreviewOrder.cancel();
     if (dragLeaveTimeoutRef.current !== null) {
       window.clearTimeout(dragLeaveTimeoutRef.current);
       dragLeaveTimeoutRef.current = null;
     }
-  }, []);
+  }, [throttledSetPreviewOrder]);
 
   useEffect(() => {
     if (!isDesktop || isTouchDrag || !draggingId) return;
