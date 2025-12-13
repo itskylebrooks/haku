@@ -57,6 +57,14 @@ textarea::selection,
 :root {
   /* fallback value; we overwrite this dynamically in JS to handle mobile VH quirks */
   --app-height: 100vh;
+  /* Space reserved for the fixed mobile tab bar so scrollable content never sits beneath it. */
+  --mobile-tabbar-height: 4rem;
+  --mobile-tabbar-offset: 1.5rem;
+  --mobile-tabbar-gap: 0.75rem;
+  --mobile-tabbar-reserved: calc(
+    var(--mobile-tabbar-height) + var(--mobile-tabbar-offset) + var(--mobile-tabbar-gap)
+  );
+  --mobile-tabbar-reserved-safe: calc(var(--mobile-tabbar-reserved) + env(safe-area-inset-bottom));
   color-scheme: light;
   --color-page-bg: #ffffff;
   --color-surface: #ffffff;

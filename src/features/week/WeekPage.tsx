@@ -944,7 +944,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
         >
           {/* Mobile stacked week */}
           <div className="lg:hidden">
-            <div className="space-y-8 px-4 pt-4 pb-6">
+            <div className="space-y-8 px-4 pt-4 pb-4">
               {weekDates.map((date) => {
                 const activitiesForDay = weekActivities[date] ?? [];
                 const displayActivities = mobilePreviewOrder[date] ?? activitiesForDay;

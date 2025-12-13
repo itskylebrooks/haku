@@ -200,7 +200,7 @@ function App() {
                 exit="exit"
                 variants={PAGE_VARIANTS}
                 transition={FAST_TRANSITION}
-                className="h-full max-w-6xl mx-auto w-full"
+                className="min-h-full max-w-6xl mx-auto w-full"
               >
                 <BoardPage />
               </motion.div>
@@ -212,7 +212,7 @@ function App() {
                 exit="exit"
                 variants={PAGE_VARIANTS}
                 transition={FAST_TRANSITION}
-                className="h-full max-w-6xl mx-auto w-full"
+                className="min-h-full max-w-6xl mx-auto w-full"
               >
                 <DayPage activeDate={currentDate} onResetToday={handleResetToday} direction={direction} />
               </motion.div>
@@ -224,7 +224,7 @@ function App() {
                 exit="exit"
                 variants={PAGE_VARIANTS}
                 transition={FAST_TRANSITION}
-                className="h-full w-full"
+                className="min-h-full w-full"
               >
                 <WeekPage activeDate={currentDate} weekStart={weekStart} onResetToday={handleResetToday} direction={direction} />
               </motion.div>
