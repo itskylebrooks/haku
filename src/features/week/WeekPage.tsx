@@ -37,8 +37,8 @@ const formatMobileDayLabel = (isoDate: string): { weekday: string; monthDay: str
   const date = new Date(`${isoDate}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return { weekday: isoDate, monthDay: "" };
 
-  const weekday = date.toLocaleDateString(undefined, { weekday: "long" });
-  const monthDay = date.toLocaleDateString(undefined, {
+  const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
+  const monthDay = date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
   });
@@ -1006,7 +1006,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     if (!activeDate) return "";
     const date = new Date(`${activeDate}T00:00:00Z`);
     if (Number.isNaN(date.getTime())) return activeDate;
-    return date.toLocaleDateString(undefined, {
+    return date.toLocaleDateString("en-US", {
       month: "long",
       year: "numeric",
     });

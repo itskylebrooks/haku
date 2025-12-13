@@ -22,7 +22,7 @@ const formatDate = (isoDate: string): string => {
     return isoDate;
   }
 
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -33,7 +33,7 @@ const formatMonthYear = (isoDate: string): string => {
   if (!isoDate) return "";
   const date = new Date(`${isoDate}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return isoDate;
-  return date.toLocaleDateString(undefined, { month: "short", year: "numeric" });
+  return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
 };
 
 const iconButton =

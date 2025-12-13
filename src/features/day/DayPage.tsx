@@ -351,7 +351,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     if (!activeDate) return "";
     const date = new Date(`${activeDate}T00:00:00Z`);
     if (Number.isNaN(date.getTime())) return activeDate;
-    return date.toLocaleDateString(undefined, {
+    return date.toLocaleDateString("en-US", {
       month: "long",
       day: "numeric",
       year: "numeric",
