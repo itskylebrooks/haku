@@ -13,7 +13,6 @@ import {
 } from "@/shared/ui";
 import { useAutoScroll } from "@/shared/hooks/useAutoScroll";
 import { useDesktopLayout } from "@/shared/hooks/useDesktopLayout";
-import { useThrottledCallback } from "@/shared/hooks/useThrottle";
 import { useTouchDragAndDrop } from "@/shared/hooks/useTouchDragAndDrop";
 import { FAST_TRANSITION, SLIDE_VARIANTS } from "@/shared/ui/animations";
 import type { Activity, Bucket } from "@/shared/types/activity";
@@ -98,29 +97,137 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
   const cachedDateRectsRef = useRef<Record<string, DOMRect>>({});
   const cachedBucketRectsRef = useRef<Record<string, DOMRect>>({});
   const lastDateUpdateRef = useRef<number>(0);
-  const throttledSetMobilePreview = useThrottledCallback(
-    (date: string | null, order: Activity[] | null) => {
-      if (!date || !order) {
-        setMobilePreviewOrder({});
+  const mobilePreviewRafRef = useRef<number | null>(null);
+  const bucketPreviewRafRef = useRef<number | null>(null);
+  const measurementRafRef = useRef<number | null>(null);
+  const pendingMeasureDatesRef = useRef<Set<string>>(new Set());
+  const pendingMeasureBucketsRef = useRef<Set<string>>(new Set());
+  const dayMidpointsRef = useRef<Record<string, number[]>>({});
+  const bucketMidpointsRef = useRef<Record<string, number[]>>({});
+
+  const flushMobilePreview = useCallback(() => {
+    mobilePreviewRafRef.current = null;
+    setMobilePreviewOrder({ ...mobilePreviewOrderRef.current });
+  }, []);
+
+  const flushBucketPreview = useCallback(() => {
+    bucketPreviewRafRef.current = null;
+    setBucketPreviewOrder({ ...bucketPreviewOrderRef.current });
+  }, []);
+
+  const scheduleMobilePreviewCommit = useCallback(() => {
+    if (mobilePreviewRafRef.current !== null) return;
+    mobilePreviewRafRef.current = requestAnimationFrame(flushMobilePreview);
+  }, [flushMobilePreview]);
+
+  const scheduleBucketPreviewCommit = useCallback(() => {
+    if (bucketPreviewRafRef.current !== null) return;
+    bucketPreviewRafRef.current = requestAnimationFrame(flushBucketPreview);
+  }, [flushBucketPreview]);
+
+  const isSamePreviewList = useCallback((existing: Activity[] | undefined, next: Activity[] | null) => {
+    if (!existing || !next) return false;
+    if (existing.length !== next.length) return false;
+    for (let i = 0; i < existing.length; i += 1) {
+      if (existing[i].id !== next[i].id) return false;
+    }
+    return true;
+  }, []);
+
+  const updateMobilePreview = useCallback((date: string | null, order: Activity[] | null) => {
+    if (date && order) {
+      const existing = mobilePreviewOrderRef.current[date];
+      if (isSamePreviewList(existing, order)) {
         return;
       }
-      setMobilePreviewOrder({ [date]: order });
-    },
-    32
-  );
-  const throttledSetBucketPreview = useThrottledCallback(
-    (
-      bucket: Extract<Bucket, "inbox" | "later"> | null,
-      order: Activity[] | null
-    ) => {
-      if (!bucket || !order) {
-        setBucketPreviewOrder({});
+      mobilePreviewOrderRef.current = { [date]: order };
+    } else {
+      if (Object.keys(mobilePreviewOrderRef.current).length === 0) {
         return;
       }
-      setBucketPreviewOrder((prev) => ({ ...prev, [bucket]: order }));
-    },
-    32
-  );
+      mobilePreviewOrderRef.current = {};
+    }
+    scheduleMobilePreviewCommit();
+  }, [isSamePreviewList, scheduleMobilePreviewCommit]);
+
+  const updateBucketPreview = useCallback((
+    bucket: Extract<Bucket, "inbox" | "later"> | null,
+    order: Activity[] | null
+  ) => {
+    if (bucket && order) {
+      const existing = bucketPreviewOrderRef.current[bucket];
+      if (isSamePreviewList(existing, order)) {
+        return;
+      }
+      bucketPreviewOrderRef.current = { [bucket]: order };
+    } else {
+      if (Object.keys(bucketPreviewOrderRef.current).length === 0) {
+        return;
+      }
+      bucketPreviewOrderRef.current = {};
+    }
+    scheduleBucketPreviewCommit();
+  }, [isSamePreviewList, scheduleBucketPreviewCommit]);
+
+  const measureDayMidpoints = useCallback((date: string) => {
+    const container = mobileContainerRefs.current[date];
+    if (!container) {
+      dayMidpointsRef.current[date] = [];
+      return;
+    }
+    const cards = container.querySelectorAll<HTMLElement>("[data-activity-id]");
+    const midpoints: number[] = [];
+    cards.forEach((card) => {
+      const rect = card.getBoundingClientRect();
+      midpoints.push(rect.top + rect.height / 2);
+    });
+    dayMidpointsRef.current[date] = midpoints;
+  }, []);
+
+  const measureBucketMidpoints = useCallback((columnKey: string) => {
+    const container = bucketContainerRefs.current[columnKey];
+    if (!container) {
+      bucketMidpointsRef.current[columnKey] = [];
+      return;
+    }
+    const cards = container.querySelectorAll<HTMLElement>("[data-activity-id]");
+    const midpoints: number[] = [];
+    cards.forEach((card) => {
+      const rect = card.getBoundingClientRect();
+      midpoints.push(rect.top + rect.height / 2);
+    });
+    bucketMidpointsRef.current[columnKey] = midpoints;
+  }, []);
+
+  const flushPendingMeasurements = useCallback(() => {
+    measurementRafRef.current = null;
+    pendingMeasureDatesRef.current.forEach((date) => measureDayMidpoints(date));
+    pendingMeasureDatesRef.current.clear();
+    pendingMeasureBucketsRef.current.forEach((key) => measureBucketMidpoints(key));
+    pendingMeasureBucketsRef.current.clear();
+  }, [measureBucketMidpoints, measureDayMidpoints]);
+
+  const scheduleMeasurement = useCallback((type: "day" | "bucket", key: string) => {
+    if (type === "day") {
+      pendingMeasureDatesRef.current.add(key);
+    } else {
+      pendingMeasureBucketsRef.current.add(key);
+    }
+    if (measurementRafRef.current === null) {
+      measurementRafRef.current = requestAnimationFrame(flushPendingMeasurements);
+    }
+  }, [flushPendingMeasurements]);
+
+  const clearMeasurementCaches = useCallback(() => {
+    dayMidpointsRef.current = {};
+    bucketMidpointsRef.current = {};
+    pendingMeasureDatesRef.current.clear();
+    pendingMeasureBucketsRef.current.clear();
+    if (measurementRafRef.current !== null) {
+      cancelAnimationFrame(measurementRafRef.current);
+      measurementRafRef.current = null;
+    }
+  }, []);
 
   // Find the nearest main scroll container within AppShell (default) once mounted
   useEffect(() => {
@@ -132,6 +239,21 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
       setScrollContainer(window);
     }
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (dragLeaveTimeoutRef.current !== null) {
+        window.clearTimeout(dragLeaveTimeoutRef.current);
+      }
+      if (mobilePreviewRafRef.current !== null) {
+        cancelAnimationFrame(mobilePreviewRafRef.current);
+      }
+      if (bucketPreviewRafRef.current !== null) {
+        cancelAnimationFrame(bucketPreviewRafRef.current);
+      }
+      clearMeasurementCaches();
+    };
+  }, [clearMeasurementCaches]);
 
   const weekStartDate = useMemo(
     () => getWeekStartDate(activeDate, weekStart),
@@ -161,7 +283,15 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
         cachedBucketRectsRef.current[key] = container.getBoundingClientRect();
       }
     });
-  }, [weekDates]);
+    const activeDay = touchDragTargetRef.current?.type === "day" ? touchDragTargetRef.current.date : null;
+    if (activeDay) {
+      scheduleMeasurement("day", activeDay);
+    }
+    const activeBucketKey = touchDragTargetRef.current?.type === "bucket" ? touchDragTargetRef.current.columnKey : null;
+    if (activeBucketKey) {
+      scheduleMeasurement("bucket", activeBucketKey);
+    }
+  }, [scheduleMeasurement, weekDates]);
 
   const { startAutoScroll, stopAutoScroll } = useAutoScroll({
     scrollContainer: scrollContainer ?? window,
@@ -253,12 +383,26 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     setMobilePreviewOrder({});
     setBucketPreviewOrder({});
     setMobileDragOverDate(null);
+    mobilePreviewOrderRef.current = {};
+    bucketPreviewOrderRef.current = {};
     touchDragOriginRef.current = null;
     touchDragTargetRef.current = null;
-    throttledSetMobilePreview.cancel();
-    throttledSetBucketPreview.cancel();
+    touchDragDateRef.current = null;
+    if (dragLeaveTimeoutRef.current !== null) {
+      window.clearTimeout(dragLeaveTimeoutRef.current);
+      dragLeaveTimeoutRef.current = null;
+    }
+    if (mobilePreviewRafRef.current !== null) {
+      cancelAnimationFrame(mobilePreviewRafRef.current);
+      mobilePreviewRafRef.current = null;
+    }
+    if (bucketPreviewRafRef.current !== null) {
+      cancelAnimationFrame(bucketPreviewRafRef.current);
+      bucketPreviewRafRef.current = null;
+    }
+    clearMeasurementCaches();
     stopAutoScroll();
-  }, [throttledSetMobilePreview, throttledSetBucketPreview, stopAutoScroll]);
+  }, [clearMeasurementCaches, stopAutoScroll]);
 
   const getBucketOrderedIds = (
     bucket: Extract<Bucket, "inbox" | "later">,
@@ -450,11 +594,12 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     if (draggingId) {
       const activitiesForDay = weekActivities[date] ?? [];
       const newOrder = computeAnchoredPreviewOrder(activitiesForDay, draggingId, targetIndex);
-      setMobilePreviewOrder((prev) => ({ ...prev, [date]: newOrder }));
+      updateMobilePreview(date, newOrder);
+      scheduleMeasurement("day", date);
     }
   };
 
-  const handleMobileDragLeave = (event: React.DragEvent<HTMLDivElement>, date: string) => {
+  const handleMobileDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
     const nextTarget = event.relatedTarget as Node | null;
     if (nextTarget && event.currentTarget.contains(nextTarget)) {
       return;
@@ -464,11 +609,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
       window.clearTimeout(dragLeaveTimeoutRef.current);
     }
     dragLeaveTimeoutRef.current = window.setTimeout(() => {
-      setMobilePreviewOrder((prev) => {
-        const newState = { ...prev };
-        delete newState[date];
-        return newState;
-      });
+      updateMobilePreview(null, null);
       dragLeaveTimeoutRef.current = null;
     }, 50);
   };
@@ -486,7 +627,6 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
 
     if (!activity) {
       resetDragState();
-      setMobilePreviewOrder({});
       return;
     }
 
@@ -496,48 +636,45 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     reorderInDay(date, orderedIds);
 
     resetDragState();
-    setMobilePreviewOrder({});
   };
 
   // Touch drag handlers for mobile/tablet week view
-  const getMobileTargetIndexFromY = useCallback((clientY: number, date: string): number => {
-    const container = mobileContainerRefs.current[date];
-    if (!container) return 0;
-    const cards = container.querySelectorAll("[data-activity-id]");
-    let targetIndex = 0;
-
-    cards.forEach((card, index) => {
-      const rect = card.getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-      if (clientY > midY) {
-        targetIndex = index + 1;
+  const findIndexFromMidpoints = useCallback((midpoints: number[], clientY: number) => {
+    let low = 0;
+    let high = midpoints.length;
+    while (low < high) {
+      const mid = (low + high) >> 1;
+      if (clientY > midpoints[mid]) {
+        low = mid + 1;
+      } else {
+        high = mid;
       }
-    });
-
-    return targetIndex;
+    }
+    return low;
   }, []);
+
+  const getMobileTargetIndexFromY = useCallback((clientY: number, date: string): number => {
+    if (!dayMidpointsRef.current[date]) {
+      measureDayMidpoints(date);
+    }
+    const midpoints = dayMidpointsRef.current[date] ?? [];
+    if (midpoints.length === 0) return 0;
+    return findIndexFromMidpoints(midpoints, clientY);
+  }, [findIndexFromMidpoints, measureDayMidpoints]);
 
   const getBucketTargetIndexFromY = useCallback((
     clientY: number,
     columnKey: string
   ): { bucket: Extract<Bucket, "inbox" | "later">; index: number } | null => {
     const meta = bucketColumnMetaRef.current[columnKey];
-    const container = bucketContainerRefs.current[columnKey];
-    if (!meta || !container) return null;
-
-    const cards = container.querySelectorAll("[data-activity-id]");
-    let targetIndex = 0;
-
-    cards.forEach((card, index) => {
-      const rect = card.getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-      if (clientY > midY) {
-        targetIndex = index + 1;
-      }
-    });
-
+    if (!meta) return null;
+    if (!bucketMidpointsRef.current[columnKey]) {
+      measureBucketMidpoints(columnKey);
+    }
+    const midpoints = bucketMidpointsRef.current[columnKey] ?? [];
+    const targetIndex = findIndexFromMidpoints(midpoints, clientY);
     return { bucket: meta.bucket, index: meta.startIndex + targetIndex };
-  }, []);
+  }, [findIndexFromMidpoints, measureBucketMidpoints]);
 
   const getTouchTargetAtPosition = useCallback((
     clientX: number,
@@ -593,6 +730,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
       setMobilePreviewOrder({});
       setBucketPreviewOrder({});
       setMobileDragOverDate(meta.type === "day" ? meta.date : null);
+      clearMeasurementCaches();
 
       cachedDateRectsRef.current = {};
       for (const d of weekDates) {
@@ -607,6 +745,11 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
           cachedBucketRectsRef.current[key] = container.getBoundingClientRect();
         }
       });
+      if (meta.type === "day") {
+        scheduleMeasurement("day", meta.date);
+      } else {
+        scheduleMeasurement("bucket", meta.columnKey);
+      }
     },
     onDragMove: ({ id, clientX, clientY }) => {
       const detectedTarget =
@@ -635,10 +778,9 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
             ? computeAnchoredPreviewOrder(activitiesForDay, id, targetIndex)
             : computePlaceholderPreview(activitiesForDay, activity, targetIndex);
 
-        mobilePreviewOrderRef.current = { [targetDate]: preview };
-        bucketPreviewOrderRef.current = {};
-        throttledSetMobilePreview(targetDate, preview);
-        throttledSetBucketPreview(null, null);
+        updateMobilePreview(targetDate, preview);
+        updateBucketPreview(null, null);
+        scheduleMeasurement("day", targetDate);
       } else if (detectedTarget?.type === "bucket") {
         setMobileDragOverDate(null);
         const targetMeta = getBucketTargetIndexFromY(clientY, detectedTarget.columnKey);
@@ -651,16 +793,13 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
             ? computeAnchoredPreviewOrder(targetList, id, targetMeta.index)
             : computePlaceholderPreview(targetList, activity, targetMeta.index);
 
-        bucketPreviewOrderRef.current = { [targetMeta.bucket]: preview };
-        mobilePreviewOrderRef.current = {};
-        throttledSetBucketPreview(targetMeta.bucket, preview);
-        throttledSetMobilePreview(null, null);
+        updateBucketPreview(targetMeta.bucket, preview);
+        updateMobilePreview(null, null);
+        scheduleMeasurement("bucket", detectedTarget.columnKey);
       } else {
         setMobileDragOverDate(null);
-        mobilePreviewOrderRef.current = {};
-        bucketPreviewOrderRef.current = {};
-        throttledSetMobilePreview(null, null);
-        throttledSetBucketPreview(null, null);
+        updateMobilePreview(null, null);
+        updateBucketPreview(null, null);
       }
 
       startAutoScroll(clientY);
@@ -1061,7 +1200,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
                     <div
                       ref={(el) => { mobileContainerRefs.current[date] = el; }}
                       className="min-h-20 relative"
-                      onDragLeave={(e) => handleMobileDragLeave(e, date)}
+                      onDragLeave={handleMobileDragLeave}
                       onDragOver={(e) => handleMobileDragOver(e, date, displayActivities.length)}
                       onDrop={(e) => handleMobileDrop(e, date, displayActivities.length)}
                     >
