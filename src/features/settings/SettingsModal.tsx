@@ -1,11 +1,11 @@
-import type React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { downloadStateAsJson, importStateFromFile, useHakuStore } from '@/shared/state';
+import { ConfirmModal } from '@/shared/ui';
+import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from '@/shared/ui/animations';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, Linkedin, User } from 'lucide-react';
+import type React from 'react';
+import { useEffect, useRef, useState } from 'react';
 import pkg from '../../../package.json';
-import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from '@/shared/ui/animations';
-import { ConfirmModal } from '@/shared/ui';
-import { downloadStateAsJson, importStateFromFile, useHakuStore } from '@/shared/state';
 
 interface SettingsModalProps {
   open: boolean;
@@ -55,12 +55,10 @@ export default function SettingsModal({
   }, [open]);
 
   // Reset error state when modal closes
-  useEffect(() => {
-    if (!open) {
-      setImportError(null);
-      setIsResetConfirmOpen(false);
-    }
-  }, [open]);
+  if (!open && (importError || isResetConfirmOpen)) {
+    setImportError(null);
+    setIsResetConfirmOpen(false);
+  }
 
   function beginClose() {
     try {

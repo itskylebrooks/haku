@@ -1,6 +1,6 @@
-import { Share } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from '@/shared/ui/animations';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Share } from 'lucide-react';
 
 interface InstallInstructionsModalProps {
   open: boolean;
@@ -31,7 +31,8 @@ export default function InstallInstructionsModal({ open, onClose }: InstallInstr
             </div>
 
             <div className="space-y-4 text-sm text-[var(--color-text-primary)]">
-              {/iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream ? (
+              {/iPad|iPhone|iPod/.test(navigator.userAgent) &&
+              !(window as unknown as { MSStream?: unknown }).MSStream ? (
                 <ol className="list-decimal list-inside space-y-2">
                   <li>
                     Tap the <Share className="inline w-4 h-4 mx-1" /> Share button in your browser

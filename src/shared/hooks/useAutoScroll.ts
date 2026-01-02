@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 const SCROLL_ZONE = 80; // pixels from top/bottom to trigger scroll
 const SCROLL_SPEED = 10; // pixels per frame
@@ -47,7 +47,8 @@ export const useAutoScroll = (
   }, [scrollContainer, onScrolling]);
 
   // Animation loop using rAF for smooth 60fps scrolling
-  const scrollLoop = useCallback(() => {
+  const scrollLoopRef = useRef<(() => void) | undefined>(undefined);
+  scrollLoopRef.current = () => {
     const container = scrollContainerRef.current ?? window;
     const isWindow = !container || container === window;
     const direction = scrollDirectionRef.current;
@@ -63,6 +64,7 @@ export const useAutoScroll = (
       window.scrollBy(0, speed);
     } else {
       const elem = container as HTMLElement;
+      // eslint-disable-next-line react-hooks/immutability
       elem.scrollTop += speed;
     }
 
@@ -74,8 +76,10 @@ export const useAutoScroll = (
     }
 
     // Continue the loop
-    rafIdRef.current = requestAnimationFrame(scrollLoop);
-  }, []);
+    rafIdRef.current = requestAnimationFrame(() => scrollLoopRef.current?.());
+  };
+
+  const scrollLoop = useCallback(() => scrollLoopRef.current?.(), []);
 
   const updateAutoScroll = useCallback(
     (clientY: number) => {

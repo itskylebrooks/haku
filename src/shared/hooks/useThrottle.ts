@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 type ThrottledFunction<Args extends unknown[]> = ((...args: Args) => void) & {
   cancel: () => void;
@@ -60,12 +60,21 @@ export function useThrottledCallback<Args extends unknown[]>(
 
   useEffect(() => cancel, [cancel]);
 
-  return useMemo(
-    () =>
-      Object.assign(throttled, {
-        cancel,
-        flush: runPending,
-      }),
-    [cancel, runPending, throttled],
-  );
+  // Use a ref to store the enhanced function to avoid recreating it
+  const enhancedRef = useRef<ThrottledFunction<Args> | undefined>(undefined);
+  if (!enhancedRef.current) {
+    // Create a new function object with cancel and flush methods
+    const fn = ((...args: Args) => throttled(...args)) as ThrottledFunction<Args>;
+    // eslint-disable-next-line react-hooks/immutability
+    fn.cancel = cancel;
+    // eslint-disable-next-line react-hooks/immutability
+    fn.flush = runPending;
+    enhancedRef.current = fn;
+  } else {
+    // Update the methods in case dependencies changed
+    enhancedRef.current.cancel = cancel;
+    enhancedRef.current.flush = runPending;
+  }
+
+  return enhancedRef.current;
 }

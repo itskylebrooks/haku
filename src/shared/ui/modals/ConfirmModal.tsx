@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 interface ConfirmModalProps {
@@ -42,10 +42,11 @@ export default function ConfirmModal({
         cancelAnimationFrame(enterRaf.current);
       }
 
-      setVisible(true);
-      setClosing(false);
-      setEntering(true);
+      // Use rAF to batch state updates
       enterRaf.current = requestAnimationFrame(() => {
+        setVisible(true);
+        setClosing(false);
+        setEntering(true);
         enterRaf.current = requestAnimationFrame(() => {
           setEntering(false);
         });
@@ -54,7 +55,9 @@ export default function ConfirmModal({
     }
 
     if (visible) {
-      setClosing(true);
+      requestAnimationFrame(() => {
+        setClosing(true);
+      });
       closeTimer.current = window.setTimeout(() => {
         setVisible(false);
         setClosing(false);

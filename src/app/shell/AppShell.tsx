@@ -1,9 +1,9 @@
+import { useDesktopLayout } from '@/shared/hooks/useDesktopLayout';
+import type { Bucket } from '@/shared/types/activity';
 import type React from 'react';
 import DesktopHeader from './DesktopHeader';
 import MobileHeader from './MobileHeader';
 import MobileTabBar from './MobileTabBar';
-import { useDesktopLayout } from '@/shared/hooks/useDesktopLayout';
-import type { Bucket } from '@/shared/types/activity';
 
 type ViewMode = 'day' | 'week';
 type ActiveTab = 'board' | 'day' | 'week';
@@ -26,6 +26,7 @@ const AppShell = ({
   mode,
   activeTab,
   currentDate,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onModeChange: _onModeChange,
   onTabChange,
   onPrev,

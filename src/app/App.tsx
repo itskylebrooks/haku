@@ -1,15 +1,15 @@
-import { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { AddActivityModal } from '@/shared/ui';
+import { AppShell } from '@/app/shell';
+import { BoardPage } from '@/features/board';
+import { DayPage } from '@/features/day';
 import { InstallInstructionsModal, SettingsModal } from '@/features/settings';
+import { WeekPage } from '@/features/week';
 import { usePWA } from '@/shared/hooks/usePWA';
 import { useHakuStore, type ThemeMode } from '@/shared/state';
 import type { Bucket } from '@/shared/types/activity';
+import { AddActivityModal } from '@/shared/ui';
 import { FAST_TRANSITION, PAGE_VARIANTS } from '@/shared/ui/animations';
-import { AppShell } from '@/app/shell';
-import { DayPage } from '@/features/day';
-import { WeekPage } from '@/features/week';
-import { BoardPage } from '@/features/board';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useCallback, useEffect, useState } from 'react';
 
 type ViewMode = 'day' | 'week';
 type ActiveTab = 'board' | 'day' | 'week';
@@ -87,23 +87,26 @@ function App() {
     }
   };
   const handleOpenSettings = () => setIsSettingsOpen(true);
-  const handleOpenAddModal = (placement?: Bucket) => {
-    // If a placement override provided, use it. Otherwise derive from current tab.
-    if (placement) {
-      setAddModalInitialPlacement(placement);
-      setAddModalDefaultDate(placement === 'scheduled' ? todayIso() : undefined);
-    } else {
-      if (activeTab === 'board') {
-        setAddModalInitialPlacement('inbox');
-        setAddModalDefaultDate(undefined);
+  const handleOpenAddModal = useCallback(
+    (placement?: Bucket) => {
+      // If a placement override provided, use it. Otherwise derive from current tab.
+      if (placement) {
+        setAddModalInitialPlacement(placement);
+        setAddModalDefaultDate(placement === 'scheduled' ? todayIso() : undefined);
       } else {
-        // day/week -> schedule for today's date
-        setAddModalInitialPlacement('scheduled');
-        setAddModalDefaultDate(todayIso());
+        if (activeTab === 'board') {
+          setAddModalInitialPlacement('inbox');
+          setAddModalDefaultDate(undefined);
+        } else {
+          // day/week -> schedule for today's date
+          setAddModalInitialPlacement('scheduled');
+          setAddModalDefaultDate(todayIso());
+        }
       }
-    }
-    setIsAddModalOpen(true);
-  };
+      setIsAddModalOpen(true);
+    },
+    [activeTab],
+  );
 
   const handleCloseAddModal = () => {
     setIsAddModalOpen(false);
@@ -123,7 +126,7 @@ function App() {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [activeTab]);
+  }, [activeTab, handleOpenAddModal]);
 
   useEffect(() => {
     scrollToTop();

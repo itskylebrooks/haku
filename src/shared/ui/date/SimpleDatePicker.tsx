@@ -61,13 +61,13 @@ const SimpleDatePicker = ({ value, onChange, initialMonth }: SimpleDatePickerPro
   const [viewMonth, setViewMonth] = useState(initial.month);
 
   // Reset view when value changes externally
-  useEffect(() => {
-    if (value) {
-      const [y, m] = value.split('-').map(Number);
+  if (value) {
+    const [y, m] = value.split('-').map(Number);
+    if (y !== viewYear || m - 1 !== viewMonth) {
       setViewYear(y);
       setViewMonth(m - 1);
     }
-  }, [value]);
+  }
 
   // Close popup when clicking outside
   useEffect(() => {

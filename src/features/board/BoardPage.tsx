@@ -1,6 +1,9 @@
-import type React from 'react';
-import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { useAutoScroll } from '@/shared/hooks/useAutoScroll';
+import { useDesktopLayout } from '@/shared/hooks/useDesktopLayout';
+import { useThrottledCallback } from '@/shared/hooks/useThrottle';
+import { useTouchDragAndDrop } from '@/shared/hooks/useTouchDragAndDrop';
+import { getInboxActivities, getLaterActivities, useActivitiesStore } from '@/shared/state';
+import type { Activity, Bucket } from '@/shared/types/activity';
 import {
   ActivityCard,
   AddActivityModal,
@@ -11,17 +14,14 @@ import {
   WeekActivityRow,
 } from '@/shared/ui';
 import { FAST_TRANSITION } from '@/shared/ui/animations';
-import { useAutoScroll } from '@/shared/hooks/useAutoScroll';
-import { useThrottledCallback } from '@/shared/hooks/useThrottle';
-import { useTouchDragAndDrop } from '@/shared/hooks/useTouchDragAndDrop';
-import { useDesktopLayout } from '@/shared/hooks/useDesktopLayout';
-import type { Activity, Bucket } from '@/shared/types/activity';
 import {
   computeAnchoredPreviewOrder,
   computePlaceholderPreview,
   DRAG_PLACEHOLDER_ID,
 } from '@/shared/utils/activityOrdering';
-import { getInboxActivities, getLaterActivities, useActivitiesStore } from '@/shared/state';
+import { AnimatePresence, motion } from 'framer-motion';
+import type React from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const BoardPage = () => {
   const activities = useActivitiesStore((state) => state.activities);
@@ -87,13 +87,19 @@ const BoardPage = () => {
     32,
   );
 
+  const scrollContainerRef = useRef<HTMLElement | Window>(window);
   useEffect(() => {
     if (typeof document === 'undefined') return;
     const main = document.querySelector('main') as HTMLElement | null;
     if (main) {
-      setScrollContainer(main);
-    } else {
-      setScrollContainer(window);
+      scrollContainerRef.current = main;
+    }
+  }, []);
+
+  // Pass scrollContainerRef.current to setScrollContainer once after initial setup
+  useEffect(() => {
+    if (scrollContainerRef.current !== window) {
+      setScrollContainer(scrollContainerRef.current);
     }
   }, []);
 

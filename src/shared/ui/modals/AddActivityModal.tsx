@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Circle, Square, Diamond } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from '@/shared/ui/animations';
-import type { Activity, Bucket } from '@/shared/types/activity';
 import { useActivitiesStore } from '@/shared/state';
+import type { Activity, Bucket } from '@/shared/types/activity';
+import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from '@/shared/ui/animations';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Circle, Diamond, Square } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import SimpleDatePicker from '../date/SimpleDatePicker';
 import SimpleTimePicker from '../date/SimpleTimePicker';
 
@@ -159,17 +159,17 @@ const AddActivityModalContent = ({
     };
   }, []);
 
-  useEffect(() => {
-    if (scheduledTime === null) {
-      setDurationMinutes(null);
-      setIsDurationMenuOpen(false);
-
-      // Reset duplicate state when time is removed
-      setIsDuplicateMenuOpen(false);
-      setDuplicateCount(0);
-      setDuplicateInterval('day');
-    }
-  }, [scheduledTime]);
+  // Reset duration and duplicate state when scheduled time is removed
+  if (
+    scheduledTime === null &&
+    (durationMinutes !== null || isDuplicateMenuOpen || duplicateCount > 0)
+  ) {
+    setDurationMinutes(null);
+    setIsDurationMenuOpen(false);
+    setIsDuplicateMenuOpen(false);
+    setDuplicateCount(0);
+    setDuplicateInterval('day');
+  }
 
   useEffect(() => {
     if (!isDurationMenuOpen && !isDuplicateMenuOpen) {
@@ -203,11 +203,11 @@ const AddActivityModalContent = ({
     return undefined;
   }, [showNote]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     onClose();
-  };
+  }, [onClose]);
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     if (!trimmedTitle) return;
 
     let bucket: Bucket = 'inbox';
@@ -254,7 +254,7 @@ const AddActivityModalContent = ({
 
     // Handle duplicates if configured and we have a valid date (works for both edit and create)
     if (duplicateCount > 0 && dateValue) {
-      let baseDate = new Date(dateValue);
+      const baseDate = new Date(dateValue);
 
       for (let i = 1; i <= duplicateCount; i++) {
         const nextDate =
@@ -272,7 +272,21 @@ const AddActivityModalContent = ({
     }
 
     handleClose();
-  };
+  }, [
+    trimmedTitle,
+    placement,
+    scheduledDate,
+    scheduledTime,
+    durationMinutes,
+    note,
+    isEditMode,
+    onUpdate,
+    activityToEdit,
+    addActivity,
+    duplicateCount,
+    duplicateInterval,
+    handleClose,
+  ]);
 
   const handleDelete = () => {
     if (isEditMode && onDelete) {

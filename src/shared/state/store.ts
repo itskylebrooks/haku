@@ -10,14 +10,14 @@ import { create } from 'zustand';
 
 import type { Activity, Bucket } from '../types/activity';
 import { isScheduled } from '../types/activity';
-import type { Settings, ListsState, PersistedState } from './types';
+import { clearPersistedState, loadPersistedState } from './local';
+import type { ListsState, PersistedState, Settings } from './types';
 import {
+  CURRENT_SCHEMA_VERSION,
   getDefaultActivities,
   getDefaultListsState,
   getDefaultSettings,
-  CURRENT_SCHEMA_VERSION,
 } from './types';
-import { loadPersistedState, clearPersistedState } from './local';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -156,7 +156,8 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
 
     set((state) => {
       const now = nowIsoString();
-      const { updatedAt: _ignoredUpdatedAt, ...restUpdates } = updates;
+      const { updatedAt, ...restUpdates } = updates;
+      void updatedAt; // Mark as intentionally unused
       let modified = false;
 
       const activities = state.activities.map((activity): Activity => {
