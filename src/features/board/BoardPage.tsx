@@ -1,6 +1,6 @@
-import type React from "react";
-import { useMemo, useState, useRef, useCallback, useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import type React from 'react';
+import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   ActivityCard,
   AddActivityModal,
@@ -9,23 +9,19 @@ import {
   TouchDragOverlay,
   type TouchDragOverlayHandle,
   WeekActivityRow,
-} from "@/shared/ui";
-import { FAST_TRANSITION } from "@/shared/ui/animations";
-import { useAutoScroll } from "@/shared/hooks/useAutoScroll";
-import { useThrottledCallback } from "@/shared/hooks/useThrottle";
-import { useTouchDragAndDrop } from "@/shared/hooks/useTouchDragAndDrop";
-import { useDesktopLayout } from "@/shared/hooks/useDesktopLayout";
-import type { Activity, Bucket } from "@/shared/types/activity";
+} from '@/shared/ui';
+import { FAST_TRANSITION } from '@/shared/ui/animations';
+import { useAutoScroll } from '@/shared/hooks/useAutoScroll';
+import { useThrottledCallback } from '@/shared/hooks/useThrottle';
+import { useTouchDragAndDrop } from '@/shared/hooks/useTouchDragAndDrop';
+import { useDesktopLayout } from '@/shared/hooks/useDesktopLayout';
+import type { Activity, Bucket } from '@/shared/types/activity';
 import {
   computeAnchoredPreviewOrder,
   computePlaceholderPreview,
   DRAG_PLACEHOLDER_ID,
-} from "@/shared/utils/activityOrdering";
-import {
-  getInboxActivities,
-  getLaterActivities,
-  useActivitiesStore,
-} from "@/shared/state";
+} from '@/shared/utils/activityOrdering';
+import { getInboxActivities, getLaterActivities, useActivitiesStore } from '@/shared/state';
 
 const BoardPage = () => {
   const activities = useActivitiesStore((state) => state.activities);
@@ -39,7 +35,8 @@ const BoardPage = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [activityBeingEdited, setActivityBeingEdited] = useState<Activity | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [newActivityPlacement, setNewActivityPlacement] = useState<Extract<Bucket, "inbox" | "later">>("inbox");
+  const [newActivityPlacement, setNewActivityPlacement] =
+    useState<Extract<Bucket, 'inbox' | 'later'>>('inbox');
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [draggedCardHeight, setDraggedCardHeight] = useState<number>(72);
   const [previewInbox, setPreviewInbox] = useState<Activity[] | null>(null);
@@ -49,7 +46,7 @@ const BoardPage = () => {
   const inboxContainerRef = useRef<HTMLDivElement>(null);
   const laterContainerRef = useRef<HTMLDivElement>(null);
   const [scrollContainer, setScrollContainer] = useState<HTMLElement | Window | null>(null);
-  const touchDragBucketRef = useRef<Extract<Bucket, "inbox" | "later"> | null>(null);
+  const touchDragBucketRef = useRef<Extract<Bucket, 'inbox' | 'later'> | null>(null);
 
   // Callback to refresh cached container rects during autoscroll
   const refreshCachedRects = useCallback(() => {
@@ -70,7 +67,10 @@ const BoardPage = () => {
   const prefersTouchDrag = !isDesktop || shouldUseTouch;
   const enablePointerDrag = isDesktop && !shouldUseTouch;
   const [isTouchDrag, setIsTouchDrag] = useState(false);
-  const [touchDragOverBucket, setTouchDragOverBucket] = useState<Extract<Bucket, "inbox" | "later"> | null>(null);
+  const [touchDragOverBucket, setTouchDragOverBucket] = useState<Extract<
+    Bucket,
+    'inbox' | 'later'
+  > | null>(null);
   const overlayRef = useRef<TouchDragOverlayHandle>(null);
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
   const dragLeaveTimeoutRef = useRef<number | null>(null);
@@ -80,16 +80,16 @@ const BoardPage = () => {
   const lastBucketUpdateRef = useRef<number>(0);
   const throttledSetPreviewInbox = useThrottledCallback(
     (order: Activity[] | null) => setPreviewInbox(order),
-    32
+    32,
   );
   const throttledSetPreviewLater = useThrottledCallback(
     (order: Activity[] | null) => setPreviewLater(order),
-    32
+    32,
   );
 
   useEffect(() => {
-    if (typeof document === "undefined") return;
-    const main = document.querySelector("main") as HTMLElement | null;
+    if (typeof document === 'undefined') return;
+    const main = document.querySelector('main') as HTMLElement | null;
     if (main) {
       setScrollContainer(main);
     } else {
@@ -97,21 +97,13 @@ const BoardPage = () => {
     }
   }, []);
 
-  const inboxActivities = useMemo(
-    () => getInboxActivities(activities),
-    [activities]
-  );
-  const laterActivities = useMemo(
-    () => getLaterActivities(activities),
-    [activities]
-  );
+  const inboxActivities = useMemo(() => getInboxActivities(activities), [activities]);
+  const laterActivities = useMemo(() => getLaterActivities(activities), [activities]);
 
-  const displayInbox = isDesktop && !isTouchDrag
-    ? inboxActivities
-    : (previewInbox ?? inboxActivities);
-  const displayLater = isDesktop && !isTouchDrag
-    ? laterActivities
-    : (previewLater ?? laterActivities);
+  const displayInbox =
+    isDesktop && !isTouchDrag ? inboxActivities : (previewInbox ?? inboxActivities);
+  const displayLater =
+    isDesktop && !isTouchDrag ? laterActivities : (previewLater ?? laterActivities);
   const canShowDesktopAddSlot = isDesktop && !draggingId;
 
   const handleToggleDone = (id: string) => {
@@ -133,7 +125,7 @@ const BoardPage = () => {
     handleCloseEditModal();
   };
 
-  const handleOpenCreateModal = (placement: Extract<Bucket, "inbox" | "later">) => {
+  const handleOpenCreateModal = (placement: Extract<Bucket, 'inbox' | 'later'>) => {
     setNewActivityPlacement(placement);
     setIsCreateModalOpen(true);
   };
@@ -143,10 +135,10 @@ const BoardPage = () => {
   };
 
   const getBucketOrderedIds = (
-    bucket: Extract<Bucket, "inbox" | "later">,
-    excludeId?: string
+    bucket: Extract<Bucket, 'inbox' | 'later'>,
+    excludeId?: string,
   ): string[] => {
-    const items = bucket === "inbox" ? inboxActivities : laterActivities;
+    const items = bucket === 'inbox' ? inboxActivities : laterActivities;
     return items.filter((activity) => activity.id !== excludeId).map((activity) => activity.id);
   };
 
@@ -180,17 +172,17 @@ const BoardPage = () => {
       }
       resetDragState();
     };
-    window.addEventListener("dragend", reset, true);
-    window.addEventListener("drop", resetIfDroppedOutside, true);
+    window.addEventListener('dragend', reset, true);
+    window.addEventListener('drop', resetIfDroppedOutside, true);
     return () => {
-      window.removeEventListener("dragend", reset, true);
-      window.removeEventListener("drop", resetIfDroppedOutside, true);
+      window.removeEventListener('dragend', reset, true);
+      window.removeEventListener('drop', resetIfDroppedOutside, true);
     };
   }, [isDesktop, isTouchDrag, draggingId, enablePointerDrag, resetDragState]);
 
   const handleDragStart = (event: React.DragEvent<HTMLDivElement>, activity: Activity) => {
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", activity.id);
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', activity.id);
     setDraggingId(activity.id);
     setPreviewInbox(null);
     setPreviewLater(null);
@@ -207,18 +199,15 @@ const BoardPage = () => {
     resetDragState();
   };
 
-  const makeBucketZoneKey = (bucket: Extract<Bucket, "inbox" | "later">, index: number) =>
+  const makeBucketZoneKey = (bucket: Extract<Bucket, 'inbox' | 'later'>, index: number) =>
     `bucket-${bucket}-zone-${index}`;
-  const makeBucketAppendKey = (bucket: Extract<Bucket, "inbox" | "later">) =>
+  const makeBucketAppendKey = (bucket: Extract<Bucket, 'inbox' | 'later'>) =>
     `bucket-${bucket}-append`;
 
-  const handleDragOverZone = (
-    event: React.DragEvent<HTMLElement>,
-    key: string
-  ) => {
+  const handleDragOverZone = (event: React.DragEvent<HTMLElement>, key: string) => {
     event.preventDefault();
     event.stopPropagation();
-    event.dataTransfer.dropEffect = "move";
+    event.dataTransfer.dropEffect = 'move';
     if (dragLeaveTimeoutRef.current !== null) {
       window.clearTimeout(dragLeaveTimeoutRef.current);
       dragLeaveTimeoutRef.current = null;
@@ -229,10 +218,7 @@ const BoardPage = () => {
     startAutoScroll(event.clientY);
   };
 
-  const handleDragLeaveZone = (
-    event: React.DragEvent<HTMLElement> | null,
-    key: string
-  ) => {
+  const handleDragLeaveZone = (event: React.DragEvent<HTMLElement> | null, key: string) => {
     if (event) {
       const nextTarget = event.relatedTarget as Node | null;
       if (nextTarget && event.currentTarget.contains(nextTarget)) {
@@ -252,13 +238,13 @@ const BoardPage = () => {
 
   const handleDropOnBucket = (
     event: React.DragEvent<HTMLElement>,
-    bucket: Extract<Bucket, "inbox" | "later">,
-    targetIndex: number
+    bucket: Extract<Bucket, 'inbox' | 'later'>,
+    targetIndex: number,
   ) => {
     event.preventDefault();
     event.stopPropagation();
 
-    const droppedId = draggingId ?? event.dataTransfer.getData("text/plain");
+    const droppedId = draggingId ?? event.dataTransfer.getData('text/plain');
     const activity = droppedId ? activities.find((a) => a.id === droppedId) : null;
 
     if (!activity) {
@@ -267,7 +253,7 @@ const BoardPage = () => {
     }
 
     if (activity.bucket !== bucket) {
-      if (bucket === "inbox") {
+      if (bucket === 'inbox') {
         moveToInbox(activity.id);
       } else {
         moveToLater(activity.id);
@@ -282,56 +268,59 @@ const BoardPage = () => {
     resetDragState();
   };
 
-  const getTargetIndexFromY = useCallback((
-    clientY: number,
-    bucket: Extract<Bucket, "inbox" | "later">
-  ): number => {
-    const containerRef = bucket === "inbox" ? inboxContainerRef : laterContainerRef;
-    if (!containerRef.current) return 0;
-    const cards = containerRef.current.querySelectorAll("[data-activity-id]");
-    let targetIndex = 0;
+  const getTargetIndexFromY = useCallback(
+    (clientY: number, bucket: Extract<Bucket, 'inbox' | 'later'>): number => {
+      const containerRef = bucket === 'inbox' ? inboxContainerRef : laterContainerRef;
+      if (!containerRef.current) return 0;
+      const cards = containerRef.current.querySelectorAll('[data-activity-id]');
+      let targetIndex = 0;
 
-    cards.forEach((card, index) => {
-      const rect = card.getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-      if (clientY > midY) {
-        targetIndex = index + 1;
+      cards.forEach((card, index) => {
+        const rect = card.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        if (clientY > midY) {
+          targetIndex = index + 1;
+        }
+      });
+
+      return targetIndex;
+    },
+    [],
+  );
+
+  const getBucketAtPosition = useCallback(
+    (clientX: number, clientY: number): Extract<Bucket, 'inbox' | 'later'> | null => {
+      // Use cached rects to avoid layout thrashing
+      const inboxRect = inboxRectRef.current;
+      if (inboxRect) {
+        if (
+          clientX >= inboxRect.left &&
+          clientX <= inboxRect.right &&
+          clientY >= inboxRect.top &&
+          clientY <= inboxRect.bottom
+        ) {
+          return 'inbox';
+        }
       }
-    });
 
-    return targetIndex;
-  }, []);
-
-  const getBucketAtPosition = useCallback((clientX: number, clientY: number): Extract<Bucket, "inbox" | "later"> | null => {
-    // Use cached rects to avoid layout thrashing
-    const inboxRect = inboxRectRef.current;
-    if (inboxRect) {
-      if (
-        clientX >= inboxRect.left &&
-        clientX <= inboxRect.right &&
-        clientY >= inboxRect.top &&
-        clientY <= inboxRect.bottom
-      ) {
-        return "inbox";
+      const laterRect = laterRectRef.current;
+      if (laterRect) {
+        if (
+          clientX >= laterRect.left &&
+          clientX <= laterRect.right &&
+          clientY >= laterRect.top &&
+          clientY <= laterRect.bottom
+        ) {
+          return 'later';
+        }
       }
-    }
 
-    const laterRect = laterRectRef.current;
-    if (laterRect) {
-      if (
-        clientX >= laterRect.left &&
-        clientX <= laterRect.right &&
-        clientY >= laterRect.top &&
-        clientY <= laterRect.bottom
-      ) {
-        return "later";
-      }
-    }
+      return null;
+    },
+    [],
+  );
 
-    return null;
-  }, []);
-
-  const touchDnd = useTouchDragAndDrop<Extract<Bucket, "inbox" | "later">>({
+  const touchDnd = useTouchDragAndDrop<Extract<Bucket, 'inbox' | 'later'>>({
     enabled: prefersTouchDrag,
     overlayRef,
     scrollLock: {
@@ -351,11 +340,9 @@ const BoardPage = () => {
       refreshCachedRects();
     },
     onDragMove: ({ id, clientX, clientY }) => {
-      const originalBucket = touchDragBucketRef.current ?? "inbox";
+      const originalBucket = touchDragBucketRef.current ?? 'inbox';
       const detectedBucket =
-        getBucketAtPosition(clientX, clientY) ??
-        touchDragBucketRef.current ??
-        originalBucket;
+        getBucketAtPosition(clientX, clientY) ?? touchDragBucketRef.current ?? originalBucket;
 
       if (detectedBucket !== touchDragBucketRef.current) {
         touchDragBucketRef.current = detectedBucket;
@@ -373,9 +360,9 @@ const BoardPage = () => {
       if (!draggedActivity) return;
 
       if (draggedActivity.bucket === targetBucket) {
-        const sourceList = targetBucket === "inbox" ? inboxActivities : laterActivities;
+        const sourceList = targetBucket === 'inbox' ? inboxActivities : laterActivities;
         const newOrder = computeAnchoredPreviewOrder(sourceList, id, targetIndex);
-        if (targetBucket === "inbox") {
+        if (targetBucket === 'inbox') {
           previewInboxRef.current = newOrder;
           throttledSetPreviewInbox(newOrder);
           setPreviewLater(null);
@@ -387,9 +374,9 @@ const BoardPage = () => {
           previewInboxRef.current = null;
         }
       } else {
-        const targetList = targetBucket === "inbox" ? inboxActivities : laterActivities;
+        const targetList = targetBucket === 'inbox' ? inboxActivities : laterActivities;
         const newOrder = computePlaceholderPreview(targetList, draggedActivity, targetIndex);
-        if (targetBucket === "inbox") {
+        if (targetBucket === 'inbox') {
           previewInboxRef.current = newOrder;
           throttledSetPreviewInbox(newOrder);
           setPreviewLater(null);
@@ -408,20 +395,19 @@ const BoardPage = () => {
       if (!cancelled) {
         const draggedActivity = activities.find((a) => a.id === id);
         const targetBucket = touchDragBucketRef.current;
-        const preview = targetBucket === "later" ? previewLaterRef.current : previewInboxRef.current;
+        const preview =
+          targetBucket === 'later' ? previewLaterRef.current : previewInboxRef.current;
 
         if (draggedActivity && targetBucket && preview) {
           if (draggedActivity.bucket !== targetBucket) {
-            if (targetBucket === "inbox") {
+            if (targetBucket === 'inbox') {
               moveToInbox(id);
             } else {
               moveToLater(id);
             }
           }
 
-          const finalOrderedIds = preview.map((a) =>
-            a.id === DRAG_PLACEHOLDER_ID ? id : a.id
-          );
+          const finalOrderedIds = preview.map((a) => (a.id === DRAG_PLACEHOLDER_ID ? id : a.id));
           reorderInBucket(targetBucket, finalOrderedIds);
         }
       }
@@ -438,12 +424,12 @@ const BoardPage = () => {
 
   return (
     <>
-      <div className={`mx-auto w-full max-w-xl px-4 ${isDesktop ? "pt-0" : "pt-4"}`}>
+      <div className={`mx-auto w-full max-w-xl px-4 ${isDesktop ? 'pt-0' : 'pt-4'}`}>
         {isDesktop ? (
           <div className="space-y-8">
-            {(["inbox", "later"] as const).map((bucket) => {
-              const bucketActivities = bucket === "inbox" ? displayInbox : displayLater;
-              const label = bucket === "inbox" ? "Inbox" : "Later";
+            {(['inbox', 'later'] as const).map((bucket) => {
+              const bucketActivities = bucket === 'inbox' ? displayInbox : displayLater;
+              const label = bucket === 'inbox' ? 'Inbox' : 'Later';
               const appendKey = makeBucketAppendKey(bucket);
               const placeholderCount = Math.max(5 - bucketActivities.length, 0);
               const totalSlots = Math.max(placeholderCount, 1);
@@ -452,7 +438,7 @@ const BoardPage = () => {
               return (
                 <div
                   key={bucket}
-                  ref={bucket === "inbox" ? inboxContainerRef : laterContainerRef}
+                  ref={bucket === 'inbox' ? inboxContainerRef : laterContainerRef}
                   className="flex min-h-64 flex-col gap-2 px-1 py-3 rounded-xl"
                 >
                   <div className="flex items-baseline justify-between gap-2 px-1">
@@ -460,13 +446,25 @@ const BoardPage = () => {
                       <span>{label}</span>
                     </div>
                     <div className="text-base text-[var(--color-text-meta)] mr-3">
-                      {bucketActivities.length > 0 ? bucketActivities.length : ""}
+                      {bucketActivities.length > 0 ? bucketActivities.length : ''}
                     </div>
                   </div>
                   <div
-                    onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, appendKey) : undefined}
-                    onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, appendKey) : undefined}
-                    onDrop={enablePointerDrag ? (event) => handleDropOnBucket(event, bucket, zoneIndex) : undefined}
+                    onDragOver={
+                      enablePointerDrag
+                        ? (event) => handleDragOverZone(event, appendKey)
+                        : undefined
+                    }
+                    onDragLeave={
+                      enablePointerDrag
+                        ? (event) => handleDragLeaveZone(event, appendKey)
+                        : undefined
+                    }
+                    onDrop={
+                      enablePointerDrag
+                        ? (event) => handleDropOnBucket(event, bucket, zoneIndex)
+                        : undefined
+                    }
                   >
                     <>
                       {bucketActivities.map((activity) => {
@@ -484,9 +482,21 @@ const BoardPage = () => {
                           >
                             <Divider
                               isActive={dragOverKey === zoneKey}
-                              onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, zoneKey) : undefined}
-                              onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, zoneKey) : undefined}
-                              onDrop={enablePointerDrag ? (event) => handleDropOnBucket(event, bucket, dropIndex) : undefined}
+                              onDragOver={
+                                enablePointerDrag
+                                  ? (event) => handleDragOverZone(event, zoneKey)
+                                  : undefined
+                              }
+                              onDragLeave={
+                                enablePointerDrag
+                                  ? (event) => handleDragLeaveZone(event, zoneKey)
+                                  : undefined
+                              }
+                              onDrop={
+                                enablePointerDrag
+                                  ? (event) => handleDropOnBucket(event, bucket, dropIndex)
+                                  : undefined
+                              }
                             />
                             <WeekActivityRow
                               activity={activity}
@@ -496,12 +506,32 @@ const BoardPage = () => {
                               isDragging={draggingId === activity.id}
                               disableHover={draggingId !== null}
                               showNote
-                              onDragStart={enablePointerDrag ? (event) => handleDragStart(event, activity) : undefined}
+                              onDragStart={
+                                enablePointerDrag
+                                  ? (event) => handleDragStart(event, activity)
+                                  : undefined
+                              }
                               onDragEnd={enablePointerDrag ? handleDragEnd : undefined}
-                              onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, zoneKey) : undefined}
-                              onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, zoneKey) : undefined}
-                              onDrop={enablePointerDrag ? (event) => handleDropOnBucket(event, bucket, dropIndex) : undefined}
-                              onTouchStart={prefersTouchDrag ? touchDnd.getTouchStartProps(activity.id, bucket).onTouchStart : undefined}
+                              onDragOver={
+                                enablePointerDrag
+                                  ? (event) => handleDragOverZone(event, zoneKey)
+                                  : undefined
+                              }
+                              onDragLeave={
+                                enablePointerDrag
+                                  ? (event) => handleDragLeaveZone(event, zoneKey)
+                                  : undefined
+                              }
+                              onDrop={
+                                enablePointerDrag
+                                  ? (event) => handleDropOnBucket(event, bucket, dropIndex)
+                                  : undefined
+                              }
+                              onTouchStart={
+                                prefersTouchDrag
+                                  ? touchDnd.getTouchStartProps(activity.id, bucket).onTouchStart
+                                  : undefined
+                              }
                             />
                           </motion.div>
                         );
@@ -519,19 +549,41 @@ const BoardPage = () => {
                               <>
                                 <Divider
                                   isActive={dragOverKey === activeKey}
-                                  onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, activeKey) : undefined}
-                                  onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, activeKey) : undefined}
-                                  onDrop={enablePointerDrag ? (event) => handleDropOnBucket(event, bucket, dropIndex) : undefined}
+                                  onDragOver={
+                                    enablePointerDrag
+                                      ? (event) => handleDragOverZone(event, activeKey)
+                                      : undefined
+                                  }
+                                  onDragLeave={
+                                    enablePointerDrag
+                                      ? (event) => handleDragLeaveZone(event, activeKey)
+                                      : undefined
+                                  }
+                                  onDrop={
+                                    enablePointerDrag
+                                      ? (event) => handleDropOnBucket(event, bucket, dropIndex)
+                                      : undefined
+                                  }
                                 />
                                 <div
-                                  onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, activeKey) : undefined}
-                                  onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, activeKey) : undefined}
-                                  onDrop={enablePointerDrag ? (event) => handleDropOnBucket(event, bucket, dropIndex) : undefined}
+                                  onDragOver={
+                                    enablePointerDrag
+                                      ? (event) => handleDragOverZone(event, activeKey)
+                                      : undefined
+                                  }
+                                  onDragLeave={
+                                    enablePointerDrag
+                                      ? (event) => handleDragLeaveZone(event, activeKey)
+                                      : undefined
+                                  }
+                                  onDrop={
+                                    enablePointerDrag
+                                      ? (event) => handleDropOnBucket(event, bucket, dropIndex)
+                                      : undefined
+                                  }
                                 >
                                   {canShowDesktopAddSlot ? (
-                                    <EmptySlot
-                                      onClick={() => handleOpenCreateModal(bucket)}
-                                    />
+                                    <EmptySlot onClick={() => handleOpenCreateModal(bucket)} />
                                   ) : (
                                     <div className="min-h-[38px]" />
                                   )}
@@ -554,16 +606,13 @@ const BoardPage = () => {
           </div>
         ) : (
           <div>
-            <div
-              ref={inboxContainerRef}
-              className="mb-6"
-            >
+            <div ref={inboxContainerRef} className="mb-6">
               <div className="mb-2 text-base font-semibold text-[var(--color-text-primary)]">
                 Inbox
               </div>
               <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
               <div className="min-h-20 relative mb-6 group/section">
-                {displayInbox.length === 0 && touchDragOverBucket !== "inbox" && (
+                {displayInbox.length === 0 && touchDragOverBucket !== 'inbox' && (
                   <div className="absolute inset-0 flex items-start justify-center pointer-events-none transition-opacity">
                     <div className="w-full pt-[20px]">
                       <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
@@ -593,7 +642,9 @@ const BoardPage = () => {
                           disableHover={draggingId !== null}
                           onDragStart={(e) => handleDragStart(e, activity)}
                           onDragEnd={handleDragEnd}
-                          onTouchStart={touchDnd.getTouchStartProps(activity.id, "inbox").onTouchStart}
+                          onTouchStart={
+                            touchDnd.getTouchStartProps(activity.id, 'inbox').onTouchStart
+                          }
                         />
                       )}
                     </motion.div>
@@ -602,16 +653,13 @@ const BoardPage = () => {
               </div>
             </div>
 
-            <div
-              ref={laterContainerRef}
-              className="mb-4"
-            >
+            <div ref={laterContainerRef} className="mb-4">
               <div className="mb-2 text-base font-semibold text-[var(--color-text-primary)]">
                 Later
               </div>
               <div className="h-px w-full rounded-full bg-[var(--color-border-divider)] mb-2" />
               <div className="min-h-20 relative mb-4 group/section">
-                {displayLater.length === 0 && touchDragOverBucket !== "later" && (
+                {displayLater.length === 0 && touchDragOverBucket !== 'later' && (
                   <div className="absolute inset-0 flex items-start justify-center pointer-events-none transition-opacity">
                     <div className="w-full pt-[20px]">
                       <div className="h-px w-full rounded-full bg-[var(--color-border-divider)]" />
@@ -641,7 +689,9 @@ const BoardPage = () => {
                           disableHover={draggingId !== null}
                           onDragStart={(e) => handleDragStart(e, activity)}
                           onDragEnd={handleDragEnd}
-                          onTouchStart={touchDnd.getTouchStartProps(activity.id, "later").onTouchStart}
+                          onTouchStart={
+                            touchDnd.getTouchStartProps(activity.id, 'later').onTouchStart
+                          }
                         />
                       )}
                     </motion.div>
@@ -685,8 +735,8 @@ const BoardPage = () => {
                 <div className="shadow-xl rounded-md bg-[var(--color-surface)]">
                   <ActivityCard
                     activity={activity}
-                    onToggleDone={() => { }}
-                    onEdit={() => { }}
+                    onToggleDone={() => {}}
+                    onEdit={() => {}}
                     disableHover
                     forceHover
                   />

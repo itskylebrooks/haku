@@ -1,18 +1,18 @@
-import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { AddActivityModal } from "@/shared/ui";
-import { InstallInstructionsModal, SettingsModal } from "@/features/settings";
-import { usePWA } from "@/shared/hooks/usePWA";
-import { useHakuStore, type ThemeMode } from "@/shared/state";
-import type { Bucket } from "@/shared/types/activity";
-import { FAST_TRANSITION, PAGE_VARIANTS } from "@/shared/ui/animations";
-import { AppShell } from "@/app/shell";
-import { DayPage } from "@/features/day";
-import { WeekPage } from "@/features/week";
-import { BoardPage } from "@/features/board";
+import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { AddActivityModal } from '@/shared/ui';
+import { InstallInstructionsModal, SettingsModal } from '@/features/settings';
+import { usePWA } from '@/shared/hooks/usePWA';
+import { useHakuStore, type ThemeMode } from '@/shared/state';
+import type { Bucket } from '@/shared/types/activity';
+import { FAST_TRANSITION, PAGE_VARIANTS } from '@/shared/ui/animations';
+import { AppShell } from '@/app/shell';
+import { DayPage } from '@/features/day';
+import { WeekPage } from '@/features/week';
+import { BoardPage } from '@/features/board';
 
-type ViewMode = "day" | "week";
-type ActiveTab = "board" | "day" | "week";
+type ViewMode = 'day' | 'week';
+type ActiveTab = 'board' | 'day' | 'week';
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -22,18 +22,20 @@ const shiftDate = (isoDate: string, mode: ViewMode, direction: 1 | -1) => {
     return isoDate;
   }
 
-  const daysToMove = mode === "day" ? 1 : 7;
+  const daysToMove = mode === 'day' ? 1 : 7;
   date.setUTCDate(date.getUTCDate() + direction * daysToMove);
 
   return date.toISOString().slice(0, 10);
 };
 
 function App() {
-  const [mode, setMode] = useState<ViewMode>("day");
-  const [activeTab, setActiveTab] = useState<ActiveTab>("day");
+  const [mode, setMode] = useState<ViewMode>('day');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('day');
   const [currentDate, setCurrentDate] = useState<string>(todayIso());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [addModalInitialPlacement, setAddModalInitialPlacement] = useState<Bucket | undefined>(undefined);
+  const [addModalInitialPlacement, setAddModalInitialPlacement] = useState<Bucket | undefined>(
+    undefined,
+  );
   const [addModalDefaultDate, setAddModalDefaultDate] = useState<string | undefined>(undefined);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -43,11 +45,11 @@ function App() {
   const [isInstallInstructionsOpen, setIsInstallInstructionsOpen] = useState(false);
 
   const scrollToTop = () => {
-    const main = document.querySelector("main");
-    if (main && typeof (main as HTMLElement).scrollTo === "function") {
-      (main as HTMLElement).scrollTo({ top: 0, behavior: "auto" });
+    const main = document.querySelector('main');
+    if (main && typeof (main as HTMLElement).scrollTo === 'function') {
+      (main as HTMLElement).scrollTo({ top: 0, behavior: 'auto' });
     }
-    window.scrollTo({ top: 0, behavior: "auto" });
+    window.scrollTo({ top: 0, behavior: 'auto' });
   };
 
   // Get settings from persisted store
@@ -74,13 +76,13 @@ function App() {
   };
   const handleTabChange = (tab: ActiveTab) => {
     setActiveTab(tab);
-    if (tab === "day") {
-      setMode("day");
+    if (tab === 'day') {
+      setMode('day');
       setCurrentDate(todayIso());
-    } else if (tab === "week") {
-      setMode("week");
+    } else if (tab === 'week') {
+      setMode('week');
       setCurrentDate(todayIso());
-    } else if (tab === "board") {
+    } else if (tab === 'board') {
       setCurrentDate(todayIso());
     }
   };
@@ -89,14 +91,14 @@ function App() {
     // If a placement override provided, use it. Otherwise derive from current tab.
     if (placement) {
       setAddModalInitialPlacement(placement);
-      setAddModalDefaultDate(placement === "scheduled" ? todayIso() : undefined);
+      setAddModalDefaultDate(placement === 'scheduled' ? todayIso() : undefined);
     } else {
-      if (activeTab === "board") {
-        setAddModalInitialPlacement("inbox");
+      if (activeTab === 'board') {
+        setAddModalInitialPlacement('inbox');
         setAddModalDefaultDate(undefined);
       } else {
         // day/week -> schedule for today's date
-        setAddModalInitialPlacement("scheduled");
+        setAddModalInitialPlacement('scheduled');
         setAddModalDefaultDate(todayIso());
       }
     }
@@ -113,14 +115,14 @@ function App() {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       // Cmd/Ctrl+K to open add activity (context-sensitive)
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         handleOpenAddModal();
       }
     };
 
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, [activeTab]);
 
   useEffect(() => {
@@ -129,28 +131,28 @@ function App() {
 
   // Apply theme to document root
   useEffect(() => {
-    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+    const mql = window.matchMedia('(prefers-color-scheme: dark)');
     const applyTheme = () => {
       const resolved: ThemeMode =
-        themeMode === "system" ? (mql.matches ? "dark" : "light") : themeMode;
-      const shouldUseDark = resolved === "dark";
+        themeMode === 'system' ? (mql.matches ? 'dark' : 'light') : themeMode;
+      const shouldUseDark = resolved === 'dark';
       const root = document.documentElement;
-      root.classList.toggle("dark", shouldUseDark);
+      root.classList.toggle('dark', shouldUseDark);
       root.dataset.theme = resolved;
-      root.style.colorScheme = shouldUseDark ? "dark" : "light";
+      root.style.colorScheme = shouldUseDark ? 'dark' : 'light';
     };
 
     applyTheme();
 
     const handleChange = () => {
-      if (themeMode === "system") {
+      if (themeMode === 'system') {
         applyTheme();
       }
     };
 
-    mql.addEventListener("change", handleChange);
+    mql.addEventListener('change', handleChange);
     return () => {
-      mql.removeEventListener("change", handleChange);
+      mql.removeEventListener('change', handleChange);
     };
   }, [themeMode]);
 
@@ -160,24 +162,21 @@ function App() {
   // our content area can be sized without creating extra scroll space.
   useEffect(() => {
     const setAppHeightVar = () => {
-      document.documentElement.style.setProperty(
-        "--app-height",
-        `${window.innerHeight}px`
-      );
+      document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
     };
 
     setAppHeightVar();
-    window.addEventListener("resize", setAppHeightVar);
-    window.addEventListener("orientationchange", setAppHeightVar);
+    window.addEventListener('resize', setAppHeightVar);
+    window.addEventListener('orientationchange', setAppHeightVar);
     // Use visualViewport when available for smoother updates on mobile
     if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", setAppHeightVar);
+      window.visualViewport.addEventListener('resize', setAppHeightVar);
     }
     return () => {
-      window.removeEventListener("resize", setAppHeightVar);
-      window.removeEventListener("orientationchange", setAppHeightVar);
+      window.removeEventListener('resize', setAppHeightVar);
+      window.removeEventListener('orientationchange', setAppHeightVar);
       if (window.visualViewport) {
-        window.visualViewport.removeEventListener("resize", setAppHeightVar);
+        window.visualViewport.removeEventListener('resize', setAppHeightVar);
       }
     };
   }, []);
@@ -185,11 +184,9 @@ function App() {
   return (
     <div
       className="bg-[var(--color-page-bg)] text-[var(--color-text-primary)]"
-      style={{ height: "var(--app-height, 100vh)" }}
+      style={{ height: 'var(--app-height, 100vh)' }}
     >
-      <div
-        className="mx-auto flex h-full flex-col pb-10 pt-6 w-full"
-      >
+      <div className="mx-auto flex h-full flex-col pb-10 pt-6 w-full">
         <AppShell
           mode={mode}
           activeTab={activeTab}
@@ -203,7 +200,7 @@ function App() {
           onOpenAdd={handleOpenAddModal}
         >
           <AnimatePresence mode="wait">
-            {activeTab === "board" ? (
+            {activeTab === 'board' ? (
               <motion.div
                 key="board"
                 initial="initial"
@@ -215,7 +212,7 @@ function App() {
               >
                 <BoardPage />
               </motion.div>
-            ) : mode === "day" ? (
+            ) : mode === 'day' ? (
               <motion.div
                 key="day"
                 initial="initial"
@@ -225,7 +222,11 @@ function App() {
                 transition={FAST_TRANSITION}
                 className="min-h-full max-w-6xl mx-auto w-full"
               >
-                <DayPage activeDate={currentDate} onResetToday={handleResetToday} direction={direction} />
+                <DayPage
+                  activeDate={currentDate}
+                  onResetToday={handleResetToday}
+                  direction={direction}
+                />
               </motion.div>
             ) : (
               <motion.div
@@ -237,7 +238,12 @@ function App() {
                 transition={FAST_TRANSITION}
                 className="min-h-full w-full"
               >
-                <WeekPage activeDate={currentDate} weekStart={weekStart} onResetToday={handleResetToday} direction={direction} />
+                <WeekPage
+                  activeDate={currentDate}
+                  weekStart={weekStart}
+                  onResetToday={handleResetToday}
+                  direction={direction}
+                />
               </motion.div>
             )}
           </AnimatePresence>

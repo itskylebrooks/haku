@@ -1,5 +1,5 @@
-import type React from "react";
-import { useRef, useCallback } from "react";
+import type React from 'react';
+import { useRef, useCallback } from 'react';
 
 interface TouchDragConfig<T> {
   onDragStart?: (item: T, element: HTMLElement) => void;
@@ -19,17 +19,8 @@ interface TouchDragHandlers {
  * Hook for touch-based drag and drop on mobile devices.
  * Uses a long-press to initiate drag to distinguish from scrolling.
  */
-export function useTouchDrag<T>(
-  item: T,
-  config: TouchDragConfig<T>
-): TouchDragHandlers {
-  const {
-    onDragStart,
-    onDragMove,
-    onDragEnd,
-    onDragCancel,
-    longPressDelay = 150,
-  } = config;
+export function useTouchDrag<T>(item: T, config: TouchDragConfig<T>): TouchDragHandlers {
+  const { onDragStart, onDragMove, onDragEnd, onDragCancel, longPressDelay = 150 } = config;
 
   const longPressTimerRef = useRef<number | null>(null);
   const isDraggingRef = useRef(false);
@@ -57,11 +48,11 @@ export function useTouchDrag<T>(
         const element = event.currentTarget;
         onDragStart?.(item, element);
         // Prevent scrolling once drag starts
-        document.body.style.overflow = "hidden";
-        document.body.style.touchAction = "none";
+        document.body.style.overflow = 'hidden';
+        document.body.style.touchAction = 'none';
       }, longPressDelay);
     },
-    [item, onDragStart, longPressDelay, clearLongPressTimer]
+    [item, onDragStart, longPressDelay, clearLongPressTimer],
   );
 
   const onTouchMove = useCallback(
@@ -85,7 +76,7 @@ export function useTouchDrag<T>(
       event.preventDefault();
       onDragMove?.(item, touch.clientY, event.currentTarget);
     },
-    [item, onDragMove, clearLongPressTimer, onDragCancel]
+    [item, onDragMove, clearLongPressTimer, onDragCancel],
   );
 
   const onTouchEnd = useCallback(
@@ -95,13 +86,13 @@ export function useTouchDrag<T>(
       if (isDraggingRef.current) {
         event.preventDefault();
         onDragEnd?.(item, event.currentTarget);
-        document.body.style.overflow = "";
-        document.body.style.touchAction = "";
+        document.body.style.overflow = '';
+        document.body.style.touchAction = '';
       }
 
       isDraggingRef.current = false;
     },
-    [item, onDragEnd, clearLongPressTimer]
+    [item, onDragEnd, clearLongPressTimer],
   );
 
   return {

@@ -1,8 +1,7 @@
 /**
  * Buckets that represent where an activity currently lives.
  */
-export type Bucket = "inbox" | "later" | "scheduled";
-
+export type Bucket = 'inbox' | 'later' | 'scheduled';
 
 /**
  * Core domain entity describing a single piece of work (task or event) in Haku.
@@ -63,7 +62,7 @@ export const isAnchored = (activity: Activity): boolean => activity.time !== nul
  * Determines whether the activity is scheduled for a specific date.
  */
 export const isScheduled = (activity: Activity): boolean =>
-  activity.bucket === "scheduled" && activity.date !== null;
+  activity.bucket === 'scheduled' && activity.date !== null;
 
 /**
  * Indicates that the activity carries a positive duration in minutes.

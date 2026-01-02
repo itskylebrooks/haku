@@ -1,4 +1,4 @@
-import type { Activity } from "@/shared/types/activity";
+import type { Activity } from '@/shared/types/activity';
 
 /**
  * Distributes activities into two columns with the following rules:
@@ -10,9 +10,7 @@ import type { Activity } from "@/shared/types/activity";
  * @param activities - The activities to distribute
  * @returns A tuple of [firstColumnActivities, secondColumnActivities]
  */
-export const distributeIntoTwoColumns = (
-  activities: Activity[]
-): [Activity[], Activity[]] => {
+export const distributeIntoTwoColumns = (activities: Activity[]): [Activity[], Activity[]] => {
   const COLUMN_HEIGHT = 5;
   const maxItems = COLUMN_HEIGHT * 2 - 1; // 9 items max (one slot reserved for "Add")
 
@@ -27,15 +25,9 @@ export const distributeIntoTwoColumns = (
 
   if (activities.length <= maxItems) {
     // First column is full, remaining in second column
-    return [
-      activities.slice(0, COLUMN_HEIGHT),
-      activities.slice(COLUMN_HEIGHT),
-    ];
+    return [activities.slice(0, COLUMN_HEIGHT), activities.slice(COLUMN_HEIGHT)];
   }
 
   // More than maxItems: only show maxItems (rest are beyond the UI capacity)
-  return [
-    activities.slice(0, COLUMN_HEIGHT),
-    activities.slice(COLUMN_HEIGHT, maxItems),
-  ];
+  return [activities.slice(0, COLUMN_HEIGHT), activities.slice(COLUMN_HEIGHT, maxItems)];
 };

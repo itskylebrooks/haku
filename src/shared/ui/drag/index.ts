@@ -1,2 +1,2 @@
-export { TouchDragOverlay } from "./TouchDragOverlay";
-export type { TouchDragOverlayHandle } from "./TouchDragOverlay";
+export { TouchDragOverlay } from './TouchDragOverlay';
+export type { TouchDragOverlayHandle } from './TouchDragOverlay';

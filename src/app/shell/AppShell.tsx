@@ -1,12 +1,12 @@
-import type React from "react";
-import DesktopHeader from "./DesktopHeader";
-import MobileHeader from "./MobileHeader";
-import MobileTabBar from "./MobileTabBar";
-import { useDesktopLayout } from "@/shared/hooks/useDesktopLayout";
-import type { Bucket } from "@/shared/types/activity";
+import type React from 'react';
+import DesktopHeader from './DesktopHeader';
+import MobileHeader from './MobileHeader';
+import MobileTabBar from './MobileTabBar';
+import { useDesktopLayout } from '@/shared/hooks/useDesktopLayout';
+import type { Bucket } from '@/shared/types/activity';
 
-type ViewMode = "day" | "week";
-type ActiveTab = "board" | "day" | "week";
+type ViewMode = 'day' | 'week';
+type ActiveTab = 'board' | 'day' | 'week';
 
 interface AppShellProps {
   mode: ViewMode;
@@ -38,12 +38,12 @@ const AppShell = ({
   const { isDesktop } = useDesktopLayout();
   // Calculate prev/next based on active tab
   const handlePrev = () => {
-    if (activeTab === "board") return;
+    if (activeTab === 'board') return;
     onPrev();
   };
 
   const handleNext = () => {
-    if (activeTab === "board") return;
+    if (activeTab === 'board') return;
     onNext();
   };
 
@@ -80,18 +80,12 @@ const AppShell = ({
       {/* Make the main content scrollable (when needed) and fill remaining height */}
       <main className="flex-1 overflow-auto overscroll-contain">
         {children}
-        {!isDesktop && (
-          <div aria-hidden className="h-[var(--mobile-tabbar-reserved-safe)]" />
-        )}
+        {!isDesktop && <div aria-hidden className="h-[var(--mobile-tabbar-reserved-safe)]" />}
       </main>
 
       {/* Mobile Tab Bar - hidden on desktop */}
       {!isDesktop && (
-        <MobileTabBar
-          activeTab={activeTab}
-          onTabChange={onTabChange}
-          onAdd={onOpenAdd}
-        />
+        <MobileTabBar activeTab={activeTab} onTabChange={onTabChange} onAdd={onOpenAdd} />
       )}
     </>
   );

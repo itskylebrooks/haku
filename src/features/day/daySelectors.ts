@@ -1,4 +1,4 @@
-import { compareActivitiesByTime, type Activity } from "@/shared/types/activity";
+import { compareActivitiesByTime, type Activity } from '@/shared/types/activity';
 
 export interface DayViewData {
   overdue: Activity[];
@@ -56,17 +56,14 @@ const compareFlexibleActivities = (a: Activity, b: Activity): number => {
  * @param activeDate - The currently selected date in YYYY-MM-DD format
  * @returns Object containing overdue, todayAnchored, and todayFlexible arrays
  */
-export const getDayViewData = (
-  activities: Activity[],
-  activeDate: string
-): DayViewData => {
+export const getDayViewData = (activities: Activity[], activeDate: string): DayViewData => {
   const overdue: Activity[] = [];
   const todayAnchored: Activity[] = [];
   const todayFlexible: Activity[] = [];
 
   for (const activity of activities) {
     // Only consider scheduled activities
-    if (activity.bucket !== "scheduled" || activity.date === null) {
+    if (activity.bucket !== 'scheduled' || activity.date === null) {
       continue;
     }
 

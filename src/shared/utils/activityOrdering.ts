@@ -1,6 +1,6 @@
-import type { Activity } from "../types/activity";
+import type { Activity } from '../types/activity';
 
-export const DRAG_PLACEHOLDER_ID = "__DRAG_PLACEHOLDER__";
+export const DRAG_PLACEHOLDER_ID = '__DRAG_PLACEHOLDER__';
 
 const clampIndex = (targetIndex: number, maxLength: number) =>
   Math.min(Math.max(targetIndex, 0), maxLength);
@@ -29,7 +29,7 @@ const applyAnchoredOrdering = (merged: Activity[]): Activity[] => {
 export const computeAnchoredPreviewOrder = (
   activities: Activity[],
   draggedId: string,
-  targetIndex: number
+  targetIndex: number,
 ): Activity[] => {
   const dragged = activities.find((a) => a.id === draggedId);
   if (!dragged) return activities;
@@ -53,7 +53,7 @@ export const computeAnchoredPreviewOrder = (
 export const computePlaceholderPreview = (
   activities: Activity[],
   draggedActivity: Activity,
-  targetIndex: number
+  targetIndex: number,
 ): Activity[] => {
   const withoutDragged = activities.filter((a) => a.id !== draggedActivity.id);
   const clampedIndex = clampIndex(targetIndex, withoutDragged.length);

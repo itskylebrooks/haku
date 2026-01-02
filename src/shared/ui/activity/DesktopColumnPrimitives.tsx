@@ -1,5 +1,5 @@
-import type React from "react";
-import { CirclePlus } from "lucide-react";
+import type React from 'react';
+import { CirclePlus } from 'lucide-react';
 
 export const DesktopDivider = ({
   isActive = false,
@@ -33,19 +33,26 @@ export const DesktopDivider = ({
     }}
   >
     <div
-      className={`h-px w-full rounded-full transition-colors ${isActive ? "bg-[var(--color-text-meta)]" : "bg-[var(--color-border-divider)]"
-        }`}
+      className={`h-px w-full rounded-full transition-colors ${
+        isActive ? 'bg-[var(--color-text-meta)]' : 'bg-[var(--color-border-divider)]'
+      }`}
     />
   </div>
 );
 
-export const DesktopEmptySlot = ({ onClick, label = "New activity" }: { onClick: () => void; label?: string }) => (
+export const DesktopEmptySlot = ({
+  onClick,
+  label = 'New activity',
+}: {
+  onClick: () => void;
+  label?: string;
+}) => (
   <div
     role="button"
     tabIndex={0}
     onClick={onClick}
     onKeyDown={(e) => {
-      if (e.key === "Enter" || e.key === " ") {
+      if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         onClick();
       }

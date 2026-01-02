@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 @font-face {
-  font-family: "IBM Plex Sans";
-  src: url("/fonts/IBMPlexSans.woff2") format("woff2");
+  font-family: 'IBM Plex Sans';
+  src: url('/fonts/IBMPlexSans.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -26,10 +26,10 @@ input,
 textarea,
 select,
 option,
-[contenteditable="true"],
+[contenteditable='true'],
 input::selection,
 textarea::selection,
-[contenteditable="true"]::selection {
+[contenteditable='true']::selection {
   -webkit-user-select: text;
   -moz-user-select: text;
   -ms-user-select: text;
@@ -45,10 +45,9 @@ textarea::selection,
   user-select: text;
 }
 
-
 @font-face {
-  font-family: "IBM Plex Sans";
-  src: url("/fonts/IBMPlexSans-Italic.woff2") format("woff2");
+  font-family: 'IBM Plex Sans';
+  src: url('/fonts/IBMPlexSans-Italic.woff2') format('woff2');
   font-weight: 400;
   font-style: italic;
   font-display: swap;
@@ -113,7 +112,7 @@ textarea::selection,
 }
 
 /* Explicit theme overrides to honor user choice over system */
-html[data-theme="dark"],
+html[data-theme='dark'],
 .dark {
   color-scheme: dark;
   --color-page-bg: #000000;
@@ -161,7 +160,13 @@ body {
   @apply antialiased;
   background-color: var(--color-page-bg);
   color: var(--color-text-primary);
-  font-family: "IBM Plex Sans", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family:
+    'IBM Plex Sans',
+    'Inter',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
 }
 
 #root {

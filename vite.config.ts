@@ -1,7 +1,7 @@
-import path from 'node:path'
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
+import path from 'node:path';
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -15,7 +15,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       devOptions: {
-        enabled: true
+        enabled: true,
       },
       includeAssets: ['favicon.ico', 'icons/apple-touch-icon.png', 'icons/favicon.svg'],
       manifest: {
@@ -32,16 +32,16 @@ export default defineConfig({
             src: '/icons/web-app-manifest-192x192.png',
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any maskable',
           },
           {
             src: '/icons/web-app-manifest-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ]
-      }
-    })
+            purpose: 'any maskable',
+          },
+        ],
+      },
+    }),
   ],
-})
+});

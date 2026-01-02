@@ -1,2 +1,2 @@
-export { default as App } from "./App";
-export * from "./shell";
+export { default as App } from './App';
+export * from './shell';

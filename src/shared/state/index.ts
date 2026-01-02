@@ -13,7 +13,7 @@ export type {
   PersistedStateV1,
   WeekStart,
   ThemeMode,
-} from "./types";
+} from './types';
 
 export {
   CURRENT_SCHEMA_VERSION,
@@ -22,7 +22,7 @@ export {
   getDefaultListsState,
   getDefaultActivities,
   getDefaultPersistedState,
-} from "./types";
+} from './types';
 
 // Store
 export {
@@ -32,15 +32,13 @@ export {
   getActivitiesForDate,
   getActivitiesForWeek,
   createPersistedStateFromStore,
-} from "./store";
+} from './store';
 
-export type { HakuStoreState } from "./store";
+export type { HakuStoreState } from './store';
 
 // Backcompat alias for activity store naming
-export {
-  useActivitiesStore,
-} from "./activitiesStore";
-export type { ActivitiesState } from "./activitiesStore";
+export { useActivitiesStore } from './activitiesStore';
+export type { ActivitiesState } from './activitiesStore';
 
 // Local storage operations
 export {
@@ -49,7 +47,7 @@ export {
   clearPersistedState,
   migratePersistedState,
   isStorageAvailable,
-} from "./local";
+} from './local';
 
 // Export functionality
 export {
@@ -57,21 +55,12 @@ export {
   createDownloadForJson,
   downloadStateAsJson,
   createPersistedStateSnapshot,
-} from "./export";
+} from './export';
 
 // Import functionality
-export {
-  importStateFromJson,
-  importStateFromFile,
-  readFileAsText,
-} from "./import";
+export { importStateFromJson, importStateFromFile, readFileAsText } from './import';
 
-export type { ImportResult } from "./import";
+export type { ImportResult } from './import';
 
 // Initialization
-export {
-  initializePersistence,
-  cleanupPersistence,
-  persistNow,
-  setupUnloadHandler,
-} from "./init";
+export { initializePersistence, cleanupPersistence, persistNow, setupUnloadHandler } from './init';

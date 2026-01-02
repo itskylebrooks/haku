@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react';
 
 interface SimpleTimePickerProps {
   value: string | null;
@@ -10,8 +10,8 @@ const generateTimeOptions = (): string[] => {
   const options: string[] = [];
   for (let h = 0; h < 24; h++) {
     for (let m = 0; m < 60; m += 15) {
-      const hStr = String(h).padStart(2, "0");
-      const mStr = String(m).padStart(2, "0");
+      const hStr = String(h).padStart(2, '0');
+      const mStr = String(m).padStart(2, '0');
       options.push(`${hStr}:${mStr}`);
     }
   }
@@ -21,10 +21,10 @@ const generateTimeOptions = (): string[] => {
 const TIME_OPTIONS = generateTimeOptions();
 
 const formatDisplayTime = (timeStr: string): string => {
-  const [h, m] = timeStr.split(":").map(Number);
-  const period = h >= 12 ? "PM" : "AM";
+  const [h, m] = timeStr.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
   const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
+  return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
 };
 
 const SimpleTimePicker = ({ value, onChange }: SimpleTimePickerProps) => {
@@ -35,19 +35,16 @@ const SimpleTimePicker = ({ value, onChange }: SimpleTimePickerProps) => {
   // Close popup when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
 
     if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener('mousedown', handleClickOutside);
     }
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen]);
 
@@ -81,7 +78,7 @@ const SimpleTimePicker = ({ value, onChange }: SimpleTimePickerProps) => {
         className="w-full flex items-center justify-between gap-2 rounded-lg border border-[var(--color-border)] bg-transparent px-2 sm:px-3 py-2 text-sm text-[var(--color-text-primary)] transition hover:border-[var(--color-border-hover)] focus:border-[var(--color-border-focus)] focus:outline-none"
       >
         <span className="text-[var(--color-text-subtle)]">Time:</span>
-        <span>{value ? formatDisplayTime(value) : "None"}</span>
+        <span>{value ? formatDisplayTime(value) : 'None'}</span>
       </button>
 
       {/* Popup Time List */}
@@ -100,8 +97,8 @@ const SimpleTimePicker = ({ value, onChange }: SimpleTimePickerProps) => {
                   onClick={() => handleTimeClick(time)}
                   className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition ${
                     isSelected
-                      ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)]"
-                      : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                      ? 'bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)]'
+                      : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
                   }`}
                 >
                   <span className="tabular-nums">{formatDisplayTime(time)}</span>

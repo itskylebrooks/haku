@@ -1,18 +1,18 @@
 /**
  * Persistence types for Haku app state
- * 
+ *
  * This module defines the versioned schema for persisted data.
  * When the schema changes, create a new version and add migration logic.
  */
 
-import type { Activity } from "../types/activity";
+import type { Activity } from '../types/activity';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Settings
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type WeekStart = "sunday" | "monday";
-export type ThemeMode = "system" | "light" | "dark";
+export type WeekStart = 'sunday' | 'monday';
+export type ThemeMode = 'system' | 'light' | 'dark';
 
 export interface Settings {
   weekStart: WeekStart;
@@ -57,7 +57,7 @@ export const CURRENT_SCHEMA_VERSION = 1;
 /**
  * localStorage key for persisted state
  */
-export const STORAGE_KEY = "haku:v1:state";
+export const STORAGE_KEY = 'haku:v1:state';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Default Values
@@ -65,8 +65,8 @@ export const STORAGE_KEY = "haku:v1:state";
 
 export function getDefaultSettings(): Settings {
   return {
-    weekStart: "monday",
-    themeMode: "system",
+    weekStart: 'monday',
+    themeMode: 'system',
   };
 }
 
@@ -94,13 +94,13 @@ export function getDefaultActivities(): Activity[] {
   return [
     // Today (Day page) - anchored time example
     {
-      id: "seed_plan_week",
-      title: "Plan this week in Haku",
-      bucket: "scheduled",
+      id: 'seed_plan_week',
+      title: 'Plan this week in Haku',
+      bucket: 'scheduled',
       date: today,
       time: null,
       durationMinutes: null,
-      note: "Open me to see how an activity works.",
+      note: 'Open me to see how an activity works.',
       isDone: false,
       orderIndex: null,
       createdAt: now,
@@ -109,9 +109,9 @@ export function getDefaultActivities(): Activity[] {
 
     // Today (Day page) - flexible item you can drag
     {
-      id: "seed_drag_week",
-      title: "Drag me to another day on the Week page",
-      bucket: "scheduled",
+      id: 'seed_drag_week',
+      title: 'Drag me to another day on the Week page',
+      bucket: 'scheduled',
       date: today,
       time: null,
       durationMinutes: null,
@@ -124,11 +124,11 @@ export function getDefaultActivities(): Activity[] {
 
     // Today (Day page) - editable placeholder
     {
-      id: "seed_replace_first",
-      title: "Replace me with your first real activity",
-      bucket: "scheduled",
+      id: 'seed_replace_first',
+      title: 'Replace me with your first real activity',
+      bucket: 'scheduled',
       date: today,
-      time: "15:00",
+      time: '15:00',
       durationMinutes: null,
       note: null,
       isDone: false,
@@ -139,14 +139,14 @@ export function getDefaultActivities(): Activity[] {
 
     // Inbox - captured ideas
     {
-      id: "seed_inbox_example",
-      title: "This is Inbox: drop any idea here",
-      bucket: "inbox",
+      id: 'seed_inbox_example',
+      title: 'This is Inbox: drop any idea here',
+      bucket: 'inbox',
       date: null,
       time: null,
       durationMinutes: null,
 
-      note: "Try moving me to a day.",
+      note: 'Try moving me to a day.',
       isDone: false,
       orderIndex: 0,
       createdAt: now,
@@ -154,9 +154,9 @@ export function getDefaultActivities(): Activity[] {
     },
 
     {
-      id: "seed_inbox_capture",
-      title: "Capture one thing you want to do this week",
-      bucket: "inbox",
+      id: 'seed_inbox_capture',
+      title: 'Capture one thing you want to do this week',
+      bucket: 'inbox',
       date: null,
       time: null,
       durationMinutes: null,
@@ -169,14 +169,14 @@ export function getDefaultActivities(): Activity[] {
 
     // Later (Someday)
     {
-      id: "seed_someday_activity",
-      title: "A someday activity",
-      bucket: "later",
+      id: 'seed_someday_activity',
+      title: 'A someday activity',
+      bucket: 'later',
       date: null,
       time: null,
       durationMinutes: null,
 
-      note: "Move me back to a day when it becomes relevant.",
+      note: 'Move me back to a day when it becomes relevant.',
       isDone: false,
       orderIndex: 0,
       createdAt: now,
@@ -185,9 +185,9 @@ export function getDefaultActivities(): Activity[] {
 
     // Overdue (yesterday)
     {
-      id: "seed_overdue_example",
-      title: "Example overdue activity",
-      bucket: "scheduled",
+      id: 'seed_overdue_example',
+      title: 'Example overdue activity',
+      bucket: 'scheduled',
       date: yesterday,
       time: null,
       durationMinutes: null,
@@ -201,9 +201,9 @@ export function getDefaultActivities(): Activity[] {
 
     // Pre-fill Tomorrow - teaches quick rescheduling
     {
-      id: "seed_move_tomorrow",
-      title: "Move me to Today or Later",
-      bucket: "scheduled",
+      id: 'seed_move_tomorrow',
+      title: 'Move me to Today or Later',
+      bucket: 'scheduled',
       date: tomorrow,
       time: null,
       durationMinutes: null,

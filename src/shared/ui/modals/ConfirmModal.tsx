@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ConfirmModalProps {
   open: boolean;
@@ -19,10 +19,10 @@ export default function ConfirmModal({
   open,
   onClose,
   onConfirm,
-  title = "Are you sure?",
+  title = 'Are you sure?',
   message,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel = 'Confirm',
+  cancelLabel = 'Cancel',
   destructive = false,
 }: ConfirmModalProps) {
   const [visible, setVisible] = useState(open);
@@ -78,13 +78,13 @@ export default function ConfirmModal({
   useEffect(() => {
     if (!visible) return;
     const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = prev;
     };
   }, [visible]);
 
-  if (!visible || typeof document === "undefined") {
+  if (!visible || typeof document === 'undefined') {
     return null;
   }
 
@@ -92,7 +92,7 @@ export default function ConfirmModal({
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-[80] flex items-center justify-center p-5 transition-colors duration-200 ${overlayHidden ? "bg-transparent" : "bg-[var(--color-overlay)] backdrop-blur-sm"}`}
+      className={`fixed inset-0 z-[80] flex items-center justify-center p-5 transition-colors duration-200 ${overlayHidden ? 'bg-transparent' : 'bg-[var(--color-overlay)] backdrop-blur-sm'}`}
       onClick={() => {
         if (!closing) {
           onClose();
@@ -103,17 +103,13 @@ export default function ConfirmModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
-        className={`w-full max-w-sm rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-elevated)] transition-all duration-200 ${overlayHidden ? "opacity-0 scale-[0.95] translate-y-1" : "opacity-100 scale-100 translate-y-0"}`}
+        className={`w-full max-w-sm rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-elevated)] transition-all duration-200 ${overlayHidden ? 'opacity-0 scale-[0.95] translate-y-1' : 'opacity-100 scale-100 translate-y-0'}`}
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="confirm-title" className="text-base font-semibold text-[var(--color-text-primary)]">
           {title}
         </h2>
-        {message && (
-          <div className="mt-2 text-sm text-[var(--color-text-subtle)]">
-            {message}
-          </div>
-        )}
+        {message && <div className="mt-2 text-sm text-[var(--color-text-subtle)]">{message}</div>}
         <div className="mt-5 flex items-center justify-end gap-2">
           <button
             type="button"
@@ -130,8 +126,8 @@ export default function ConfirmModal({
             type="button"
             className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
               destructive
-                ? "bg-[var(--color-danger-text)] text-[var(--color-text-inverse)] hover:opacity-90"
-                : "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] hover:bg-[var(--color-emphasis-bg-hover)]"
+                ? 'bg-[var(--color-danger-text)] text-[var(--color-text-inverse)] hover:opacity-90'
+                : 'bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] hover:bg-[var(--color-emphasis-bg-hover)]'
             }`}
             onClick={() => {
               if (!closing) {
@@ -144,6 +140,6 @@ export default function ConfirmModal({
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

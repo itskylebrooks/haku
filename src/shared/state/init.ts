@@ -1,12 +1,12 @@
 /**
  * Persistence Initialization Module
- * 
+ *
  * Sets up a debounced subscription to automatically persist store state
  * to localStorage. This module should be imported once at app startup.
  */
 
-import { useHakuStore, createPersistedStateFromStore } from "./store";
-import { savePersistedState } from "./local";
+import { useHakuStore, createPersistedStateFromStore } from './store';
+import { savePersistedState } from './local';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Debounce Helper
@@ -14,7 +14,7 @@ import { savePersistedState } from "./local";
 
 function debounce<T extends (...args: never[]) => void>(
   fn: T,
-  delay: number
+  delay: number,
 ): T & { cancel: () => void } {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
@@ -66,15 +66,15 @@ const debouncedPersist = debounce(persistCurrentState, PERSIST_DEBOUNCE_MS);
 
 /**
  * Initializes the persistence subscription.
- * 
+ *
  * This sets up a Zustand store subscription that automatically
  * saves state changes to localStorage with debouncing.
- * 
+ *
  * Call this once at app startup (e.g., in main.tsx before rendering).
  */
 export function initializePersistence(): void {
   if (initialized) {
-    console.warn("[Haku] Persistence already initialized");
+    console.warn('[Haku] Persistence already initialized');
     return;
   }
 
@@ -88,7 +88,7 @@ export function initializePersistence(): void {
 
 /**
  * Cleans up the persistence subscription.
- * 
+ *
  * Useful for testing or hot module replacement scenarios.
  */
 export function cleanupPersistence(): void {
@@ -102,7 +102,7 @@ export function cleanupPersistence(): void {
 
 /**
  * Forces an immediate persist (bypasses debounce).
- * 
+ *
  * Useful before page unload or when you need guaranteed persistence.
  */
 export function persistNow(): void {
@@ -123,9 +123,9 @@ export function setupUnloadHandler(): () => void {
     persistNow();
   };
 
-  window.addEventListener("beforeunload", handleBeforeUnload);
+  window.addEventListener('beforeunload', handleBeforeUnload);
 
   return () => {
-    window.removeEventListener("beforeunload", handleBeforeUnload);
+    window.removeEventListener('beforeunload', handleBeforeUnload);
   };
 }

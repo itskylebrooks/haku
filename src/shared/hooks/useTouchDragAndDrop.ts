@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef } from "react";
-import type { RefObject, TouchEvent as ReactTouchEvent } from "react";
-import type { TouchDragOverlayHandle } from "@/shared/ui/drag";
+import { useCallback, useEffect, useRef } from 'react';
+import type { RefObject, TouchEvent as ReactTouchEvent } from 'react';
+import type { TouchDragOverlayHandle } from '@/shared/ui/drag';
 
 type Point = { x: number; y: number };
 
@@ -108,28 +108,31 @@ export function useTouchDragAndDrop<TMeta>({
       scrollLockCleanupRef.current();
       scrollLockCleanupRef.current = null;
     }
-    document.body.style.overscrollBehavior = "";
+    document.body.style.overscrollBehavior = '';
   }, []);
 
-  const endDrag = useCallback((cancelled: boolean) => {
-    const active = activeRef.current;
-    if (!active) return;
+  const endDrag = useCallback(
+    (cancelled: boolean) => {
+      const active = activeRef.current;
+      if (!active) return;
 
-    activeRef.current = null;
-    pendingRef.current = null;
-    clearLongPressTimer();
+      activeRef.current = null;
+      pendingRef.current = null;
+      clearLongPressTimer();
 
-    if (cleanupGlobalListenersRef.current) {
-      cleanupGlobalListenersRef.current();
-      cleanupGlobalListenersRef.current = null;
-    }
+      if (cleanupGlobalListenersRef.current) {
+        cleanupGlobalListenersRef.current();
+        cleanupGlobalListenersRef.current = null;
+      }
 
-    unlockScroll();
-    onDragEndRef.current({ id: active.id, meta: active.meta, cancelled });
-  }, [clearLongPressTimer, unlockScroll]);
+      unlockScroll();
+      onDragEndRef.current({ id: active.id, meta: active.meta, cancelled });
+    },
+    [clearLongPressTimer, unlockScroll],
+  );
 
   const lockScroll = useCallback(() => {
-    document.body.style.overscrollBehavior = "none";
+    document.body.style.overscrollBehavior = 'none';
 
     const container = scrollLock?.getScrollContainer?.() ?? null;
     const fallback = scrollLock?.getFallbackElement?.() ?? null;
@@ -140,9 +143,9 @@ export function useTouchDragAndDrop<TMeta>({
         touchAction: element.style.touchAction,
         overscrollBehavior: element.style.overscrollBehavior,
       };
-      element.style.overflow = "hidden";
-      element.style.touchAction = "none";
-      element.style.overscrollBehavior = "none";
+      element.style.overflow = 'hidden';
+      element.style.touchAction = 'none';
+      element.style.overscrollBehavior = 'none';
       return () => {
         element.style.overflow = prev.overflow;
         element.style.touchAction = prev.touchAction;
@@ -163,8 +166,8 @@ export function useTouchDragAndDrop<TMeta>({
       overflow: document.body.style.overflow,
       touchAction: document.body.style.touchAction,
     };
-    document.body.style.overflow = "hidden";
-    document.body.style.touchAction = "none";
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
     scrollLockCleanupRef.current = () => {
       document.body.style.overflow = prevBody.overflow;
       document.body.style.touchAction = prevBody.touchAction;
@@ -205,7 +208,7 @@ export function useTouchDragAndDrop<TMeta>({
 
       overlayRef.current?.updatePosition(
         touch.clientX - current.offsetX,
-        touch.clientY - current.offsetY
+        touch.clientY - current.offsetY,
       );
       onDragMoveRef.current({
         id: current.id,
@@ -221,18 +224,18 @@ export function useTouchDragAndDrop<TMeta>({
       const touch = findTouchById(event, current.touchId);
       if (!touch) return;
       event.preventDefault();
-      const isCancel = event.type === "touchcancel";
+      const isCancel = event.type === 'touchcancel';
       endDrag(isCancel);
     };
 
-    document.addEventListener("touchmove", onDocTouchMove, { passive: false });
-    document.addEventListener("touchend", onDocTouchEndOrCancel, { passive: false });
-    document.addEventListener("touchcancel", onDocTouchEndOrCancel, { passive: false });
+    document.addEventListener('touchmove', onDocTouchMove, { passive: false });
+    document.addEventListener('touchend', onDocTouchEndOrCancel, { passive: false });
+    document.addEventListener('touchcancel', onDocTouchEndOrCancel, { passive: false });
 
     cleanupGlobalListenersRef.current = () => {
-      document.removeEventListener("touchmove", onDocTouchMove);
-      document.removeEventListener("touchend", onDocTouchEndOrCancel);
-      document.removeEventListener("touchcancel", onDocTouchEndOrCancel);
+      document.removeEventListener('touchmove', onDocTouchMove);
+      document.removeEventListener('touchend', onDocTouchEndOrCancel);
+      document.removeEventListener('touchcancel', onDocTouchEndOrCancel);
     };
 
     onDragStartRef.current({
@@ -288,22 +291,25 @@ export function useTouchDragAndDrop<TMeta>({
         },
       };
     },
-    [clearLongPressTimer, enabled, longPressMs, startDragFromPending]
+    [clearLongPressTimer, enabled, longPressMs, startDragFromPending],
   );
 
-  const shouldCancelPendingForMove = useCallback((clientX: number, clientY: number) => {
-    const pending = pendingRef.current;
-    if (!pending) return false;
-    if (activeRef.current) return false;
-    const deltaX = Math.abs(clientX - pending.startX);
-    const deltaY = Math.abs(clientY - pending.startY);
-    if (deltaX > startMoveTolerancePx || deltaY > startMoveTolerancePx) {
-      clearLongPressTimer();
-      pendingRef.current = null;
-      return true;
-    }
-    return false;
-  }, [clearLongPressTimer, startMoveTolerancePx]);
+  const shouldCancelPendingForMove = useCallback(
+    (clientX: number, clientY: number) => {
+      const pending = pendingRef.current;
+      if (!pending) return false;
+      if (activeRef.current) return false;
+      const deltaX = Math.abs(clientX - pending.startX);
+      const deltaY = Math.abs(clientY - pending.startY);
+      if (deltaX > startMoveTolerancePx || deltaY > startMoveTolerancePx) {
+        clearLongPressTimer();
+        pendingRef.current = null;
+        return true;
+      }
+      return false;
+    },
+    [clearLongPressTimer, startMoveTolerancePx],
+  );
 
   useEffect(() => {
     if (!enabled) return;
@@ -326,13 +332,13 @@ export function useTouchDragAndDrop<TMeta>({
       pendingRef.current = null;
     };
 
-    document.addEventListener("touchmove", onDocTouchMovePreDrag, { passive: true });
-    document.addEventListener("touchend", onDocTouchEndPreDrag, { passive: true });
-    document.addEventListener("touchcancel", onDocTouchEndPreDrag, { passive: true });
+    document.addEventListener('touchmove', onDocTouchMovePreDrag, { passive: true });
+    document.addEventListener('touchend', onDocTouchEndPreDrag, { passive: true });
+    document.addEventListener('touchcancel', onDocTouchEndPreDrag, { passive: true });
     return () => {
-      document.removeEventListener("touchmove", onDocTouchMovePreDrag);
-      document.removeEventListener("touchend", onDocTouchEndPreDrag);
-      document.removeEventListener("touchcancel", onDocTouchEndPreDrag);
+      document.removeEventListener('touchmove', onDocTouchMovePreDrag);
+      document.removeEventListener('touchend', onDocTouchEndPreDrag);
+      document.removeEventListener('touchcancel', onDocTouchEndPreDrag);
     };
   }, [clearLongPressTimer, enabled, shouldCancelPendingForMove]);
 

@@ -1,23 +1,23 @@
 /**
  * Haku Store
- * 
+ *
  * Unified Zustand store combining activities, lists, and settings.
  * This store integrates with the persistence layer for automatic
  * saving and hydration from localStorage.
  */
 
-import { create } from "zustand";
+import { create } from 'zustand';
 
-import type { Activity, Bucket } from "../types/activity";
-import { isScheduled } from "../types/activity";
-import type { Settings, ListsState, PersistedState } from "./types";
+import type { Activity, Bucket } from '../types/activity';
+import { isScheduled } from '../types/activity';
+import type { Settings, ListsState, PersistedState } from './types';
 import {
   getDefaultActivities,
   getDefaultListsState,
   getDefaultSettings,
   CURRENT_SCHEMA_VERSION,
-} from "./types";
-import { loadPersistedState, clearPersistedState } from "./local";
+} from './types';
+import { loadPersistedState, clearPersistedState } from './local';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -40,27 +40,20 @@ export interface HakuStoreState {
 
   // Activity actions
   addActivity: (input: AddActivityInput) => Activity;
-  updateActivity: (
-    id: string,
-    updates: Partial<Omit<Activity, "id" | "createdAt">>
-  ) => void;
+  updateActivity: (id: string, updates: Partial<Omit<Activity, 'id' | 'createdAt'>>) => void;
   deleteActivity: (id: string) => void;
   moveToInbox: (id: string) => void;
   moveToLater: (id: string) => void;
   scheduleActivity: (id: string, date: string) => void;
   unscheduleToInbox: (id: string) => void;
-  setTime: (
-    id: string,
-    time: string | null,
-    durationMinutes?: number | null
-  ) => void;
+  setTime: (id: string, time: string | null, durationMinutes?: number | null) => void;
   toggleDone: (id: string) => void;
   reorderInDay: (date: string, orderedIds: string[]) => void;
-  reorderInBucket: (bucket: Extract<Bucket, "inbox" | "later">, orderedIds: string[]) => void;
+  reorderInBucket: (bucket: Extract<Bucket, 'inbox' | 'later'>, orderedIds: string[]) => void;
 
   // Settings actions
-  setWeekStart: (weekStart: Settings["weekStart"]) => void;
-  setThemeMode: (themeMode: Settings["themeMode"]) => void;
+  setWeekStart: (weekStart: Settings['weekStart']) => void;
+  setThemeMode: (themeMode: Settings['themeMode']) => void;
 
   // Persistence actions
   resetAllData: () => void;
@@ -79,10 +72,7 @@ const nowIsoString = () => new Date().toISOString();
 const todayIsoDate = () => new Date().toISOString().slice(0, 10);
 
 const isValidDuration = (value: number): boolean =>
-  Number.isFinite(value) &&
-  value >= 15 &&
-  value <= 300 &&
-  value % 15 === 0;
+  Number.isFinite(value) && value >= 15 && value <= 300 && value % 15 === 0;
 
 const normalizeDurationMinutes = (value?: number | null): number | null => {
   if (value === null || value === undefined) {
@@ -91,16 +81,14 @@ const normalizeDurationMinutes = (value?: number | null): number | null => {
   return isValidDuration(value) ? value : null;
 };
 
-
-
 const isScheduledWithTime = (bucket: Bucket, time: string | null): boolean =>
-  bucket === "scheduled" && time !== null;
+  bucket === 'scheduled' && time !== null;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Initial State
 // ─────────────────────────────────────────────────────────────────────────────
 
-function getInitialState(): Pick<HakuStoreState, "activities" | "lists" | "settings"> {
+function getInitialState(): Pick<HakuStoreState, 'activities' | 'lists' | 'settings'> {
   const persisted = loadPersistedState();
 
   if (persisted) {
@@ -134,15 +122,13 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
 
   addActivity: (input) => {
     const title = input.title.trim();
-    const bucket = input.bucket ?? "inbox";
+    const bucket = input.bucket ?? 'inbox';
     const now = nowIsoString();
 
-    const date = bucket === "scheduled" ? input.date ?? null : null;
-    const time = bucket === "scheduled" ? input.time ?? null : null;
+    const date = bucket === 'scheduled' ? (input.date ?? null) : null;
+    const time = bucket === 'scheduled' ? (input.time ?? null) : null;
     const anchored = isScheduledWithTime(bucket, time);
-    const durationMinutes = anchored
-      ? normalizeDurationMinutes(input.durationMinutes)
-      : null;
+    const durationMinutes = anchored ? normalizeDurationMinutes(input.durationMinutes) : null;
 
     const newActivity: Activity = {
       id: generateActivityId(),
@@ -179,18 +165,13 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
         }
 
         const requestedBucket = restUpdates.bucket ?? activity.bucket;
-        const nextIsDone =
-          restUpdates.isDone !== undefined ? restUpdates.isDone : activity.isDone;
+        const nextIsDone = restUpdates.isDone !== undefined ? restUpdates.isDone : activity.isDone;
         const nextBucket =
-          nextIsDone && requestedBucket !== "scheduled"
-            ? "scheduled"
-            : requestedBucket;
+          nextIsDone && requestedBucket !== 'scheduled' ? 'scheduled' : requestedBucket;
 
-        const nextDate =
-          nextBucket === "scheduled" ? restUpdates.date ?? activity.date : null;
+        const nextDate = nextBucket === 'scheduled' ? (restUpdates.date ?? activity.date) : null;
 
-        const rawTime =
-          restUpdates.time !== undefined ? restUpdates.time : activity.time;
+        const rawTime = restUpdates.time !== undefined ? restUpdates.time : activity.time;
         const anchored = isScheduledWithTime(nextBucket, rawTime);
         const nextTime = anchored ? rawTime : null;
 
@@ -198,17 +179,12 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
           restUpdates.durationMinutes !== undefined
             ? restUpdates.durationMinutes
             : activity.durationMinutes;
-        const nextDuration = anchored
-          ? normalizeDurationMinutes(rawDuration)
-          : null;
+        const nextDuration = anchored ? normalizeDurationMinutes(rawDuration) : null;
 
         const nextTitle = restUpdates.title ?? activity.title;
-        const nextNote =
-          restUpdates.note !== undefined ? restUpdates.note : activity.note;
+        const nextNote = restUpdates.note !== undefined ? restUpdates.note : activity.note;
         const nextOrderIndex =
-          restUpdates.orderIndex !== undefined
-            ? restUpdates.orderIndex
-            : activity.orderIndex;
+          restUpdates.orderIndex !== undefined ? restUpdates.orderIndex : activity.orderIndex;
 
         if (
           activity.bucket === nextBucket &&
@@ -260,16 +236,14 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
           return activity;
         }
         const needsUpdate =
-          activity.bucket !== "inbox" ||
-          activity.date !== null ||
-          activity.time !== null;
+          activity.bucket !== 'inbox' || activity.date !== null || activity.time !== null;
         if (!needsUpdate) {
           return activity;
         }
         changed = true;
         return {
           ...activity,
-          bucket: "inbox",
+          bucket: 'inbox',
           date: null,
           time: null,
           durationMinutes: null,
@@ -292,16 +266,14 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
           return activity;
         }
         const needsUpdate =
-          activity.bucket !== "later" ||
-          activity.date !== null ||
-          activity.time !== null;
+          activity.bucket !== 'later' || activity.date !== null || activity.time !== null;
         if (!needsUpdate) {
           return activity;
         }
         changed = true;
         return {
           ...activity,
-          bucket: "later",
+          bucket: 'later',
           date: null,
           time: null,
           durationMinutes: null,
@@ -320,13 +292,13 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
         if (activity.id !== id) {
           return activity;
         }
-        if (activity.bucket === "scheduled" && activity.date === date) {
+        if (activity.bucket === 'scheduled' && activity.date === date) {
           return activity;
         }
         changed = true;
         return {
           ...activity,
-          bucket: "scheduled",
+          bucket: 'scheduled',
           date,
           updatedAt: now,
         };
@@ -347,16 +319,14 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
           return activity;
         }
         const needsUpdate =
-          activity.bucket !== "inbox" ||
-          activity.date !== null ||
-          activity.time !== null;
+          activity.bucket !== 'inbox' || activity.date !== null || activity.time !== null;
         if (!needsUpdate) {
           return activity;
         }
         changed = true;
         return {
           ...activity,
-          bucket: "inbox",
+          bucket: 'inbox',
           date: null,
           time: null,
           durationMinutes: null,
@@ -380,17 +350,10 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
         const nextTime = anchored ? time : null;
 
         const rawDuration =
-          durationMinutes !== undefined
-            ? durationMinutes
-            : activity.durationMinutes;
-        const nextDuration = anchored
-          ? normalizeDurationMinutes(rawDuration)
-          : null;
+          durationMinutes !== undefined ? durationMinutes : activity.durationMinutes;
+        const nextDuration = anchored ? normalizeDurationMinutes(rawDuration) : null;
 
-        if (
-          activity.time === nextTime &&
-          activity.durationMinutes === nextDuration
-        ) {
+        if (activity.time === nextTime && activity.durationMinutes === nextDuration) {
           return activity;
         }
 
@@ -419,7 +382,7 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
 
         const nextIsDone = !activity.isDone;
         const shouldScheduleToday =
-          nextIsDone && (activity.bucket === "inbox" || activity.bucket === "later");
+          nextIsDone && (activity.bucket === 'inbox' || activity.bucket === 'later');
 
         changed = true;
 
@@ -433,7 +396,7 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
 
         return {
           ...activity,
-          bucket: "scheduled",
+          bucket: 'scheduled',
           date: today,
           time: null,
           durationMinutes: null,
@@ -547,7 +510,7 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
 
 export const getInboxActivities = (activities: Activity[]): Activity[] =>
   activities
-    .filter((activity) => activity.bucket === "inbox")
+    .filter((activity) => activity.bucket === 'inbox')
     .sort((a, b) => {
       if (a.orderIndex !== null && b.orderIndex !== null) {
         return a.orderIndex - b.orderIndex;
@@ -563,7 +526,7 @@ export const getInboxActivities = (activities: Activity[]): Activity[] =>
 
 export const getLaterActivities = (activities: Activity[]): Activity[] =>
   activities
-    .filter((activity) => activity.bucket === "later")
+    .filter((activity) => activity.bucket === 'later')
     .sort((a, b) => {
       if (a.orderIndex !== null && b.orderIndex !== null) {
         return a.orderIndex - b.orderIndex;
@@ -577,13 +540,8 @@ export const getLaterActivities = (activities: Activity[]): Activity[] =>
       return a.createdAt.localeCompare(b.createdAt);
     });
 
-export const getActivitiesForDate = (
-  activities: Activity[],
-  date: string
-): Activity[] =>
-  activities.filter(
-    (activity) => isScheduled(activity) && activity.date === date
-  );
+export const getActivitiesForDate = (activities: Activity[], date: string): Activity[] =>
+  activities.filter((activity) => isScheduled(activity) && activity.date === date);
 
 const getWeekDates = (weekStartDate: string): string[] => {
   const start = new Date(`${weekStartDate}T00:00:00.000Z`);
@@ -596,13 +554,16 @@ const getWeekDates = (weekStartDate: string): string[] => {
 
 export const getActivitiesForWeek = (
   activities: Activity[],
-  weekStartDate: string
+  weekStartDate: string,
 ): Record<string, Activity[]> => {
   const dates = getWeekDates(weekStartDate);
-  return dates.reduce<Record<string, Activity[]>>((acc, date) => {
-    acc[date] = getActivitiesForDate(activities, date);
-    return acc;
-  }, {} as Record<string, Activity[]>);
+  return dates.reduce<Record<string, Activity[]>>(
+    (acc, date) => {
+      acc[date] = getActivitiesForDate(activities, date);
+      return acc;
+    },
+    {} as Record<string, Activity[]>,
+  );
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

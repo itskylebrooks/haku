@@ -1,10 +1,10 @@
-import type React from "react";
-import { Circle, Grid2x2, Plus, Square } from "lucide-react";
-import { motion } from "framer-motion";
-import { SPRING_TRANSITION } from "@/shared/ui/animations";
-import type { Bucket } from "@/shared/types/activity";
+import type React from 'react';
+import { Circle, Grid2x2, Plus, Square } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { SPRING_TRANSITION } from '@/shared/ui/animations';
+import type { Bucket } from '@/shared/types/activity';
 
-type ActiveTab = "board" | "day" | "week";
+type ActiveTab = 'board' | 'day' | 'week';
 
 interface MobileTabBarProps {
   activeTab: ActiveTab;
@@ -14,18 +14,18 @@ interface MobileTabBarProps {
 
 const tabs: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
   {
-    id: "board",
-    label: "Board",
+    id: 'board',
+    label: 'Board',
     icon: <Circle className="block h-6 w-6" aria-hidden />,
   },
   {
-    id: "day",
-    label: "Day",
+    id: 'day',
+    label: 'Day',
     icon: <Square className="block h-6 w-6" aria-hidden />,
   },
   {
-    id: "week",
-    label: "Week",
+    id: 'week',
+    label: 'Week',
     icon: <Grid2x2 className="block h-6 w-6" aria-hidden />,
   },
 ];
@@ -46,11 +46,12 @@ const MobileTabBar = ({ activeTab, onTabChange, onAdd }: MobileTabBarProps) => {
                 type="button"
                 onClick={() => onTabChange(tab.id)}
                 aria-label={tab.label}
-                aria-current={isActive ? "page" : undefined}
-                className={`relative inline-flex h-12 w-16 items-center justify-center rounded-full leading-none transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${isActive
-                  ? "text-[var(--color-emphasis-text)] font-semibold shadow-sm"
-                  : "text-[var(--color-text-primary)] active:bg-[var(--color-surface-pressed)]"
-                  }`}
+                aria-current={isActive ? 'page' : undefined}
+                className={`relative inline-flex h-12 w-16 items-center justify-center rounded-full leading-none transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
+                  isActive
+                    ? 'text-[var(--color-emphasis-text)] font-semibold shadow-sm'
+                    : 'text-[var(--color-text-primary)] active:bg-[var(--color-surface-pressed)]'
+                }`}
               >
                 {isActive && (
                   <motion.div
@@ -71,10 +72,10 @@ const MobileTabBar = ({ activeTab, onTabChange, onAdd }: MobileTabBarProps) => {
         <button
           type="button"
           onClick={() => {
-            const placement: Bucket = activeTab === "board" ? "inbox" : "scheduled";
+            const placement: Bucket = activeTab === 'board' ? 'inbox' : 'scheduled';
             onAdd(placement);
           }}
-          aria-label={`Add activity (${activeTab === "board" ? "Inbox" : "Date"})`}
+          aria-label={`Add activity (${activeTab === 'board' ? 'Inbox' : 'Date'})`}
           className="inline-flex h-12 items-center justify-center rounded-full bg-[var(--color-emphasis-bg)] px-5 text-[var(--color-emphasis-text)] font-semibold shadow-sm transition hover:bg-[var(--color-emphasis-bg-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] active:scale-[0.99]"
         >
           <Plus className="h-5 w-5" />

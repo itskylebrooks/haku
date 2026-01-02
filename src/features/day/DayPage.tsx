@@ -1,7 +1,7 @@
-import type React from "react";
-import { useMemo, useState, useRef, useCallback, useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { FlagTriangleRight } from "lucide-react";
+import type React from 'react';
+import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { FlagTriangleRight } from 'lucide-react';
 import {
   ActivityCard,
   AddActivityModal,
@@ -10,20 +10,20 @@ import {
   TouchDragOverlay,
   type TouchDragOverlayHandle,
   WeekActivityRow,
-} from "@/shared/ui";
-import { useAutoScroll } from "@/shared/hooks/useAutoScroll";
-import { useDesktopLayout } from "@/shared/hooks/useDesktopLayout";
-import { useThrottledCallback } from "@/shared/hooks/useThrottle";
-import { useTouchDragAndDrop } from "@/shared/hooks/useTouchDragAndDrop";
-import { FAST_TRANSITION, SLIDE_VARIANTS } from "@/shared/ui/animations";
-import type { Activity } from "@/shared/types/activity";
+} from '@/shared/ui';
+import { useAutoScroll } from '@/shared/hooks/useAutoScroll';
+import { useDesktopLayout } from '@/shared/hooks/useDesktopLayout';
+import { useThrottledCallback } from '@/shared/hooks/useThrottle';
+import { useTouchDragAndDrop } from '@/shared/hooks/useTouchDragAndDrop';
+import { FAST_TRANSITION, SLIDE_VARIANTS } from '@/shared/ui/animations';
+import type { Activity } from '@/shared/types/activity';
 import {
   computeAnchoredPreviewOrder,
   computePlaceholderPreview,
   DRAG_PLACEHOLDER_ID,
-} from "@/shared/utils/activityOrdering";
-import { useActivitiesStore } from "@/shared/state";
-import { getDayViewData } from "./daySelectors";
+} from '@/shared/utils/activityOrdering';
+import { useActivitiesStore } from '@/shared/state';
+import { getDayViewData } from './daySelectors';
 
 interface DayPageProps {
   activeDate: string;
@@ -62,12 +62,12 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
   // Throttle preview order updates to max 30fps for better performance on Android
   const throttledSetPreviewOrder = useThrottledCallback(
     (order: Activity[] | null) => setPreviewOrder(order),
-    32
+    32,
   );
 
   useEffect(() => {
-    if (typeof document === "undefined") return;
-    const main = document.querySelector("main") as HTMLElement | null;
+    if (typeof document === 'undefined') return;
+    const main = document.querySelector('main') as HTMLElement | null;
     if (main) {
       setScrollContainer(main);
     } else {
@@ -77,7 +77,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
 
   const { overdue, todayAnchored, todayFlexible } = useMemo(
     () => getDayViewData(activities, activeDate),
-    [activities, activeDate]
+    [activities, activeDate],
   );
 
   const todayActivities = useMemo(() => {
@@ -115,14 +115,13 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     return combined;
   }, [todayAnchored, todayFlexible]);
 
-  const displayActivities = isDesktop && !isTouchDrag
-    ? todayActivities
-    : (previewOrder ?? todayActivities);
+  const displayActivities =
+    isDesktop && !isTouchDrag ? todayActivities : (previewOrder ?? todayActivities);
 
   const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const isToday = activeDate === todayIso;
   const isPast = activeDate < todayIso;
-  const mobileListTitle = isToday ? "Today" : isPast ? "Past" : "Future";
+  const mobileListTitle = isToday ? 'Today' : isPast ? 'Past' : 'Future';
   const hasOverdue = overdue.length > 0 && isToday;
   const hasDisplayActivities = displayActivities.length > 0;
 
@@ -176,17 +175,17 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
       }
       resetDragState();
     };
-    window.addEventListener("dragend", reset, true);
-    window.addEventListener("drop", resetIfDroppedOutside, true);
+    window.addEventListener('dragend', reset, true);
+    window.addEventListener('drop', resetIfDroppedOutside, true);
     return () => {
-      window.removeEventListener("dragend", reset, true);
-      window.removeEventListener("drop", resetIfDroppedOutside, true);
+      window.removeEventListener('dragend', reset, true);
+      window.removeEventListener('drop', resetIfDroppedOutside, true);
     };
   }, [isDesktop, isTouchDrag, draggingId, enablePointerDrag, resetDragState]);
 
   const handleDragStart = (event: React.DragEvent<HTMLDivElement>, activity: Activity) => {
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", activity.id);
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', activity.id);
     setDraggingId(activity.id);
     setPreviewOrder(null);
     setDragOverKey(null);
@@ -203,12 +202,12 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
   };
 
   const makeTodayZoneKey = (zoneIndex: number) => `today-zone-${zoneIndex}`;
-  const todayAppendKey = "today-append";
+  const todayAppendKey = 'today-append';
 
   const handleDragOverZone = (event: React.DragEvent<HTMLElement>, key: string) => {
     event.preventDefault();
     event.stopPropagation();
-    event.dataTransfer.dropEffect = "move";
+    event.dataTransfer.dropEffect = 'move';
     if (dragLeaveTimeoutRef.current !== null) {
       window.clearTimeout(dragLeaveTimeoutRef.current);
       dragLeaveTimeoutRef.current = null;
@@ -219,10 +218,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     startAutoScroll(event.clientY);
   };
 
-  const handleDragLeaveZone = (
-    event: React.DragEvent<HTMLElement> | null,
-    key: string
-  ) => {
+  const handleDragLeaveZone = (event: React.DragEvent<HTMLElement> | null, key: string) => {
     if (event) {
       const nextTarget = event.relatedTarget as Node | null;
       if (nextTarget && event.currentTarget.contains(nextTarget)) {
@@ -244,7 +240,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     event.preventDefault();
     event.stopPropagation();
 
-    const droppedId = draggingId ?? event.dataTransfer.getData("text/plain");
+    const droppedId = draggingId ?? event.dataTransfer.getData('text/plain');
     const activity = droppedId ? activities.find((a) => a.id === droppedId) : null;
 
     if (!activity) {
@@ -252,9 +248,9 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
       return;
     }
 
-    const sourceDate = activity.bucket === "scheduled" ? activity.date : null;
+    const sourceDate = activity.bucket === 'scheduled' ? activity.date : null;
 
-    if (!(activity.bucket === "scheduled" && activity.date === activeDate)) {
+    if (!(activity.bucket === 'scheduled' && activity.date === activeDate)) {
       scheduleActivity(activity.id, activeDate);
     }
 
@@ -272,10 +268,12 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
       ...withoutDropped.slice(clampedIndex),
     ];
 
-    const anchored = merged.filter((item) => item.time !== null).sort((a, b) => {
-      if (a.time === null || b.time === null) return 0;
-      return a.time.localeCompare(b.time);
-    });
+    const anchored = merged
+      .filter((item) => item.time !== null)
+      .sort((a, b) => {
+        if (a.time === null || b.time === null) return 0;
+        return a.time.localeCompare(b.time);
+      });
     let anchoredPtr = 0;
     const finalOrder = merged.map((item) => {
       if (item.time !== null) {
@@ -284,14 +282,17 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
       return item;
     });
 
-    reorderInDay(activeDate, finalOrder.map((item) => item.id));
+    reorderInDay(
+      activeDate,
+      finalOrder.map((item) => item.id),
+    );
     resetDragState();
   };
 
   // Touch drag handlers for mobile/tablet
   const getTargetIndexFromY = useCallback((clientY: number): number => {
     if (!containerRef.current) return 0;
-    const cards = containerRef.current.querySelectorAll("[data-activity-id]");
+    const cards = containerRef.current.querySelectorAll('[data-activity-id]');
     let targetIndex = 0;
 
     cards.forEach((card, index) => {
@@ -325,7 +326,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
       if (!draggedActivity) return;
 
       const nextPreview =
-        draggedActivity.bucket === "scheduled" && draggedActivity.date === activeDate
+        draggedActivity.bucket === 'scheduled' && draggedActivity.date === activeDate
           ? computeAnchoredPreviewOrder(todayActivities, id, targetIndex)
           : computePlaceholderPreview(todayActivities, draggedActivity, targetIndex);
 
@@ -336,12 +337,15 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     onDragEnd: ({ id, cancelled }) => {
       if (!cancelled && previewOrderRef.current) {
         const draggedActivity = activities.find((a) => a.id === id);
-        if (draggedActivity && !(draggedActivity.bucket === "scheduled" && draggedActivity.date === activeDate)) {
+        if (
+          draggedActivity &&
+          !(draggedActivity.bucket === 'scheduled' && draggedActivity.date === activeDate)
+        ) {
           scheduleActivity(id, activeDate);
         }
 
         const finalOrderedIds = previewOrderRef.current.map((a) =>
-          a.id === DRAG_PLACEHOLDER_ID ? id : a.id
+          a.id === DRAG_PLACEHOLDER_ID ? id : a.id,
         );
         reorderInDay(activeDate, finalOrderedIds);
       }
@@ -353,13 +357,13 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
   });
 
   const formattedDate = useMemo(() => {
-    if (!activeDate) return "";
+    if (!activeDate) return '';
     const date = new Date(`${activeDate}T00:00:00Z`);
     if (Number.isNaN(date.getTime())) return activeDate;
-    return date.toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
+    return date.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
     });
   }, [activeDate]);
 
@@ -367,7 +371,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
 
   return (
     <>
-      <div className={`mx-auto w-full max-w-xl px-4 ${isDesktop ? "pt-0" : "pt-4"}`}>
+      <div className={`mx-auto w-full max-w-xl px-4 ${isDesktop ? 'pt-0' : 'pt-4'}`}>
         <AnimatePresence mode="popLayout" custom={direction} initial={false}>
           <motion.div
             key={activeDate}
@@ -377,7 +381,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
             animate="center"
             exit="exit"
             transition={FAST_TRANSITION}
-            className={isDesktop ? "mt-0" : "mt-0 md:mt-5"}
+            className={isDesktop ? 'mt-0' : 'mt-0 md:mt-5'}
             ref={containerRef}
           >
             {isDesktop ? (
@@ -390,7 +394,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
 
                     return (
                       <div className="flex min-h-64 flex-col gap-2 px-1 py-3 rounded-xl">
-                      <div className="flex items-baseline justify-between gap-2 px-1">
+                        <div className="flex items-baseline justify-between gap-2 px-1">
                           <button
                             type="button"
                             onClick={onResetToday}
@@ -398,7 +402,9 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                             aria-label="Go to today"
                           >
                             <span>{formattedDate}</span>
-                            {isToday && <FlagTriangleRight className="h-3.5 w-3.5 text-[var(--color-text-meta)]" />}
+                            {isToday && (
+                              <FlagTriangleRight className="h-3.5 w-3.5 text-[var(--color-text-meta)]" />
+                            )}
                           </button>
                         </div>
                         <div
@@ -423,9 +429,21 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                                 >
                                   <Divider
                                     isActive={dragOverKey === zoneKey}
-                                    onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, zoneKey) : undefined}
-                                    onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, zoneKey) : undefined}
-                                    onDrop={enablePointerDrag ? (event) => handleDropOnToday(event, dropIndex) : undefined}
+                                    onDragOver={
+                                      enablePointerDrag
+                                        ? (event) => handleDragOverZone(event, zoneKey)
+                                        : undefined
+                                    }
+                                    onDragLeave={
+                                      enablePointerDrag
+                                        ? (event) => handleDragLeaveZone(event, zoneKey)
+                                        : undefined
+                                    }
+                                    onDrop={
+                                      enablePointerDrag
+                                        ? (event) => handleDropOnToday(event, dropIndex)
+                                        : undefined
+                                    }
                                   />
                                   {isPlaceholder ? (
                                     <div style={{ height: `${draggedCardHeight}px` }} />
@@ -438,12 +456,33 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                                       isDragging={draggingId === activity.id}
                                       disableHover={draggingId !== null}
                                       showNote
-                                      onDragStart={enablePointerDrag ? (event) => handleDragStart(event, activity) : undefined}
+                                      onDragStart={
+                                        enablePointerDrag
+                                          ? (event) => handleDragStart(event, activity)
+                                          : undefined
+                                      }
                                       onDragEnd={enablePointerDrag ? handleDragEnd : undefined}
-                                      onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, zoneKey) : undefined}
-                                      onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, zoneKey) : undefined}
-                                      onDrop={enablePointerDrag ? (event) => handleDropOnToday(event, dropIndex) : undefined}
-                                      onTouchStart={prefersTouchDrag ? touchDnd.getTouchStartProps(activity.id, null).onTouchStart : undefined}
+                                      onDragOver={
+                                        enablePointerDrag
+                                          ? (event) => handleDragOverZone(event, zoneKey)
+                                          : undefined
+                                      }
+                                      onDragLeave={
+                                        enablePointerDrag
+                                          ? (event) => handleDragLeaveZone(event, zoneKey)
+                                          : undefined
+                                      }
+                                      onDrop={
+                                        enablePointerDrag
+                                          ? (event) => handleDropOnToday(event, dropIndex)
+                                          : undefined
+                                      }
+                                      onTouchStart={
+                                        prefersTouchDrag
+                                          ? touchDnd.getTouchStartProps(activity.id, null)
+                                              .onTouchStart
+                                          : undefined
+                                      }
                                     />
                                   )}
                                 </motion.div>
@@ -461,14 +500,38 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                                     <>
                                       <Divider
                                         isActive={dragOverKey === activeKey}
-                                        onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, activeKey) : undefined}
-                                        onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, activeKey) : undefined}
-                                        onDrop={enablePointerDrag ? (event) => handleDropOnToday(event, dropIndex) : undefined}
+                                        onDragOver={
+                                          enablePointerDrag
+                                            ? (event) => handleDragOverZone(event, activeKey)
+                                            : undefined
+                                        }
+                                        onDragLeave={
+                                          enablePointerDrag
+                                            ? (event) => handleDragLeaveZone(event, activeKey)
+                                            : undefined
+                                        }
+                                        onDrop={
+                                          enablePointerDrag
+                                            ? (event) => handleDropOnToday(event, dropIndex)
+                                            : undefined
+                                        }
                                       />
                                       <div
-                                        onDragOver={enablePointerDrag ? (event) => handleDragOverZone(event, activeKey) : undefined}
-                                        onDragLeave={enablePointerDrag ? (event) => handleDragLeaveZone(event, activeKey) : undefined}
-                                        onDrop={enablePointerDrag ? (event) => handleDropOnToday(event, dropIndex) : undefined}
+                                        onDragOver={
+                                          enablePointerDrag
+                                            ? (event) => handleDragOverZone(event, activeKey)
+                                            : undefined
+                                        }
+                                        onDragLeave={
+                                          enablePointerDrag
+                                            ? (event) => handleDragLeaveZone(event, activeKey)
+                                            : undefined
+                                        }
+                                        onDrop={
+                                          enablePointerDrag
+                                            ? (event) => handleDropOnToday(event, dropIndex)
+                                            : undefined
+                                        }
                                       >
                                         {canShowDesktopAddSlot ? (
                                           <EmptySlot onClick={handleOpenCreateModal} />
@@ -499,7 +562,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                           <span>Overdue</span>
                         </div>
                         <div className="text-base text-[var(--color-text-meta)] mr-3">
-                          {overdue.length > 0 ? overdue.length : ""}
+                          {overdue.length > 0 ? overdue.length : ''}
                         </div>
                       </div>
                       <div>
@@ -514,9 +577,17 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                               isDragging={draggingId === activity.id}
                               disableHover={draggingId !== null}
                               showNote
-                              onDragStart={enablePointerDrag ? (event) => handleDragStart(event, activity) : undefined}
+                              onDragStart={
+                                enablePointerDrag
+                                  ? (event) => handleDragStart(event, activity)
+                                  : undefined
+                              }
                               onDragEnd={enablePointerDrag ? handleDragEnd : undefined}
-                              onTouchStart={prefersTouchDrag ? touchDnd.getTouchStartProps(activity.id, null).onTouchStart : undefined}
+                              onTouchStart={
+                                prefersTouchDrag
+                                  ? touchDnd.getTouchStartProps(activity.id, null).onTouchStart
+                                  : undefined
+                              }
                             />
                           </div>
                         ))}
@@ -544,11 +615,11 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                     {displayActivities.map((activity) => (
                       <motion.div
                         layout
-                      key={activity.id}
-                      data-activity-id={activity.id}
-                      initial={false}
-                      transition={FAST_TRANSITION}
-                    >
+                        key={activity.id}
+                        data-activity-id={activity.id}
+                        initial={false}
+                        transition={FAST_TRANSITION}
+                      >
                         {activity.id === DRAG_PLACEHOLDER_ID ? (
                           <div style={{ height: `${draggedCardHeight}px` }} />
                         ) : (
@@ -561,7 +632,9 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                             disableHover={draggingId !== null}
                             onDragStart={(e) => handleDragStart(e, activity)}
                             onDragEnd={handleDragEnd}
-                            onTouchStart={touchDnd.getTouchStartProps(activity.id, null).onTouchStart}
+                            onTouchStart={
+                              touchDnd.getTouchStartProps(activity.id, null).onTouchStart
+                            }
                           />
                         )}
                       </motion.div>
@@ -642,8 +715,8 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
                 <div className="shadow-xl rounded-md bg-[var(--color-surface)]">
                   <ActivityCard
                     activity={activity}
-                    onToggleDone={() => { }}
-                    onEdit={() => { }}
+                    onToggleDone={() => {}}
+                    onEdit={() => {}}
                     disableHover
                     forceHover
                   />

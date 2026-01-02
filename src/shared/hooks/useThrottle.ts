@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect, useMemo } from "react";
+import { useRef, useCallback, useEffect, useMemo } from 'react';
 
 type ThrottledFunction<Args extends unknown[]> = ((...args: Args) => void) & {
   cancel: () => void;
@@ -12,7 +12,7 @@ type ThrottledFunction<Args extends unknown[]> = ((...args: Args) => void) & {
  */
 export function useThrottledCallback<Args extends unknown[]>(
   callback: (...args: Args) => void,
-  delay: number
+  delay: number,
 ): ThrottledFunction<Args> {
   const lastCallRef = useRef<number>(0);
   const pendingArgsRef = useRef<Args | null>(null);
@@ -55,7 +55,7 @@ export function useThrottledCallback<Args extends unknown[]>(
         }
       }
     },
-    [callback, delay, runPending]
+    [callback, delay, runPending],
   );
 
   useEffect(() => cancel, [cancel]);
@@ -66,6 +66,6 @@ export function useThrottledCallback<Args extends unknown[]>(
         cancel,
         flush: runPending,
       }),
-    [cancel, runPending, throttled]
+    [cancel, runPending, throttled],
   );
 }

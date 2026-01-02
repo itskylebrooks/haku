@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react';
 
 interface SimpleDatePickerProps {
   value: string | null;
@@ -6,21 +6,21 @@ interface SimpleDatePickerProps {
   initialMonth?: string; // YYYY-MM format
 }
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const formatDisplayDate = (dateStr: string): string => {
-  const [year, month, day] = dateStr.split("-").map(Number);
+  const [year, month, day] = dateStr.split('-').map(Number);
   const date = new Date(year, month - 1, day);
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
   });
 };
 
 const getMonthLabel = (year: number, month: number): string => {
   const date = new Date(year, month, 1);
-  return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 };
 
 const getDaysInMonth = (year: number, month: number): number => {
@@ -32,16 +32,12 @@ const getFirstDayOfMonth = (year: number, month: number): number => {
 };
 
 const toDateString = (year: number, month: number, day: number): string => {
-  const m = String(month + 1).padStart(2, "0");
-  const d = String(day).padStart(2, "0");
+  const m = String(month + 1).padStart(2, '0');
+  const d = String(day).padStart(2, '0');
   return `${year}-${m}-${d}`;
 };
 
-const SimpleDatePicker = ({
-  value,
-  onChange,
-  initialMonth,
-}: SimpleDatePickerProps) => {
+const SimpleDatePicker = ({ value, onChange, initialMonth }: SimpleDatePickerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -49,11 +45,11 @@ const SimpleDatePicker = ({
   // Determine initial view month
   const getInitialView = (): { year: number; month: number } => {
     if (initialMonth) {
-      const [y, m] = initialMonth.split("-").map(Number);
+      const [y, m] = initialMonth.split('-').map(Number);
       return { year: y, month: m - 1 };
     }
     if (value) {
-      const [y, m] = value.split("-").map(Number);
+      const [y, m] = value.split('-').map(Number);
       return { year: y, month: m - 1 };
     }
     const now = new Date();
@@ -67,7 +63,7 @@ const SimpleDatePicker = ({
   // Reset view when value changes externally
   useEffect(() => {
     if (value) {
-      const [y, m] = value.split("-").map(Number);
+      const [y, m] = value.split('-').map(Number);
       setViewYear(y);
       setViewMonth(m - 1);
     }
@@ -76,19 +72,16 @@ const SimpleDatePicker = ({
   // Close popup when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
 
     if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener('mousedown', handleClickOutside);
     }
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen]);
 
@@ -142,11 +135,7 @@ const SimpleDatePicker = ({
   }
 
   const today = new Date();
-  const todayStr = toDateString(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate()
-  );
+  const todayStr = toDateString(today.getFullYear(), today.getMonth(), today.getDate());
 
   return (
     <div ref={containerRef} className="relative w-full">
@@ -157,7 +146,7 @@ const SimpleDatePicker = ({
         className="w-full flex items-center justify-between gap-2 rounded-lg border border-[var(--color-border)] bg-transparent px-2 sm:px-3 py-2 text-sm text-[var(--color-text-primary)] transition hover:border-[var(--color-border-hover)] focus:border-[var(--color-border-focus)] focus:outline-none"
       >
         <span className="text-[var(--color-text-subtle)]">Date:</span>
-        <span>{value ? formatDisplayDate(value) : "Pick a date"}</span>
+        <span>{value ? formatDisplayDate(value) : 'Pick a date'}</span>
       </button>
 
       {/* Popup Calendar */}
@@ -173,12 +162,7 @@ const SimpleDatePicker = ({
               onClick={handlePrevMonth}
               className="rounded p-1 text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-hover)]"
             >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -195,12 +179,7 @@ const SimpleDatePicker = ({
               onClick={handleNextMonth}
               className="rounded p-1 text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-hover)]"
             >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -241,10 +220,10 @@ const SimpleDatePicker = ({
                   onClick={() => handleDayClick(day)}
                   className={`flex h-8 w-full items-center justify-center rounded text-sm transition ${
                     isSelected
-                      ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)]"
+                      ? 'bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)]'
                       : isToday
-                        ? "font-semibold text-[var(--color-text-primary)]"
-                        : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                        ? 'font-semibold text-[var(--color-text-primary)]'
+                        : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
                   }`}
                 >
                   {day}

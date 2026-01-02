@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Circle, Square, Diamond } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
-import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from "@/shared/ui/animations";
-import type { Activity, Bucket } from "@/shared/types/activity";
-import { useActivitiesStore } from "@/shared/state";
-import SimpleDatePicker from "../date/SimpleDatePicker";
-import SimpleTimePicker from "../date/SimpleTimePicker";
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Circle, Square, Diamond } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from '@/shared/ui/animations';
+import type { Activity, Bucket } from '@/shared/types/activity';
+import { useActivitiesStore } from '@/shared/state';
+import SimpleDatePicker from '../date/SimpleDatePicker';
+import SimpleTimePicker from '../date/SimpleTimePicker';
 
 // Date helpers
 const addDays = (date: Date, days: number): Date => {
@@ -22,8 +22,8 @@ const formatDate = (date: Date): string => {
   return date.toISOString().slice(0, 10);
 };
 
-type PlacementOption = "inbox" | "date" | "later";
-type ModalMode = "create" | "edit";
+type PlacementOption = 'inbox' | 'date' | 'later';
+type ModalMode = 'create' | 'edit';
 
 interface AddActivityModalProps {
   isOpen: boolean;
@@ -33,20 +33,20 @@ interface AddActivityModalProps {
   mode?: ModalMode;
   activityToEdit?: Activity;
   onDelete?: (id: string) => void;
-  onUpdate?: (id: string, updates: Partial<Omit<Activity, "id" | "createdAt">>) => void;
+  onUpdate?: (id: string, updates: Partial<Omit<Activity, 'id' | 'createdAt'>>) => void;
   defaultDate?: string;
 }
 
 const todayIso = (): string => new Date().toISOString().slice(0, 10);
 
 const placementLabels: { key: PlacementOption; label: string }[] = [
-  { key: "inbox", label: "Inbox" },
-  { key: "date", label: "Date" },
-  { key: "later", label: "Later" },
+  { key: 'inbox', label: 'Inbox' },
+  { key: 'date', label: 'Date' },
+  { key: 'later', label: 'Later' },
 ];
 
 const formatDurationLabel = (minutes: number | null): string => {
-  if (minutes === null) return "None";
+  if (minutes === null) return 'None';
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
   if (hours > 0 && remainingMinutes > 0) {
@@ -59,11 +59,10 @@ const formatDurationLabel = (minutes: number | null): string => {
 };
 
 const AddActivityModalContent = ({
-
   onClose,
   initialTitle,
   initialPlacement,
-  mode = "create",
+  mode = 'create',
   activityToEdit,
   onDelete,
   onUpdate,
@@ -71,17 +70,17 @@ const AddActivityModalContent = ({
 }: AddActivityModalProps) => {
   const addActivity = useActivitiesStore((state) => state.addActivity);
 
-  const isEditMode = mode === "edit" && activityToEdit !== undefined;
+  const isEditMode = mode === 'edit' && activityToEdit !== undefined;
   const isPlacementLocked = Boolean(isEditMode && activityToEdit?.isDone);
 
   // Derive initial placement from activity being edited or use defaults
   const getInitialPlacement = (): PlacementOption => {
     if (isEditMode) {
-      if (activityToEdit.bucket === "scheduled") return "date";
-      if (activityToEdit.bucket === "later") return "later";
-      return "inbox";
+      if (activityToEdit.bucket === 'scheduled') return 'date';
+      if (activityToEdit.bucket === 'later') return 'later';
+      return 'inbox';
     }
-    return initialPlacement === "scheduled" ? "date" : initialPlacement ?? "inbox";
+    return initialPlacement === 'scheduled' ? 'date' : (initialPlacement ?? 'inbox');
   };
 
   const getInitialDate = (): string | null => {
@@ -109,19 +108,19 @@ const AddActivityModalContent = ({
     if (isEditMode) {
       return activityToEdit.title;
     }
-    return initialTitle ?? "";
+    return initialTitle ?? '';
   };
 
   const getInitialNote = (): string => {
     if (isEditMode) {
-      return activityToEdit.note ?? "";
+      return activityToEdit.note ?? '';
     }
-    return "";
+    return '';
   };
 
   const getInitialShowNote = (): boolean => {
     if (isEditMode) {
-      return activityToEdit.note !== null && activityToEdit.note !== "";
+      return activityToEdit.note !== null && activityToEdit.note !== '';
     }
     return false;
   };
@@ -137,7 +136,7 @@ const AddActivityModalContent = ({
   // Duplicate forward state
   const [isDuplicateMenuOpen, setIsDuplicateMenuOpen] = useState(false);
   const [duplicateCount, setDuplicateCount] = useState<number>(0);
-  const [duplicateInterval, setDuplicateInterval] = useState<"day" | "week">("day");
+  const [duplicateInterval, setDuplicateInterval] = useState<'day' | 'week'>('day');
   const duplicateContainerRef = useRef<HTMLDivElement>(null);
 
   const [note, setNote] = useState<string>(getInitialNote);
@@ -147,16 +146,16 @@ const AddActivityModalContent = ({
   const noteRef = useRef<HTMLTextAreaElement | null>(null);
 
   const trimmedTitle = useMemo(() => title.trim(), [title]);
-  const isDatePlacement = placement === "date";
+  const isDatePlacement = placement === 'date';
   // Show duration if time is set; duplicate/repeat logic will replace old repeat logic
   const showDuration = isDatePlacement && scheduledTime !== null;
   const canSubmit = Boolean(trimmedTitle) && (!isDatePlacement || !!scheduledDate);
 
   useEffect(() => {
     // Lock scrolling on mount logic
-    document.body.style.overflow = "hidden";
+    document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = '';
     };
   }, []);
 
@@ -168,7 +167,7 @@ const AddActivityModalContent = ({
       // Reset duplicate state when time is removed
       setIsDuplicateMenuOpen(false);
       setDuplicateCount(0);
-      setDuplicateInterval("day");
+      setDuplicateInterval('day');
     }
   }, [scheduledTime]);
 
@@ -188,9 +187,8 @@ const AddActivityModalContent = ({
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside, true);
-    return () => {
-    };
+    document.addEventListener('mousedown', handleClickOutside, true);
+    return () => {};
   }, [isDurationMenuOpen, isDuplicateMenuOpen]);
 
   useEffect(() => {
@@ -212,23 +210,21 @@ const AddActivityModalContent = ({
   const handleSubmit = () => {
     if (!trimmedTitle) return;
 
-    let bucket: Bucket = "inbox";
+    let bucket: Bucket = 'inbox';
     let dateValue: string | null = null;
     let timeValue: string | null = null;
     let durationValue: number | null = null;
 
-
-    if (placement === "date") {
-      bucket = "scheduled";
+    if (placement === 'date') {
+      bucket = 'scheduled';
       if (!scheduledDate) return;
       dateValue = scheduledDate;
       timeValue = scheduledTime;
       if (timeValue !== null) {
         durationValue = durationMinutes;
-
       }
-    } else if (placement === "later") {
-      bucket = "later";
+    } else if (placement === 'later') {
+      bucket = 'later';
     }
 
     const noteValue = note.trim();
@@ -242,7 +238,7 @@ const AddActivityModalContent = ({
         date: dateValue,
         time: timeValue,
         durationMinutes: durationValue,
-        note: noteValue === "" ? null : noteValue,
+        note: noteValue === '' ? null : noteValue,
       });
     } else {
       // Create mode: add new activity
@@ -252,7 +248,7 @@ const AddActivityModalContent = ({
         date: dateValue,
         time: timeValue,
         durationMinutes: durationValue,
-        note: noteValue === "" ? null : noteValue,
+        note: noteValue === '' ? null : noteValue,
       });
     }
 
@@ -261,9 +257,8 @@ const AddActivityModalContent = ({
       let baseDate = new Date(dateValue);
 
       for (let i = 1; i <= duplicateCount; i++) {
-        const nextDate = duplicateInterval === "week"
-          ? addWeeks(baseDate, i)
-          : addDays(baseDate, i);
+        const nextDate =
+          duplicateInterval === 'week' ? addWeeks(baseDate, i) : addDays(baseDate, i);
 
         addActivity({
           title: trimmedTitle,
@@ -271,7 +266,7 @@ const AddActivityModalContent = ({
           date: formatDate(nextDate),
           time: timeValue,
           durationMinutes: durationValue,
-          note: noteValue === "" ? null : noteValue,
+          note: noteValue === '' ? null : noteValue,
         });
       }
     }
@@ -288,14 +283,14 @@ const AddActivityModalContent = ({
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       // Close on Escape
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         e.preventDefault();
         handleClose();
         return;
       }
 
       // Accept on Enter (but not when typing in a textarea)
-      if (e.key === "Enter") {
+      if (e.key === 'Enter') {
         const target = e.target as HTMLElement | null;
         if (target instanceof HTMLTextAreaElement) return;
         if (!canSubmit) return;
@@ -304,8 +299,8 @@ const AddActivityModalContent = ({
       }
     };
 
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
   }, [canSubmit, handleClose, handleSubmit]);
 
   return (
@@ -340,7 +335,7 @@ const AddActivityModalContent = ({
             <div className="grid grid-cols-3 gap-2">
               {placementLabels.map(({ key, label }) => {
                 const isActive = placement === key;
-                const isDisabled = isPlacementLocked && key !== "date";
+                const isDisabled = isPlacementLocked && key !== 'date';
                 return (
                   <button
                     key={key}
@@ -348,19 +343,19 @@ const AddActivityModalContent = ({
                     disabled={isDisabled}
                     onClick={() => {
                       setPlacement(key);
-                      if (key !== "date") {
+                      if (key !== 'date') {
                         setIsDurationMenuOpen(false);
-
                       }
                     }}
-                    className={`w-full h-10 flex items-center justify-center rounded-lg px-2 sm:px-3 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${isActive
-                      ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] shadow-sm border-0"
-                      : "border border-[var(--color-border)] bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-surface-subtle)]"
-                      } ${isDisabled ? "cursor-not-allowed opacity-50" : ""}`}
+                    className={`w-full h-10 flex items-center justify-center rounded-lg px-2 sm:px-3 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
+                      isActive
+                        ? 'bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] shadow-sm border-0'
+                        : 'border border-[var(--color-border)] bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-surface-subtle)]'
+                    } ${isDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
                   >
-                    {key === "inbox" && <Circle className="w-4 h-4" />}
-                    {key === "date" && <Square className="w-4 h-4" />}
-                    {key === "later" && <Diamond className="w-4 h-4" />}
+                    {key === 'inbox' && <Circle className="w-4 h-4" />}
+                    {key === 'date' && <Square className="w-4 h-4" />}
+                    {key === 'later' && <Diamond className="w-4 h-4" />}
                     <span className="sr-only">{label}</span>
                     <span className="hidden">&nbsp;</span>
                     <span className="ml-1">{label}</span>
@@ -373,16 +368,10 @@ const AddActivityModalContent = ({
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="w-full">
-                    <SimpleDatePicker
-                      value={scheduledDate}
-                      onChange={setScheduledDate}
-                    />
+                    <SimpleDatePicker value={scheduledDate} onChange={setScheduledDate} />
                   </div>
                   <div className="w-full">
-                    <SimpleTimePicker
-                      value={scheduledTime}
-                      onChange={setScheduledTime}
-                    />
+                    <SimpleTimePicker value={scheduledTime} onChange={setScheduledTime} />
                   </div>
                 </div>
 
@@ -399,7 +388,7 @@ const AddActivityModalContent = ({
                       >
                         <span className="text-[var(--color-text-subtle)]">Duration:</span>
                         <span>
-                          {durationMinutes ? formatDurationLabel(durationMinutes) : "None"}
+                          {durationMinutes ? formatDurationLabel(durationMinutes) : 'None'}
                         </span>
                       </button>
 
@@ -445,13 +434,15 @@ const AddActivityModalContent = ({
                         className="w-full h-10 flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-transparent px-2 sm:px-3 text-sm text-[var(--color-text-primary)] transition hover:border-[var(--color-border-hover)] focus:border-[var(--color-border-focus)] focus:outline-none"
                       >
                         <span className="text-[var(--color-text-subtle)]">Duplicate:</span>
-                        <span>{duplicateCount > 0 ? `${duplicateCount} copies` : "None"}</span>
+                        <span>{duplicateCount > 0 ? `${duplicateCount} copies` : 'None'}</span>
                       </button>
 
                       {isDuplicateMenuOpen && (
                         <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-lg flex flex-col gap-3">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-[var(--color-text-primary)]">Copies:</span>
+                            <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                              Copies:
+                            </span>
                             <div className="flex items-center gap-2 w-[110px] justify-between">
                               <button
                                 type="button"
@@ -472,25 +463,29 @@ const AddActivityModalContent = ({
                           </div>
 
                           <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-[var(--color-text-primary)]">Interval:</span>
+                            <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                              Interval:
+                            </span>
                             <div className="flex bg-[var(--color-surface-hover)] p-0.5 rounded-lg border border-[var(--color-border)] w-[110px]">
                               <button
                                 type="button"
-                                onClick={() => setDuplicateInterval("day")}
-                                className={`flex-1 py-1 text-xs font-medium rounded-md transition border ${duplicateInterval === "day"
-                                  ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] shadow-sm border-transparent"
-                                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border-transparent"
-                                  }`}
+                                onClick={() => setDuplicateInterval('day')}
+                                className={`flex-1 py-1 text-xs font-medium rounded-md transition border ${
+                                  duplicateInterval === 'day'
+                                    ? 'bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] shadow-sm border-transparent'
+                                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border-transparent'
+                                }`}
                               >
                                 Days
                               </button>
                               <button
                                 type="button"
-                                onClick={() => setDuplicateInterval("week")}
-                                className={`flex-1 py-1 text-xs font-medium rounded-md transition border ${duplicateInterval === "week"
-                                  ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] shadow-sm border-transparent"
-                                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border-transparent"
-                                  }`}
+                                onClick={() => setDuplicateInterval('week')}
+                                className={`flex-1 py-1 text-xs font-medium rounded-md transition border ${
+                                  duplicateInterval === 'week'
+                                    ? 'bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] shadow-sm border-transparent'
+                                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border-transparent'
+                                }`}
                               >
                                 Weeks
                               </button>
@@ -553,12 +548,13 @@ const AddActivityModalContent = ({
                 type="button"
                 disabled={!canSubmit}
                 onClick={handleSubmit}
-                className={`rounded-md px-4 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${canSubmit
-                  ? "bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] hover:bg-[var(--color-emphasis-bg-hover)] active:scale-[0.99]"
-                  : "cursor-not-allowed bg-[var(--color-disabled-bg)] text-[var(--color-disabled-text)]"
-                  }`}
+                className={`rounded-md px-4 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
+                  canSubmit
+                    ? 'bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] hover:bg-[var(--color-emphasis-bg-hover)] active:scale-[0.99]'
+                    : 'cursor-not-allowed bg-[var(--color-disabled-bg)] text-[var(--color-disabled-text)]'
+                }`}
               >
-                {isEditMode ? "Save" : "Add"}
+                {isEditMode ? 'Save' : 'Add'}
               </button>
             </div>
           </div>
@@ -570,9 +566,7 @@ const AddActivityModalContent = ({
 
 const AddActivityModal = (props: AddActivityModalProps) => {
   return (
-    <AnimatePresence>
-      {props.isOpen && <AddActivityModalContent {...props} />}
-    </AnimatePresence>
+    <AnimatePresence>{props.isOpen && <AddActivityModalContent {...props} />}</AnimatePresence>
   );
 };
 

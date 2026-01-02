@@ -1,6 +1,6 @@
-import { forwardRef, useImperativeHandle, useRef } from "react";
-import { createPortal } from "react-dom";
-import type { ReactNode } from "react";
+import { forwardRef, useImperativeHandle, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import type { ReactNode } from 'react';
 
 export interface TouchDragOverlayHandle {
   /**
@@ -26,39 +26,43 @@ export const TouchDragOverlay = forwardRef<TouchDragOverlayHandle, TouchDragOver
   ({ children, initialX = 0, initialY = 0 }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
-    useImperativeHandle(ref, () => ({
-      updatePosition: (x: number, y: number) => {
-        if (containerRef.current) {
-          // Direct DOM manipulation for 60fps performance - no React re-render
-          containerRef.current.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-        }
-      },
-    }), []);
+    useImperativeHandle(
+      ref,
+      () => ({
+        updatePosition: (x: number, y: number) => {
+          if (containerRef.current) {
+            // Direct DOM manipulation for 60fps performance - no React re-render
+            containerRef.current.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+          }
+        },
+      }),
+      [],
+    );
 
-    if (typeof document === "undefined") return null;
+    if (typeof document === 'undefined') return null;
 
     return createPortal(
       <div
         ref={containerRef}
         style={{
-          position: "fixed",
+          position: 'fixed',
           left: 0,
           top: 0,
           transform: `translate3d(${initialX}px, ${initialY}px, 0)`,
-          pointerEvents: "none",
+          pointerEvents: 'none',
           zIndex: 9999,
-          touchAction: "none",
-          width: "max-content",
+          touchAction: 'none',
+          width: 'max-content',
           // GPU acceleration hints
-          willChange: "transform",
-          backfaceVisibility: "hidden",
+          willChange: 'transform',
+          backfaceVisibility: 'hidden',
         }}
       >
         {children}
       </div>,
-      document.body
+      document.body,
     );
-  }
+  },
 );
 
-TouchDragOverlay.displayName = "TouchDragOverlay";
+TouchDragOverlay.displayName = 'TouchDragOverlay';

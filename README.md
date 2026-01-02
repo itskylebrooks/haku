@@ -13,11 +13,11 @@ A quiet planner that unifies calendar and todos into one simple system: activiti
 
   <img src="./public/images/desktop-day.png" alt="Haku — Day view (desktop)" />
 
-  <br /><br />
+<br /><br />
 
   <img src="./public/images/desktop-week.png" alt="Haku — Week view (desktop)" />
 
-  <br /><br />
+<br /><br />
 
   <img src="./public/images/desktop-board.png" alt="Haku — Board view (desktop)" />
 </details>

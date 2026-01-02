@@ -1,25 +1,25 @@
 /**
  * Local Storage Module
- * 
+ *
  * Handles reading, writing, clearing, and migrating persisted state
  * from localStorage. All operations are guarded with try/catch to
  * prevent app crashes when storage is unavailable or full.
  */
 
-import type { PersistedState, PersistedStateV1, ListsState } from "./types";
-import { STORAGE_KEY } from "./types";
-import type { Activity, Bucket } from "../types/activity";
+import type { PersistedState, PersistedStateV1, ListsState } from './types';
+import { STORAGE_KEY } from './types';
+import type { Activity, Bucket } from '../types/activity';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Validation Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
 function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function isValidBucket(value: unknown): value is Bucket {
-  return value === "inbox" || value === "later" || value === "scheduled";
+  return value === 'inbox' || value === 'later' || value === 'scheduled';
 }
 
 function isValidActivity(value: unknown): value is Activity {
@@ -28,17 +28,17 @@ function isValidActivity(value: unknown): value is Activity {
   const v = value as Record<string, unknown>;
 
   return (
-    typeof v.id === "string" &&
-    typeof v.title === "string" &&
+    typeof v.id === 'string' &&
+    typeof v.title === 'string' &&
     isValidBucket(v.bucket) &&
-    (v.date === null || typeof v.date === "string") &&
-    (v.time === null || typeof v.time === "string") &&
-    (v.durationMinutes === null || typeof v.durationMinutes === "number") &&
-    (v.note === null || typeof v.note === "string") &&
-    typeof v.isDone === "boolean" &&
-    (v.orderIndex === null || typeof v.orderIndex === "number") &&
-    typeof v.createdAt === "string" &&
-    typeof v.updatedAt === "string"
+    (v.date === null || typeof v.date === 'string') &&
+    (v.time === null || typeof v.time === 'string') &&
+    (v.durationMinutes === null || typeof v.durationMinutes === 'number') &&
+    (v.note === null || typeof v.note === 'string') &&
+    typeof v.isDone === 'boolean' &&
+    (v.orderIndex === null || typeof v.orderIndex === 'number') &&
+    typeof v.createdAt === 'string' &&
+    typeof v.updatedAt === 'string'
   );
 }
 
@@ -52,8 +52,8 @@ function isValidSettings(value: unknown): boolean {
   const v = value as Record<string, unknown>;
 
   return (
-    (v.weekStart === "sunday" || v.weekStart === "monday") &&
-    (v.themeMode === "system" || v.themeMode === "light" || v.themeMode === "dark")
+    (v.weekStart === 'sunday' || v.weekStart === 'monday') &&
+    (v.themeMode === 'system' || v.themeMode === 'light' || v.themeMode === 'dark')
   );
 }
 
@@ -62,7 +62,7 @@ function isValidListsState(value: unknown): boolean {
 
   const v = value as Record<string, unknown>;
 
-  return typeof v.version === "number";
+  return typeof v.version === 'number';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -71,7 +71,7 @@ function isValidListsState(value: unknown): boolean {
 
 /**
  * Validates and migrates raw data to the current schema version.
- * 
+ *
  * Structure the migration as a switch on raw.version to make adding
  * future migrations straightforward (e.g., V1 → V2 → V3).
  */
@@ -122,7 +122,7 @@ function migrateFromV1(raw: unknown): PersistedStateV1 | null {
     version: 1,
     activities: data.activities as Activity[],
     lists: isObject(lists) ? (lists as unknown as ListsState) : { version: 1 },
-    settings: data.settings as PersistedStateV1["settings"],
+    settings: data.settings as PersistedStateV1['settings'],
   };
 }
 
@@ -132,7 +132,7 @@ function migrateFromV1(raw: unknown): PersistedStateV1 | null {
 
 /**
  * Loads persisted state from localStorage.
- * 
+ *
  * @returns The validated PersistedState, or null if:
  *   - No data exists
  *   - Data is corrupted
@@ -157,7 +157,7 @@ export function loadPersistedState(): PersistedState | null {
 
 /**
  * Saves persisted state to localStorage.
- * 
+ *
  * Fails silently on quota exceeded or other errors.
  */
 export function savePersistedState(state: PersistedState): void {
@@ -166,7 +166,7 @@ export function savePersistedState(state: PersistedState): void {
     localStorage.setItem(STORAGE_KEY, json);
   } catch {
     // Quota exceeded or localStorage unavailable - fail silently
-    console.warn("[Haku] Failed to save state to localStorage");
+    console.warn('[Haku] Failed to save state to localStorage');
   }
 }
 
@@ -178,7 +178,7 @@ export function clearPersistedState(): void {
     localStorage.removeItem(STORAGE_KEY);
   } catch {
     // localStorage unavailable - fail silently
-    console.warn("[Haku] Failed to clear localStorage");
+    console.warn('[Haku] Failed to clear localStorage');
   }
 }
 
@@ -187,8 +187,8 @@ export function clearPersistedState(): void {
  */
 export function isStorageAvailable(): boolean {
   try {
-    const testKey = "__haku_storage_test__";
-    localStorage.setItem(testKey, "1");
+    const testKey = '__haku_storage_test__';
+    localStorage.setItem(testKey, '1');
     localStorage.removeItem(testKey);
     return true;
   } catch {

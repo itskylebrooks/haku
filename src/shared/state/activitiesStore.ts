@@ -9,6 +9,6 @@ export {
   getLaterActivities,
   getActivitiesForDate,
   getActivitiesForWeek,
-} from "./store";
+} from './store';
 
-export type { HakuStoreState as ActivitiesState } from "./store";
+export type { HakuStoreState as ActivitiesState } from './store';
