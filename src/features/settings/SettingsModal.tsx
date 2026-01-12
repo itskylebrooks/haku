@@ -493,7 +493,7 @@ export default function SettingsModal({
                       href="https://itskylebrooks.vercel.app/imprint"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="underline"
+                      className="underline text-[var(--color-text-primary)] opacity-90"
                     >
                       Imprint
                     </a>
@@ -501,7 +501,7 @@ export default function SettingsModal({
                       href="https://itskylebrooks.vercel.app/privacy"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="underline"
+                      className="underline text-[var(--color-text-primary)] opacity-90"
                     >
                       Privacy Policy
                     </a>
@@ -509,7 +509,7 @@ export default function SettingsModal({
                       href="https://itskylebrooks.vercel.app/license"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="underline"
+                      className="underline text-[var(--color-text-primary)] opacity-90"
                     >
                       License
                     </a>
