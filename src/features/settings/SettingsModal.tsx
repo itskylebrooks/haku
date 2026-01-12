@@ -162,7 +162,7 @@ export default function SettingsModal({
       <AnimatePresence>
         {open && (
           <motion.div
-            className={`fixed inset-0 z-50 flex items-start justify-center bg-[var(--color-overlay)] px-4 pt-[8vh] lg:pt-[20vh] transition-colors duration-200 backdrop-blur-sm`}
+            className={`fixed inset-0 z-50 flex items-center lg:items-start justify-center bg-[var(--color-overlay)] p-5 lg:pt-[20vh] lg:px-4 transition-colors duration-200 backdrop-blur-sm`}
             onClick={beginClose}
             role="dialog"
             aria-modal="true"
