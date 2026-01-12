@@ -1,8 +1,9 @@
+import { useDesktopLayout } from '@/shared/hooks/useDesktopLayout';
 import { downloadStateAsJson, importStateFromFile, useHakuStore } from '@/shared/state';
 import { ConfirmModal } from '@/shared/ui';
 import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from '@/shared/ui/animations';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown, Linkedin, User } from 'lucide-react';
+import { ChevronDown, Linkedin, Share2, User, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import pkg from '../../../package.json';
@@ -22,7 +23,6 @@ interface SettingsModalProps {
 }
 
 const borderClass = 'border border-[var(--color-border)]';
-const settingsControlWidthClass = 'w-[8.5rem] justify-self-end';
 
 export default function SettingsModal({
   open,
@@ -98,6 +98,29 @@ export default function SettingsModal({
     }
   }
 
+  async function handleShare() {
+    try {
+      const shareData: ShareData = {
+        title: 'Haku',
+        text: 'Check out Haku — a simple habit tracker',
+        url: window.location.href,
+      };
+      const navWithShare = navigator as unknown as { share?: (data: ShareData) => Promise<void> };
+      if (typeof navWithShare.share === 'function') {
+        await navWithShare.share(shareData);
+        return;
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(window.location.href);
+        alert('Link copied to clipboard');
+        return;
+      }
+      window.prompt('Copy this link', window.location.href);
+    } catch {
+      // Ignore share errors
+    }
+  }
+
   function handleResetClick() {
     setIsResetConfirmOpen(true);
   }
@@ -111,6 +134,19 @@ export default function SettingsModal({
   function handleResetCancel() {
     setIsResetConfirmOpen(false);
   }
+
+  // Close on Escape (desktop only)
+  const { isDesktop } = useDesktopLayout();
+  useEffect(() => {
+    if (!open || !isDesktop) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        beginClose();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, isDesktop, beginClose]);
 
   // Use the incoming props to handle PWA install flow
   const handleInstallClick = () => {
@@ -136,40 +172,68 @@ export default function SettingsModal({
             exit="exit"
           >
             <motion.div
-              className={`w-full max-w-sm rounded-2xl bg-[var(--color-surface)] p-6 pt-3 pb-8 ${borderClass} shadow-[var(--shadow-elevated)] overflow-y-auto`}
+              className={`w-full max-w-sm rounded-2xl bg-[var(--color-surface)] p-6 pt-3 ${borderClass} shadow-[var(--shadow-elevated)] overflow-y-auto`}
               style={{
                 WebkitOverflowScrolling: 'touch',
-                paddingBottom: 'max(env(safe-area-inset-bottom), 32px)',
+                paddingBottom: 'max(env(safe-area-inset-bottom), 16px)',
               }}
               onClick={(e) => e.stopPropagation()}
               variants={SCALE_FADE_VARIANTS}
             >
-              <div className="mb-2">
-                <div className="relative h-12 flex items-center justify-center">
-                  <span className="text-lg font-semibold tracking-wide text-[var(--color-text-primary)]">
+              <div className="-mx-6 px-6 pb-3 mb-2 border-b border-[var(--color-border)]">
+                <div className="grid grid-cols-3 items-center gap-2 h-12 relative">
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={handleShare}
+                      className="grid h-10 w-full place-items-center rounded-lg border border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] transition"
+                      aria-label="Share"
+                      title="Share"
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </button>
+                    <div />
+                  </div>
+
+                  <span
+                    id="settings-title"
+                    className="text-lg font-semibold tracking-wide text-[var(--color-text-primary)] text-center"
+                  >
                     Settings
                   </span>
-                  {/* Removed the top-right chevron close button by request. Use the 'Done' button below to close. */}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div />
+                    <button
+                      type="button"
+                      onClick={beginClose}
+                      className="grid h-10 w-full place-items-center rounded-lg border border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] transition"
+                      aria-label="Close settings"
+                      title="Close"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-4 text-[var(--color-text-primary)]">
                 {/* Theme */}
-                <div className="text-sm">
-                  <div className="grid grid-cols-2 items-center gap-3">
-                    <div className="min-w-0">
+                <div className="text-sm mt-4">
+                  <div className="grid grid-cols-3 items-center gap-2">
+                    <div>
                       <div className="text-sm font-semibold mb-0.5">Theme</div>
                     </div>
-                    <div
-                      className={`flex items-center justify-end gap-2 whitespace-nowrap ${settingsControlWidthClass}`}
-                    >
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div />
                       <button
                         type="button"
                         onClick={() => onThemeChange('system')}
-                        className={`grid h-10 w-10 place-items-center rounded-lg ${borderClass} transition ${
+                        className={`grid h-10 w-full place-items-center rounded-lg ${borderClass} transition ${
                           themeMode === 'system'
                             ? 'bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)]'
-                            : 'text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-hover)]'
+                            : 'text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]'
                         }`}
                         title="System"
                       >
@@ -188,13 +252,16 @@ export default function SettingsModal({
                           <path d="M12 17v4" />
                         </svg>
                       </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 whitespace-nowrap">
                       <button
                         type="button"
                         onClick={() => onThemeChange('light')}
-                        className={`grid h-10 w-10 place-items-center rounded-lg ${borderClass} transition ${
+                        className={`grid h-10 w-full place-items-center rounded-lg ${borderClass} transition ${
                           themeMode === 'light'
                             ? 'bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)]'
-                            : 'text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-hover)]'
+                            : 'text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]'
                         }`}
                         title="Light"
                       >
@@ -214,13 +281,14 @@ export default function SettingsModal({
                           <path d="m17 7 1.5-1.5M5.5 18.5 7 17" />
                         </svg>
                       </button>
+
                       <button
                         type="button"
                         onClick={() => onThemeChange('dark')}
-                        className={`grid h-10 w-10 place-items-center rounded-lg ${borderClass} transition ${
+                        className={`grid h-10 w-full place-items-center rounded-lg ${borderClass} transition ${
                           themeMode === 'dark'
                             ? 'bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)]'
-                            : 'text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-hover)]'
+                            : 'text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]'
                         }`}
                         title="Dark"
                       >
@@ -245,11 +313,11 @@ export default function SettingsModal({
 
                 {/* PWA Install */}
                 <div className="text-sm">
-                  <div className="grid grid-cols-2 items-center gap-2">
-                    <div>
+                  <div className="grid grid-cols-3 items-center gap-2">
+                    <div className="col-span-2">
                       <div className="text-sm font-semibold mb-0.5">Install App</div>
                     </div>
-                    <div className={settingsControlWidthClass}>
+                    <div>
                       <button
                         type="button"
                         disabled={isInstalled}
@@ -285,11 +353,12 @@ export default function SettingsModal({
 
                 {/* Week Start */}
                 <div className="text-sm">
-                  <div className="grid grid-cols-2 items-center gap-2">
+                  <div className="grid grid-cols-3 items-center gap-2">
                     <div>
                       <div className="text-sm font-semibold mb-0.5">Week Start</div>
                     </div>
-                    <div className={`relative ${settingsControlWidthClass}`}>
+                    <div />
+                    <div className="relative w-full">
                       <select
                         aria-label="Week starts on"
                         className="appearance-none w-full rounded-lg border border-[var(--color-border)] bg-transparent px-3 h-10 pr-7 text-sm text-[var(--color-text-primary)]"
@@ -394,64 +463,57 @@ export default function SettingsModal({
                 />
               </div>
 
-              <div className="mt-5">
-                <button
-                  onClick={beginClose}
-                  className="w-full rounded-2xl px-4 py-3 text-sm font-semibold bg-[var(--color-emphasis-bg)] text-[var(--color-emphasis-text)] hover:bg-[var(--color-emphasis-bg-hover)] transition"
-                >
-                  Done
-                </button>
-              </div>
-
-              <div className="mt-6 text-center text-[12px] text-[var(--color-text-subtle)] relative">
-                <a
-                  href="https://www.linkedin.com/in/itskylebrooks/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Kyle Brooks on LinkedIn"
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-primary)] opacity-90 hover:opacity-75 transition-opacity"
-                >
-                  <Linkedin className="w-5 h-5" />
-                </a>
-
-                <a
-                  href="https://itskylebrooks.tech/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Kyle Brooks personal website"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-primary)] opacity-90 hover:opacity-75 transition-opacity"
-                >
-                  <User className="w-5 h-5" />
-                </a>
-
-                <div className="font-medium text-[var(--color-text-primary)]">
-                  Kyle Brooks <span className="mx-2">•</span> Haku {pkg.version}
-                </div>
-                <div className="mt-0.5 flex items-center justify-center gap-3">
+              <div className="-mx-6 mt-6 border-t border-[var(--color-border)] pt-4 px-6">
+                <div className="text-center text-[12px] text-[var(--color-text-subtle)] relative">
                   <a
-                    href="https://itskylebrooks.vercel.app/imprint"
+                    href="https://www.linkedin.com/in/itskylebrooks/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="underline"
+                    aria-label="Kyle Brooks on LinkedIn"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-primary)] opacity-90 hover:opacity-75 transition-opacity"
                   >
-                    Imprint
+                    <Linkedin className="w-5 h-5" />
                   </a>
+
                   <a
-                    href="https://itskylebrooks.vercel.app/privacy"
+                    href="https://itskylebrooks.tech/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="underline"
+                    aria-label="Kyle Brooks personal website"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-primary)] opacity-90 hover:opacity-75 transition-opacity"
                   >
-                    Privacy Policy
+                    <User className="w-5 h-5" />
                   </a>
-                  <a
-                    href="https://itskylebrooks.vercel.app/license"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline"
-                  >
-                    License
-                  </a>
+
+                  <div className="font-medium text-[var(--color-text-primary)]">
+                    Kyle Brooks <span className="mx-2">•</span> Haku {pkg.version}
+                  </div>
+                  <div className="mt-0.5 flex items-center justify-center gap-3">
+                    <a
+                      href="https://itskylebrooks.vercel.app/imprint"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline"
+                    >
+                      Imprint
+                    </a>
+                    <a
+                      href="https://itskylebrooks.vercel.app/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline"
+                    >
+                      Privacy Policy
+                    </a>
+                    <a
+                      href="https://itskylebrooks.vercel.app/license"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline"
+                    >
+                      License
+                    </a>
+                  </div>
                 </div>
               </div>
             </motion.div>
