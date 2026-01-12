@@ -1,8 +1,9 @@
-import type React from 'react';
-import { Circle, Grid2x2, Plus, Square } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { SPRING_TRANSITION } from '@/shared/ui/animations';
+import { useDesktopLayout } from '@/shared/hooks/useDesktopLayout';
 import type { Bucket } from '@/shared/types/activity';
+import { SPRING_TRANSITION } from '@/shared/ui/animations';
+import { motion } from 'framer-motion';
+import { Circle, Grid2x2, Plus, Square } from 'lucide-react';
+import type React from 'react';
 
 type ActiveTab = 'board' | 'day' | 'week';
 
@@ -31,6 +32,8 @@ const tabs: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
 ];
 
 const MobileTabBar = ({ activeTab, onTabChange, onAdd }: MobileTabBarProps) => {
+  const { shouldUseTouch } = useDesktopLayout();
+
   return (
     <nav
       className="fixed bottom-6 left-0 right-0 z-50 flex justify-center pb-[env(safe-area-inset-bottom)]"
@@ -50,7 +53,7 @@ const MobileTabBar = ({ activeTab, onTabChange, onAdd }: MobileTabBarProps) => {
                 className={`relative inline-flex h-12 w-16 items-center justify-center rounded-full leading-none transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-outline)] ${
                   isActive
                     ? 'text-[var(--color-emphasis-text)] font-semibold shadow-sm'
-                    : 'text-[var(--color-text-primary)] active:bg-[var(--color-surface-pressed)]'
+                    : `text-[var(--color-text-primary)] ${!shouldUseTouch ? 'active:bg-[var(--color-surface-pressed)]' : ''}`
                 }`}
               >
                 {isActive && (
