@@ -1,7 +1,7 @@
-import { ChevronLeft, ChevronRight, Grid2x2, Circle, Bolt, Square, Plus } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { SPRING_TRANSITION } from '@/shared/ui/animations';
 import type { Bucket } from '@/shared/types/activity';
+import { SPRING_TRANSITION } from '@/shared/ui/animations';
+import { motion } from 'framer-motion';
+import { Bolt, ChevronLeft, ChevronRight, Circle, Grid2x2, Plus, Square } from 'lucide-react';
 
 type ViewMode = 'day' | 'week';
 type ActiveTab = 'board' | 'day' | 'week';
@@ -89,12 +89,20 @@ const DesktopHeader = ({
                       {isActive && (
                         <motion.div
                           layoutId="header-tab-pill"
-                          className="absolute inset-0 rounded-full bg-[var(--color-emphasis-bg)]"
+                          className="absolute inset-0 rounded-full bg-[var(--color-emphasis-bg)] pointer-events-none"
                           transition={SPRING_TRANSITION}
-                          style={{ borderRadius: 9999 }} // Ensure radius is passed to motion
+                          style={{
+                            borderRadius: 9999, // Ensure radius is passed to motion
+                            transform: 'translateZ(0)',
+                            WebkitTransform: 'translateZ(0)',
+                            willChange: 'transform, width, height',
+                          }}
                         />
                       )}
-                      <span className="relative z-10 flex items-center justify-center">
+                      <span
+                        className="relative z-10 flex items-center justify-center"
+                        style={{ transform: 'translateZ(0)', WebkitTransform: 'translateZ(0)' }}
+                      >
                         {value === 'board' && <Circle className="h-5 w-5" aria-hidden />}
                         {value === 'day' && <Square className="h-5 w-5" aria-hidden />}
                         {value === 'week' && <Grid2x2 className="h-5 w-5" aria-hidden />}
