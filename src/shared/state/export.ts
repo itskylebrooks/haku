@@ -5,28 +5,39 @@
  * including browser download capability.
  */
 
-import type { PersistedState } from './types';
-import { CURRENT_SCHEMA_VERSION } from './types';
+import pkg from '../../../package.json';
 import { useHakuStore } from './store';
+import { CURRENT_SCHEMA_VERSION } from './types';
 
 /**
- * Creates a PersistedState object from the current store state.
+ * Creates an export-ready object from the current store state.
+ * The exported JSON has the following ordered structure:
+ * {
+ *   app: 'haku',
+ *   version: '<app version from package.json>',
+ *   schemaVersion: <number>,
+ *   activities: [...],
+ *   lists: {...},
+ *   settings: {...}
+ * }
  */
-export function createPersistedStateSnapshot(): PersistedState {
+export function createPersistedStateSnapshot() {
   const state = useHakuStore.getState();
 
   return {
-    version: CURRENT_SCHEMA_VERSION,
+    app: 'haku',
+    version: pkg.version,
+    schemaVersion: CURRENT_SCHEMA_VERSION,
     activities: state.activities,
     lists: state.lists,
     settings: state.settings,
-  };
+  } as const;
 }
 
 /**
  * Exports the current store state to a formatted JSON string.
  *
- * @returns A pretty-printed JSON string of the persisted state
+ * @returns A pretty-printed JSON string of the exported state
  */
 export function exportStateToJson(): string {
   const state = createPersistedStateSnapshot();

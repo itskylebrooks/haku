@@ -6,9 +6,9 @@
  * prevent app crashes when storage is unavailable or full.
  */
 
-import type { PersistedState, PersistedStateV1, ListsState } from './types';
-import { STORAGE_KEY } from './types';
 import type { Activity, Bucket } from '../types/activity';
+import type { ListsState, PersistedState, PersistedStateV1 } from './types';
+import { CURRENT_SCHEMA_VERSION, STORAGE_KEY } from './types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Validation Helpers
@@ -80,18 +80,42 @@ export function migratePersistedState(raw: unknown): PersistedState | null {
     return null;
   }
 
-  const version = (raw as Record<string, unknown>).version;
+  const data = raw as Record<string, unknown>;
 
-  switch (version) {
+  // Determine schema version for migration compatibility.
+  // Support older format where `version` was the numeric schema version,
+  // and newer export format where top-level `version` is the app semver
+  // and `schemaVersion` holds the numeric schema version.
+  let schemaVersion: number | undefined;
+
+  if (typeof data.version === 'number') {
+    schemaVersion = data.version as number;
+  } else if (typeof data.schemaVersion === 'number') {
+    schemaVersion = data.schemaVersion as number;
+  } else if (data.app === 'haku' && typeof data.version === 'string') {
+    // New export format with app/version; assume current schema when absent.
+    schemaVersion = CURRENT_SCHEMA_VERSION;
+  } else {
+    // Unknown format
+    return null;
+  }
+
+  switch (schemaVersion) {
     case 1:
-      return migrateFromV1(raw);
+      // Build a V1-shaped object for validation/migration
+      const candidateV1: Record<string, unknown> = {
+        version: 1,
+        activities: data.activities,
+        lists: data.lists,
+        settings: data.settings,
+      };
+      return migrateFromV1(candidateV1);
 
     // Future migrations:
     // case 2:
-    //   return migrateFromV2(raw);
+    //   return migrateFromV2(...)
 
     default:
-      // Unknown version or missing version field
       return null;
   }
 }
