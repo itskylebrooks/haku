@@ -3,7 +3,7 @@ import { downloadStateAsJson, importStateFromFile, useHakuStore } from '@/shared
 import { ConfirmModal } from '@/shared/ui';
 import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from '@/shared/ui/animations';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown, Linkedin, Share2, User, X } from 'lucide-react';
+import { ChevronDown, Linkedin, Share2, SquareArrowOutUpRight, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import pkg from '../../../package.json';
@@ -476,21 +476,21 @@ export default function SettingsModal({
                   </a>
 
                   <a
-                    href="https://itskylebrooks.tech/"
+                    href="https://brooksstudio.tech/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label="Kyle Brooks personal website"
+                    aria-label="Brooks Studio website"
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-primary)] opacity-90 hover:opacity-75 transition-opacity"
                   >
-                    <User className="w-5 h-5" />
+                    <SquareArrowOutUpRight className="w-5 h-5" />
                   </a>
 
                   <div className="font-medium text-[var(--color-text-primary)]">
-                    Kyle Brooks <span className="mx-2">•</span> Haku {pkg.version}
+                    Brooks Studio <span className="mx-2">•</span> Haku {pkg.version}
                   </div>
                   <div className="mt-0.5 flex items-center justify-center gap-3">
                     <a
-                      href="https://itskylebrooks.vercel.app/imprint"
+                      href="https://brooksstudio.tech/en/imprint"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="underline text-[var(--color-text-primary)] opacity-90"
@@ -498,7 +498,7 @@ export default function SettingsModal({
                       Imprint
                     </a>
                     <a
-                      href="https://itskylebrooks.vercel.app/privacy"
+                      href="https://brooksstudio.tech/en/privacy"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="underline text-[var(--color-text-primary)] opacity-90"
@@ -506,7 +506,7 @@ export default function SettingsModal({
                       Privacy Policy
                     </a>
                     <a
-                      href="https://itskylebrooks.vercel.app/license"
+                      href="https://brooksstudio.tech/en/license"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="underline text-[var(--color-text-primary)] opacity-90"
