@@ -6,7 +6,8 @@
  */
 
 import type { PersistedState } from './types';
-import { migratePersistedState, savePersistedState } from './local';
+import { migratePersistedState } from './local';
+import { STORAGE_KEY } from './types';
 import { useHakuStore } from './store';
 
 export type ImportResult = { ok: true } | { ok: false; error: string };
@@ -17,8 +18,8 @@ export type ImportResult = { ok: true } | { ok: false; error: string };
  * This performs:
  * 1. JSON parsing with validation
  * 2. Schema validation and migration
- * 3. Persistence to localStorage
- * 4. Store hydration
+ * 3. Store hydration (staged)
+ * 4. Persistence to localStorage (committed)
  *
  * If any step fails, the current state and localStorage are left unchanged.
  *
@@ -40,21 +41,74 @@ export function importStateFromJson(json: string): ImportResult {
     return { ok: false, error: 'Invalid or incompatible backup file' };
   }
 
-  // Step 3: Persist to localStorage
-  try {
-    savePersistedState(migrated);
-  } catch {
+  const previousStore = getStoreSnapshot();
+  const previousRaw = readPersistedRawState();
+
+  if (previousRaw.error) {
     return { ok: false, error: 'Failed to save to localStorage' };
   }
 
-  // Step 4: Hydrate the store
+  // Step 3: Hydrate the store (staged change)
   try {
     hydrateStoreFromState(migrated);
   } catch {
+    rollbackImport(previousStore, previousRaw.value);
     return { ok: false, error: 'Failed to update app state' };
   }
 
+  // Step 4: Persist to localStorage (commit)
+  if (!writePersistedRawState(migrated)) {
+    rollbackImport(previousStore, previousRaw.value);
+    return { ok: false, error: 'Failed to save to localStorage' };
+  }
+
   return { ok: true };
+}
+
+type StoreSnapshot = Pick<PersistedState, 'activities' | 'lists' | 'settings'>;
+
+function getStoreSnapshot(): StoreSnapshot {
+  const state = useHakuStore.getState();
+  return {
+    activities: state.activities,
+    lists: state.lists,
+    settings: state.settings,
+  };
+}
+
+function rollbackImport(snapshot: StoreSnapshot, rawState: string | null): void {
+  try {
+    useHakuStore.setState(snapshot);
+  } catch {
+    // best-effort rollback
+  }
+
+  try {
+    if (rawState === null) {
+      localStorage.removeItem(STORAGE_KEY);
+    } else {
+      localStorage.setItem(STORAGE_KEY, rawState);
+    }
+  } catch {
+    // best-effort rollback
+  }
+}
+
+function readPersistedRawState(): { error: false; value: string | null } | { error: true } {
+  try {
+    return { error: false, value: localStorage.getItem(STORAGE_KEY) };
+  } catch {
+    return { error: true };
+  }
+}
+
+function writePersistedRawState(state: PersistedState): boolean {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**

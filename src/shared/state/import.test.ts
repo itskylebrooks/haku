@@ -1,9 +1,9 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Activity } from '../types/activity';
 import { useHakuStore } from './store';
 import { importStateFromJson } from './import';
 import { loadPersistedState, clearPersistedState } from './local';
-import { getDefaultActivities, getDefaultListsState, getDefaultSettings } from './types';
+import { getDefaultActivities, getDefaultListsState, getDefaultSettings, STORAGE_KEY } from './types';
 
 const importedActivity: Activity = {
   id: 'imported-1',
@@ -64,5 +64,36 @@ describe('shared/state/import', () => {
     const persisted = loadPersistedState();
     expect(persisted).not.toBeNull();
     expect(persisted?.activities).toEqual([importedActivity]);
+  });
+
+  it('rolls back store and storage when persistence fails', () => {
+    const initial = {
+      activities: [importedActivity],
+      lists: { version: 1 },
+      settings: { weekStart: 'monday' as const, themeMode: 'system' as const },
+    };
+    const initialPersisted = { version: 1, ...initial };
+
+    useHakuStore.setState(initial);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(initialPersisted));
+
+    const incoming = {
+      version: 1,
+      activities: [{ ...importedActivity, id: 'incoming-2', title: 'Incoming' }],
+      lists: { version: 1 },
+      settings: { weekStart: 'sunday', themeMode: 'dark' },
+    };
+
+    const setItemSpy = vi.spyOn(localStorage, 'setItem');
+    setItemSpy.mockImplementation(() => {
+      throw new Error('quota');
+    });
+
+    const result = importStateFromJson(JSON.stringify(incoming));
+
+    expect(result).toEqual({ ok: false, error: 'Failed to save to localStorage' });
+    expect(useHakuStore.getState().activities).toEqual(initial.activities);
+    expect(useHakuStore.getState().settings).toEqual(initial.settings);
+    expect(localStorage.getItem(STORAGE_KEY)).toBe(JSON.stringify(initialPersisted));
   });
 });
