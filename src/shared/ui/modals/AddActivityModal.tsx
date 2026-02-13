@@ -159,18 +159,6 @@ const AddActivityModalContent = ({
     };
   }, []);
 
-  // Reset duration and duplicate state when scheduled time is removed
-  if (
-    scheduledTime === null &&
-    (durationMinutes !== null || isDuplicateMenuOpen || duplicateCount > 0)
-  ) {
-    setDurationMinutes(null);
-    setIsDurationMenuOpen(false);
-    setIsDuplicateMenuOpen(false);
-    setDuplicateCount(0);
-    setDuplicateInterval('day');
-  }
-
   useEffect(() => {
     if (!isDurationMenuOpen && !isDuplicateMenuOpen) {
       return;
@@ -188,7 +176,9 @@ const AddActivityModalContent = ({
     };
 
     document.addEventListener('mousedown', handleClickOutside, true);
-    return () => {};
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside, true);
+    };
   }, [isDurationMenuOpen, isDuplicateMenuOpen]);
 
   useEffect(() => {
@@ -206,6 +196,19 @@ const AddActivityModalContent = ({
   const handleClose = useCallback(() => {
     onClose();
   }, [onClose]);
+
+  const handleScheduledTimeChange = useCallback((nextTime: string | null) => {
+    setScheduledTime(nextTime);
+    if (nextTime !== null) {
+      return;
+    }
+
+    setDurationMinutes(null);
+    setIsDurationMenuOpen(false);
+    setIsDuplicateMenuOpen(false);
+    setDuplicateCount(0);
+    setDuplicateInterval('day');
+  }, []);
 
   const handleSubmit = useCallback(() => {
     if (!trimmedTitle) return;
@@ -385,7 +388,7 @@ const AddActivityModalContent = ({
                     <SimpleDatePicker value={scheduledDate} onChange={setScheduledDate} />
                   </div>
                   <div className="w-full">
-                    <SimpleTimePicker value={scheduledTime} onChange={setScheduledTime} />
+                    <SimpleTimePicker value={scheduledTime} onChange={handleScheduledTimeChange} />
                   </div>
                 </div>
 

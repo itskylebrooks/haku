@@ -60,15 +60,6 @@ const SimpleDatePicker = ({ value, onChange, initialMonth }: SimpleDatePickerPro
   const [viewYear, setViewYear] = useState(initial.year);
   const [viewMonth, setViewMonth] = useState(initial.month);
 
-  // Reset view when value changes externally
-  if (value) {
-    const [y, m] = value.split('-').map(Number);
-    if (y !== viewYear || m - 1 !== viewMonth) {
-      setViewYear(y);
-      setViewMonth(m - 1);
-    }
-  }
-
   // Close popup when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -114,6 +105,15 @@ const SimpleDatePicker = ({ value, onChange, initialMonth }: SimpleDatePickerPro
     setIsOpen(false);
   };
 
+  const handleToggleOpen = () => {
+    if (!isOpen && value) {
+      const [y, m] = value.split('-').map(Number);
+      setViewYear(y);
+      setViewMonth(m - 1);
+    }
+    setIsOpen((prev) => !prev);
+  };
+
   const daysInMonth = getDaysInMonth(viewYear, viewMonth);
   const firstDay = getFirstDayOfMonth(viewYear, viewMonth);
 
@@ -142,7 +142,7 @@ const SimpleDatePicker = ({ value, onChange, initialMonth }: SimpleDatePickerPro
       {/* Trigger Button */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggleOpen}
         className="w-full flex items-center justify-between gap-2 rounded-lg border border-[var(--color-border)] bg-transparent px-2 sm:px-3 py-2 text-sm text-[var(--color-text-primary)] transition hover:border-[var(--color-border-hover)] focus:border-[var(--color-border-focus)] focus:outline-none"
       >
         <span className="text-[var(--color-text-subtle)]">Date:</span>

@@ -101,7 +101,7 @@ export function migratePersistedState(raw: unknown): PersistedState | null {
   }
 
   switch (schemaVersion) {
-    case 1:
+    case 1: {
       // Build a V1-shaped object for validation/migration
       const candidateV1: Record<string, unknown> = {
         version: 1,
@@ -110,6 +110,7 @@ export function migratePersistedState(raw: unknown): PersistedState | null {
         settings: data.settings,
       };
       return migrateFromV1(candidateV1);
+    }
 
     // Future migrations:
     // case 2:

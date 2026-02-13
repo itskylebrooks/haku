@@ -5,7 +5,7 @@ import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from '@/shared/ui/animations';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, Linkedin, Share2, SquareArrowOutUpRight, X } from 'lucide-react';
 import type React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import pkg from '../../../package.json';
 
 interface SettingsModalProps {
@@ -54,19 +54,11 @@ export default function SettingsModal({
     };
   }, [open]);
 
-  // Reset error state when modal closes
-  if (!open && (importError || isResetConfirmOpen)) {
+  const beginClose = useCallback(() => {
     setImportError(null);
     setIsResetConfirmOpen(false);
-  }
-
-  function beginClose() {
-    try {
-      onClose();
-    } catch {
-      /* ignore */
-    }
-  }
+    onClose();
+  }, [onClose]);
 
   function triggerFilePick() {
     fileRef.current?.click();
