@@ -2,6 +2,7 @@ import { AppShell } from '@/app/shell';
 import { BoardPage } from '@/features/board';
 import { DayPage } from '@/features/day';
 import { InstallInstructionsModal, SettingsModal } from '@/features/settings';
+import { SyncPage } from '@/features/sync';
 import { WeekPage } from '@/features/week';
 import { usePWA } from '@/shared/hooks/usePWA';
 import { useHakuStore, type ThemeMode } from '@/shared/state';
@@ -43,6 +44,7 @@ function App() {
 
   const { isInstallable, isInstalled, installPwa } = usePWA();
   const [isInstallInstructionsOpen, setIsInstallInstructionsOpen] = useState(false);
+  const [isSyncPageOpen, setIsSyncPageOpen] = useState(false);
 
   const scrollToTop = () => {
     const main = document.querySelector('main');
@@ -59,14 +61,23 @@ function App() {
   const setThemeMode = useHakuStore((state) => state.setThemeMode);
 
   const handlePrev = () => {
+    if (isSyncPageOpen) {
+      return;
+    }
     setDirection(-1);
     setCurrentDate((date) => shiftDate(date, mode, -1));
   };
   const handleNext = () => {
+    if (isSyncPageOpen) {
+      return;
+    }
     setDirection(1);
     setCurrentDate((date) => shiftDate(date, mode, 1));
   };
   const handleResetToday = () => {
+    if (isSyncPageOpen) {
+      return;
+    }
     const today = todayIso();
     // Determine direction based on comparison with current
     if (today > currentDate) setDirection(1);
@@ -75,6 +86,7 @@ function App() {
     setCurrentDate(today);
   };
   const handleTabChange = (tab: ActiveTab) => {
+    setIsSyncPageOpen(false);
     setActiveTab(tab);
     if (tab === 'day') {
       setMode('day');
@@ -89,6 +101,9 @@ function App() {
   const handleOpenSettings = () => setIsSettingsOpen(true);
   const handleOpenAddModal = useCallback(
     (placement?: Bucket) => {
+      if (isSyncPageOpen) {
+        return;
+      }
       // If a placement override provided, use it. Otherwise derive from current tab.
       if (placement) {
         setAddModalInitialPlacement(placement);
@@ -105,7 +120,7 @@ function App() {
       }
       setIsAddModalOpen(true);
     },
-    [activeTab],
+    [activeTab, isSyncPageOpen],
   );
 
   const handleCloseAddModal = () => {
@@ -203,7 +218,19 @@ function App() {
           onOpenAdd={handleOpenAddModal}
         >
           <AnimatePresence mode="wait">
-            {activeTab === 'board' ? (
+            {isSyncPageOpen ? (
+              <motion.div
+                key="sync"
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                variants={PAGE_VARIANTS}
+                transition={FAST_TRANSITION}
+                className="min-h-full max-w-6xl mx-auto w-full"
+              >
+                <SyncPage />
+              </motion.div>
+            ) : activeTab === 'board' ? (
               <motion.div
                 key="board"
                 initial="initial"
@@ -271,6 +298,10 @@ function App() {
         onShowInstallInstructions={() => {
           setIsSettingsOpen(false);
           setIsInstallInstructionsOpen(true);
+        }}
+        onShowSyncPage={() => {
+          setIsSettingsOpen(false);
+          setIsSyncPageOpen(true);
         }}
       />
       <InstallInstructionsModal
