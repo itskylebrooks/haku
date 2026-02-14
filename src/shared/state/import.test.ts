@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Activity } from '../types/activity';
 import { useHakuStore } from './store';
 import { importStateFromJson } from './import';
-import { loadPersistedState, clearPersistedState } from './local';
+import * as local from './local';
 import { getDefaultActivities, getDefaultListsState, getDefaultSettings, STORAGE_KEY } from './types';
 
 const importedActivity: Activity = {
@@ -25,7 +25,7 @@ const resetStore = () => {
     lists: getDefaultListsState(),
     settings: getDefaultSettings(),
   });
-  clearPersistedState();
+  local.clearPersistedState();
 };
 
 describe('shared/state/import', () => {
@@ -61,7 +61,7 @@ describe('shared/state/import', () => {
     expect(state.activities).toEqual([importedActivity]);
     expect(state.settings).toEqual({ weekStart: 'sunday', themeMode: 'dark' });
 
-    const persisted = loadPersistedState();
+    const persisted = local.loadPersistedState();
     expect(persisted).not.toBeNull();
     expect(persisted?.activities).toEqual([importedActivity]);
   });
@@ -84,10 +84,7 @@ describe('shared/state/import', () => {
       settings: { weekStart: 'sunday', themeMode: 'dark' },
     };
 
-    const setItemSpy = vi.spyOn(localStorage, 'setItem');
-    setItemSpy.mockImplementation(() => {
-      throw new Error('quota');
-    });
+    vi.spyOn(local, 'savePersistedState').mockReturnValue(false);
 
     const result = importStateFromJson(JSON.stringify(incoming));
 
