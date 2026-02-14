@@ -7,7 +7,7 @@
 
 import { migratePersistedState, savePersistedState } from './local';
 import { useHakuStore } from './store';
-import type { PersistedState } from './types';
+import { STORAGE_KEY, type PersistedState } from './types';
 
 export type ImportResult = { ok: true } | { ok: false; error: string };
 
@@ -26,6 +26,9 @@ export type ImportResult = { ok: true } | { ok: false; error: string };
  * @returns Result indicating success or failure with error message
  */
 export function importStateFromJson(json: string): ImportResult {
+  const previousState = createPersistedStateFromStore();
+  const previousStorage = readRawStorage();
+
   // Step 1: Parse JSON
   let parsed: unknown;
   try {
@@ -40,18 +43,18 @@ export function importStateFromJson(json: string): ImportResult {
     return { ok: false, error: 'Invalid or incompatible backup file' };
   }
 
-  // Step 3: Persist to localStorage
-  try {
-    savePersistedState(migrated);
-  } catch {
-    return { ok: false, error: 'Failed to save to localStorage' };
-  }
-
-  // Step 4: Hydrate the store
+  // Step 3: Hydrate the store
   try {
     hydrateStoreFromState(migrated);
   } catch {
+    restorePreviousState(previousState, previousStorage);
     return { ok: false, error: 'Failed to update app state' };
+  }
+
+  // Step 4: Persist to localStorage
+  if (!savePersistedState(migrated)) {
+    restorePreviousState(previousState, previousStorage);
+    return { ok: false, error: 'Failed to save to localStorage' };
   }
 
   return { ok: true };
@@ -66,6 +69,38 @@ function hydrateStoreFromState(state: PersistedState): void {
     lists: state.lists,
     settings: state.settings,
   });
+}
+
+function createPersistedStateFromStore(): PersistedState {
+  const state = useHakuStore.getState();
+  return {
+    version: 1,
+    activities: state.activities,
+    lists: state.lists,
+    settings: state.settings,
+  };
+}
+
+function readRawStorage(): string | null {
+  try {
+    return localStorage.getItem(STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function restorePreviousState(state: PersistedState, rawStorage: string | null): void {
+  hydrateStoreFromState(state);
+
+  try {
+    if (rawStorage === null) {
+      localStorage.removeItem(STORAGE_KEY);
+    } else {
+      localStorage.setItem(STORAGE_KEY, rawStorage);
+    }
+  } catch {
+    // Ignore rollback failures caused by unavailable storage.
+  }
 }
 
 /**

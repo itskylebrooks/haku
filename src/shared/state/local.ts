@@ -183,15 +183,17 @@ export function loadPersistedState(): PersistedState | null {
 /**
  * Saves persisted state to localStorage.
  *
- * Fails silently on quota exceeded or other errors.
+ * @returns true when save succeeds, false when it fails.
  */
-export function savePersistedState(state: PersistedState): void {
+export function savePersistedState(state: PersistedState): boolean {
   try {
     const json = JSON.stringify(state);
     localStorage.setItem(STORAGE_KEY, json);
+    return true;
   } catch {
-    // Quota exceeded or localStorage unavailable - fail silently
+    // Quota exceeded or localStorage unavailable
     console.warn('[Haku] Failed to save state to localStorage');
+    return false;
   }
 }
 
