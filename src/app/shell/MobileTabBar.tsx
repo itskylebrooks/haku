@@ -1,6 +1,6 @@
 import { useSmartSticky } from '@/shared/hooks/useSmartSticky';
 import type { Bucket } from '@/shared/types/activity';
-import { LayoutGroup, motion, type Transition, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, LayoutGroup, motion, type Transition, useReducedMotion } from 'framer-motion';
 import { Circle, Grid2x2, Plus, Square } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -94,14 +94,18 @@ const MobileTabBar = ({ activeTab, onTabChange, onAdd, stickyKey }: MobileTabBar
                       paddingRight: 6,
                     }}
                     transition={springExpand}
-                  >
-                    {isActive && (
-                      <motion.span
-                        layoutId="mobile-tab-pill"
-                        className="absolute inset-0 rounded-full bg-[var(--color-emphasis-bg)]"
-                        transition={springExpand}
-                      />
-                    )}
+                    >
+                    <AnimatePresence initial={false}>
+                      {isActive && (
+                        <motion.span
+                          className="absolute inset-0 rounded-full bg-[var(--color-emphasis-bg)]"
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.9 }}
+                          transition={{ duration: 0.14, ease: 'easeInOut' }}
+                        />
+                      )}
+                    </AnimatePresence>
 
                     <div className="relative z-10 flex h-full w-full items-center justify-center">
                       <motion.span

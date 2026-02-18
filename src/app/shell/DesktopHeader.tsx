@@ -1,6 +1,5 @@
 import type { Bucket } from '@/shared/types/activity';
-import { SPRING_TRANSITION } from '@/shared/ui/animations';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Bolt, ChevronLeft, ChevronRight, Circle, Grid2x2, Plus, Square } from 'lucide-react';
 
 type ViewMode = 'day' | 'week';
@@ -88,19 +87,22 @@ const DesktopHeader = ({
                           : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
                       }`}
                     >
-                      {isActive && (
-                        <motion.div
-                          layoutId="header-tab-pill"
-                          className="absolute inset-0 rounded-full bg-[var(--color-emphasis-bg)] pointer-events-none"
-                          transition={SPRING_TRANSITION}
-                          style={{
-                            borderRadius: 9999, // Ensure radius is passed to motion
-                            transform: 'translateZ(0)',
-                            WebkitTransform: 'translateZ(0)',
-                            willChange: 'transform, width, height',
-                          }}
-                        />
-                      )}
+                      <AnimatePresence initial={false}>
+                        {isActive && (
+                          <motion.div
+                            className="absolute inset-0 rounded-full bg-[var(--color-emphasis-bg)] pointer-events-none"
+                            initial={{ opacity: 0, scale: 0.94 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.94 }}
+                            transition={{ duration: 0.14, ease: 'easeInOut' }}
+                            style={{
+                              borderRadius: 9999,
+                              transform: 'translateZ(0)',
+                              WebkitTransform: 'translateZ(0)',
+                            }}
+                          />
+                        )}
+                      </AnimatePresence>
                       <span
                         className="relative z-10 flex items-center justify-center"
                         style={{ transform: 'translateZ(0)', WebkitTransform: 'translateZ(0)' }}
