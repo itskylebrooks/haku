@@ -427,7 +427,9 @@ export default function SettingsModal({
                   </div>
 
                   {importError && (
-                    <div className="mt-2 text-xs text-[var(--color-danger-text)]">{importError}</div>
+                    <div className="mt-2 text-xs text-[var(--color-danger-text)]">
+                      {importError}
+                    </div>
                   )}
 
                   <input
@@ -452,7 +454,11 @@ export default function SettingsModal({
                       onClick={handleManageSync}
                       className="w-full h-10 flex items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-medium border border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] transition whitespace-nowrap"
                     >
-                      <Dot className="h-6 w-6 shrink-0 text-[var(--color-text-subtle)]" strokeWidth={6} aria-hidden />
+                      <Dot
+                        className="h-6 w-6 shrink-0 text-[var(--color-text-subtle)]"
+                        strokeWidth={6}
+                        aria-hidden
+                      />
                       <span>Manage</span>
                     </button>
                   </div>
@@ -504,7 +510,7 @@ export default function SettingsModal({
                   </a>
 
                   <a
-                    href="https://brooksstudio.tech/"
+                    href="https://brooks.tools/"
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Brooks Studio website"
@@ -518,7 +524,7 @@ export default function SettingsModal({
                   </div>
                   <div className="mt-0.5 flex items-center justify-center gap-3">
                     <a
-                      href="https://brooksstudio.tech/en/imprint"
+                      href="https://brooks.tools/imprint"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="underline text-[var(--color-text-primary)] opacity-90"
@@ -526,7 +532,7 @@ export default function SettingsModal({
                       Imprint
                     </a>
                     <a
-                      href="https://brooksstudio.tech/en/privacy"
+                      href="https://brooks.tools/privacy"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="underline text-[var(--color-text-primary)] opacity-90"
@@ -534,7 +540,7 @@ export default function SettingsModal({
                       Privacy Policy
                     </a>
                     <a
-                      href="https://brooksstudio.tech/en/license"
+                      href="https://brooks.tools/license"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="underline text-[var(--color-text-primary)] opacity-90"
