@@ -12,6 +12,7 @@ interface AppShellProps {
   mode: ViewMode;
   activeTab: ActiveTab;
   currentDate: string;
+  isSyncPageOpen: boolean;
   onModeChange: (mode: ViewMode) => void;
   onTabChange: (tab: ActiveTab) => void;
   onPrev: () => void;
@@ -26,6 +27,7 @@ const AppShell = ({
   mode,
   activeTab,
   currentDate,
+  isSyncPageOpen,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onModeChange: _onModeChange,
   onTabChange,
@@ -39,12 +41,12 @@ const AppShell = ({
   const { isDesktop } = useDesktopLayout();
   // Calculate prev/next based on active tab
   const handlePrev = () => {
-    if (activeTab === 'board') return;
+    if (activeTab === 'board' || isSyncPageOpen) return;
     onPrev();
   };
 
   const handleNext = () => {
-    if (activeTab === 'board') return;
+    if (activeTab === 'board' || isSyncPageOpen) return;
     onNext();
   };
 
@@ -56,6 +58,7 @@ const AppShell = ({
           mode={mode}
           activeTab={activeTab}
           currentDate={currentDate}
+          isSyncPageOpen={isSyncPageOpen}
           onTabChange={onTabChange}
           onPrev={handlePrev}
           onNext={handleNext}
@@ -70,6 +73,7 @@ const AppShell = ({
         <MobileHeader
           activeTab={activeTab}
           currentDate={currentDate}
+          isSyncPageOpen={isSyncPageOpen}
           onPrev={handlePrev}
           onNext={handleNext}
           onOpenSettings={onOpenSettings}
@@ -86,7 +90,12 @@ const AppShell = ({
 
       {/* Mobile Tab Bar - hidden on desktop */}
       {!isDesktop && (
-        <MobileTabBar activeTab={activeTab} onTabChange={onTabChange} onAdd={onOpenAdd} />
+        <MobileTabBar
+          activeTab={activeTab}
+          onTabChange={onTabChange}
+          onAdd={onOpenAdd}
+          stickyKey={isSyncPageOpen ? 'sync' : activeTab}
+        />
       )}
     </>
   );

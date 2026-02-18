@@ -1,4 +1,4 @@
-import { type Variants, type Transition } from 'framer-motion';
+import type { TargetAndTransition, Transition, Variants } from 'framer-motion';
 
 export const SPRING_TRANSITION: Transition = {
   type: 'spring',
@@ -21,6 +21,35 @@ export const PAGE_VARIANTS: Variants = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },
   exit: { opacity: 0 },
+};
+
+export const PAGE_ENTER_VARIANTS = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+} as const;
+
+export const PAGE_ENTER_TRANSITION: Transition = {
+  duration: 0.22,
+};
+
+export const createPageMotion = (prefersReducedMotion: boolean | null): {
+  initial?: TargetAndTransition;
+  animate?: TargetAndTransition;
+  transition?: Transition;
+} => {
+  if (prefersReducedMotion) {
+    return {
+      initial: undefined,
+      animate: undefined,
+      transition: undefined,
+    };
+  }
+
+  return {
+    initial: PAGE_ENTER_VARIANTS.initial,
+    animate: PAGE_ENTER_VARIANTS.animate,
+    transition: PAGE_ENTER_TRANSITION,
+  };
 };
 
 export const SLIDE_VARIANTS: Variants = {

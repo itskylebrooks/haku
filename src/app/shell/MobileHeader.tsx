@@ -6,6 +6,7 @@ type ActiveTab = 'board' | 'day' | 'week';
 interface MobileHeaderProps {
   activeTab: ActiveTab;
   currentDate: string;
+  isSyncPageOpen: boolean;
   onPrev: () => void;
   onNext: () => void;
   onOpenSettings: () => void;
@@ -42,6 +43,7 @@ const iconButton =
 const MobileHeader = ({
   activeTab,
   currentDate,
+  isSyncPageOpen,
   onPrev,
   onNext,
   onOpenSettings,
@@ -53,7 +55,7 @@ const MobileHeader = ({
     }
     return formatDate(currentDate);
   }, [currentDate, activeTab]);
-  const chevronsDisabled = activeTab === 'board';
+  const chevronsDisabled = activeTab === 'board' || isSyncPageOpen;
 
   return (
     <header className="sticky top-6 z-40 block w-full bg-[var(--color-surface)] py-2 text-[var(--color-text-primary)]">

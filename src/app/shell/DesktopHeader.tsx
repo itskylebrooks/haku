@@ -10,6 +10,7 @@ interface DesktopHeaderProps {
   mode: ViewMode;
   activeTab: ActiveTab;
   currentDate: string;
+  isSyncPageOpen: boolean;
   onTabChange: (tab: ActiveTab) => void;
   onResetToday: () => void;
   onPrev: () => void;
@@ -24,6 +25,7 @@ const iconButton =
 const DesktopHeader = ({
   mode,
   activeTab,
+  isSyncPageOpen,
   onTabChange,
   onPrev,
   onNext,
@@ -31,7 +33,7 @@ const DesktopHeader = ({
   onOpenAdd,
 }: DesktopHeaderProps) => {
   const selectedTab: ActiveTab = activeTab === 'board' ? 'board' : mode;
-  const chevronsDisabled = selectedTab === 'board';
+  const chevronsDisabled = selectedTab === 'board' || isSyncPageOpen;
 
   return (
     <header className="sticky top-6 z-40 bg-[var(--color-surface)] pb-4 pt-0 text-sm text-[var(--color-text-primary)]">

@@ -8,8 +8,8 @@ import { usePWA } from '@/shared/hooks/usePWA';
 import { useHakuStore, type ThemeMode } from '@/shared/state';
 import type { Bucket } from '@/shared/types/activity';
 import { AddActivityModal } from '@/shared/ui';
-import { FAST_TRANSITION, PAGE_VARIANTS } from '@/shared/ui/animations';
-import { AnimatePresence, motion } from 'framer-motion';
+import { createPageMotion } from '@/shared/ui/animations';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
 
 type ViewMode = 'day' | 'week';
@@ -45,6 +45,8 @@ function App() {
   const { isInstallable, isInstalled, installPwa } = usePWA();
   const [isInstallInstructionsOpen, setIsInstallInstructionsOpen] = useState(false);
   const [isSyncPageOpen, setIsSyncPageOpen] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
+  const pageMotion = createPageMotion(shouldReduceMotion);
 
   const scrollToTop = () => {
     const main = document.querySelector('main');
@@ -145,7 +147,7 @@ function App() {
 
   useEffect(() => {
     scrollToTop();
-  }, [activeTab, mode]);
+  }, [activeTab, mode, isSyncPageOpen]);
 
   // Apply theme to document root
   useEffect(() => {
@@ -209,6 +211,7 @@ function App() {
           mode={mode}
           activeTab={activeTab}
           currentDate={currentDate}
+          isSyncPageOpen={isSyncPageOpen}
           onModeChange={setMode}
           onTabChange={handleTabChange}
           onPrev={handlePrev}
@@ -217,15 +220,13 @@ function App() {
           onOpenSettings={handleOpenSettings}
           onOpenAdd={handleOpenAddModal}
         >
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait" initial={false}>
             {isSyncPageOpen ? (
               <motion.div
                 key="sync"
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                variants={PAGE_VARIANTS}
-                transition={FAST_TRANSITION}
+                initial={pageMotion.initial}
+                animate={pageMotion.animate}
+                transition={pageMotion.transition}
                 className="min-h-full max-w-6xl mx-auto w-full"
               >
                 <SyncPage />
@@ -233,11 +234,9 @@ function App() {
             ) : activeTab === 'board' ? (
               <motion.div
                 key="board"
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                variants={PAGE_VARIANTS}
-                transition={FAST_TRANSITION}
+                initial={pageMotion.initial}
+                animate={pageMotion.animate}
+                transition={pageMotion.transition}
                 className="min-h-full max-w-6xl mx-auto w-full"
               >
                 <BoardPage />
@@ -245,11 +244,9 @@ function App() {
             ) : mode === 'day' ? (
               <motion.div
                 key="day"
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                variants={PAGE_VARIANTS}
-                transition={FAST_TRANSITION}
+                initial={pageMotion.initial}
+                animate={pageMotion.animate}
+                transition={pageMotion.transition}
                 className="min-h-full max-w-6xl mx-auto w-full"
               >
                 <DayPage
@@ -261,11 +258,9 @@ function App() {
             ) : (
               <motion.div
                 key="week"
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                variants={PAGE_VARIANTS}
-                transition={FAST_TRANSITION}
+                initial={pageMotion.initial}
+                animate={pageMotion.animate}
+                transition={pageMotion.transition}
                 className="min-h-full w-full"
               >
                 <WeekPage
