@@ -1,9 +1,8 @@
 /**
  * Haku Store
  *
- * Unified Zustand store combining activities, lists, and settings.
- * This store integrates with the persistence layer for automatic
- * saving and hydration from localStorage.
+ * Pure Zustand store factory combining activities, lists, and settings.
+ * Browser hydration and persistence are composed in browserStore.ts.
  */
 
 import { create } from 'zustand';
@@ -19,14 +18,8 @@ import {
 import type { Activity, Bucket } from '../types/activity';
 import { isScheduled } from '../types/activity';
 import { getCalendarWeekDates, todayLocal } from '../utils/calendarDate';
-import { clearPersistedState, loadPersistedState } from './local';
-import type { ListsState, PersistedState, Settings } from './types';
-import {
-  CURRENT_SCHEMA_VERSION,
-  getDefaultActivities,
-  getDefaultListsState,
-  getDefaultSettings,
-} from './types';
+import type { ListsState, Settings } from './types';
+import { getDefaultActivities, getDefaultListsState, getDefaultSettings } from './types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -60,400 +53,392 @@ export interface HakuStoreState {
   resetAllData: () => void;
 }
 
+export type HakuDataState = Pick<HakuStoreState, 'activities' | 'lists' | 'settings'>;
+
+export interface HakuStoreDependencies {
+  initialState: HakuDataState;
+  generateId?: () => string;
+  now?: () => string;
+  today?: () => string;
+  onReset?: () => void;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const generateActivityId = (() => {
+const fallbackActivityId = (() => {
   let counter = 0;
   return () => `activity_${Date.now()}_${counter++}`;
 })();
 
-const nowIsoString = () => new Date().toISOString();
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Initial State
-// ─────────────────────────────────────────────────────────────────────────────
-
-function getInitialState(): Pick<HakuStoreState, 'activities' | 'lists' | 'settings'> {
-  const persisted = loadPersistedState();
-
-  if (persisted) {
-    return {
-      activities: persisted.activities,
-      lists: persisted.lists,
-      settings: persisted.settings,
-    };
-  }
-
-  return {
-    activities: getDefaultActivities(),
-    lists: getDefaultListsState(),
-    settings: getDefaultSettings(),
-  };
-}
+const defaultGenerateId = (): string => globalThis.crypto?.randomUUID?.() ?? fallbackActivityId();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Store
 // ─────────────────────────────────────────────────────────────────────────────
 
-const initialState = getInitialState();
+export const createHakuStore = (dependencies: HakuStoreDependencies) => {
+  const generateId = dependencies.generateId ?? defaultGenerateId;
+  const getNow = dependencies.now ?? (() => new Date().toISOString());
+  const getToday = dependencies.today ?? todayLocal;
 
-export const useHakuStore = create<HakuStoreState>((set) => ({
-  // Initial state
-  ...initialState,
+  return create<HakuStoreState>((set) => ({
+    // Initial state
+    ...dependencies.initialState,
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Activity Actions
-  // ─────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    // Activity Actions
+    // ─────────────────────────────────────────────────────────────────────────
 
-  addActivity: (input) => {
-    const now = nowIsoString();
-    const newActivity = createActivityEntity(input, {
-      id: generateActivityId(),
-      now,
-      today: todayLocal(),
-    });
+    addActivity: (input) => {
+      const now = getNow();
+      const newActivity = createActivityEntity(input, {
+        id: generateId(),
+        now,
+        today: getToday(),
+      });
 
-    set((state) => ({ activities: [...state.activities, newActivity] }));
+      set((state) => ({ activities: [...state.activities, newActivity] }));
 
-    return newActivity;
-  },
+      return newActivity;
+    },
 
-  updateActivity: (id, updates) => {
-    if (Object.keys(updates).length === 0) {
-      return;
-    }
+    updateActivity: (id, updates) => {
+      if (Object.keys(updates).length === 0) {
+        return;
+      }
 
-    set((state) => {
-      const now = nowIsoString();
-      const { updatedAt, ...restUpdates } = updates;
-      void updatedAt; // Mark as intentionally unused
-      let modified = false;
+      set((state) => {
+        const now = getNow();
+        const { updatedAt, ...restUpdates } = updates;
+        void updatedAt; // Mark as intentionally unused
+        let modified = false;
 
-      const activities = state.activities.map((activity): Activity => {
-        if (activity.id !== id) {
-          return activity;
-        }
+        const activities = state.activities.map((activity): Activity => {
+          if (activity.id !== id) {
+            return activity;
+          }
 
-        const updated = updateActivityEntity(activity, restUpdates, {
-          now,
-          today: todayLocal(),
+          const updated = updateActivityEntity(activity, restUpdates, {
+            now,
+            today: getToday(),
+          });
+          if (updated === activity) return activity;
+
+          modified = true;
+          return updated;
         });
-        if (updated === activity) return activity;
 
-        modified = true;
-        return updated;
+        return modified ? { activities } : state;
       });
+    },
 
-      return modified ? { activities } : state;
-    });
-  },
+    deleteActivity: (id) => {
+      set((state) => ({
+        activities: state.activities.filter((activity) => activity.id !== id),
+      }));
+    },
 
-  deleteActivity: (id) => {
-    set((state) => ({
-      activities: state.activities.filter((activity) => activity.id !== id),
-    }));
-  },
-
-  moveToInbox: (id) => {
-    set((state) => {
-      const now = nowIsoString();
-      let changed = false;
-      const activities = state.activities.map((activity): Activity => {
-        if (activity.id !== id) {
-          return activity;
-        }
-        if (activity.isDone) {
-          return activity;
-        }
-        const needsUpdate =
-          activity.bucket !== 'inbox' || activity.date !== null || activity.time !== null;
-        if (!needsUpdate) {
-          return activity;
-        }
-        changed = true;
-        return {
-          ...activity,
-          bucket: 'inbox',
-          date: null,
-          time: null,
-          durationMinutes: null,
-          updatedAt: now,
-        };
-      });
-      return changed ? { activities } : state;
-    });
-  },
-
-  moveToLater: (id) => {
-    set((state) => {
-      const now = nowIsoString();
-      let changed = false;
-      const activities = state.activities.map((activity): Activity => {
-        if (activity.id !== id) {
-          return activity;
-        }
-        if (activity.isDone) {
-          return activity;
-        }
-        const needsUpdate =
-          activity.bucket !== 'later' || activity.date !== null || activity.time !== null;
-        if (!needsUpdate) {
-          return activity;
-        }
-        changed = true;
-        return {
-          ...activity,
-          bucket: 'later',
-          date: null,
-          time: null,
-          durationMinutes: null,
-          updatedAt: now,
-        };
-      });
-      return changed ? { activities } : state;
-    });
-  },
-
-  scheduleActivity: (id, date) => {
-    set((state) => {
-      const now = nowIsoString();
-      let changed = false;
-      const activities = state.activities.map((activity): Activity => {
-        if (activity.id !== id) {
-          return activity;
-        }
-        const placement = normalizeActivityPlacement(
-          'scheduled',
-          date,
-          activity.time,
-          activity.durationMinutes,
-          todayLocal(),
-        );
-        if (activity.bucket === 'scheduled' && activity.date === placement.date) {
-          return activity;
-        }
-        changed = true;
-        return {
-          ...activity,
-          ...placement,
-          updatedAt: now,
-        };
-      });
-      return changed ? { activities } : state;
-    });
-  },
-
-  unscheduleToInbox: (id) => {
-    set((state) => {
-      const now = nowIsoString();
-      let changed = false;
-      const activities = state.activities.map((activity): Activity => {
-        if (activity.id !== id) {
-          return activity;
-        }
-        if (activity.isDone) {
-          return activity;
-        }
-        const needsUpdate =
-          activity.bucket !== 'inbox' || activity.date !== null || activity.time !== null;
-        if (!needsUpdate) {
-          return activity;
-        }
-        changed = true;
-        return {
-          ...activity,
-          bucket: 'inbox',
-          date: null,
-          time: null,
-          durationMinutes: null,
-          updatedAt: now,
-        };
-      });
-      return changed ? { activities } : state;
-    });
-  },
-
-  setTime: (id, time, durationMinutes) => {
-    set((state) => {
-      const now = nowIsoString();
-      let changed = false;
-      const activities = state.activities.map((activity): Activity => {
-        if (activity.id !== id) {
-          return activity;
-        }
-
-        const placement = normalizeActivityPlacement(
-          activity.bucket,
-          activity.date,
-          time,
-          durationMinutes !== undefined ? durationMinutes : activity.durationMinutes,
-          todayLocal(),
-        );
-
-        if (
-          activity.time === placement.time &&
-          activity.durationMinutes === placement.durationMinutes
-        ) {
-          return activity;
-        }
-
-        changed = true;
-        return {
-          ...activity,
-          ...placement,
-          updatedAt: now,
-        };
-      });
-      return changed ? { activities } : state;
-    });
-  },
-
-  toggleDone: (id) => {
-    set((state) => {
-      const now = nowIsoString();
-      const today = todayLocal();
-      let changed = false;
-
-      const activities = state.activities.map((activity): Activity => {
-        if (activity.id !== id) {
-          return activity;
-        }
-
-        const nextIsDone = !activity.isDone;
-        const shouldScheduleToday =
-          nextIsDone && (activity.bucket === 'inbox' || activity.bucket === 'later');
-
-        changed = true;
-
-        if (!shouldScheduleToday) {
+    moveToInbox: (id) => {
+      set((state) => {
+        const now = getNow();
+        let changed = false;
+        const activities = state.activities.map((activity): Activity => {
+          if (activity.id !== id) {
+            return activity;
+          }
+          if (activity.isDone) {
+            return activity;
+          }
+          const needsUpdate =
+            activity.bucket !== 'inbox' || activity.date !== null || activity.time !== null;
+          if (!needsUpdate) {
+            return activity;
+          }
+          changed = true;
           return {
             ...activity,
+            bucket: 'inbox',
+            date: null,
+            time: null,
+            durationMinutes: null,
+            updatedAt: now,
+          };
+        });
+        return changed ? { activities } : state;
+      });
+    },
+
+    moveToLater: (id) => {
+      set((state) => {
+        const now = getNow();
+        let changed = false;
+        const activities = state.activities.map((activity): Activity => {
+          if (activity.id !== id) {
+            return activity;
+          }
+          if (activity.isDone) {
+            return activity;
+          }
+          const needsUpdate =
+            activity.bucket !== 'later' || activity.date !== null || activity.time !== null;
+          if (!needsUpdate) {
+            return activity;
+          }
+          changed = true;
+          return {
+            ...activity,
+            bucket: 'later',
+            date: null,
+            time: null,
+            durationMinutes: null,
+            updatedAt: now,
+          };
+        });
+        return changed ? { activities } : state;
+      });
+    },
+
+    scheduleActivity: (id, date) => {
+      set((state) => {
+        const now = getNow();
+        let changed = false;
+        const activities = state.activities.map((activity): Activity => {
+          if (activity.id !== id) {
+            return activity;
+          }
+          const placement = normalizeActivityPlacement(
+            'scheduled',
+            date,
+            activity.time,
+            activity.durationMinutes,
+            getToday(),
+          );
+          if (activity.bucket === 'scheduled' && activity.date === placement.date) {
+            return activity;
+          }
+          changed = true;
+          return {
+            ...activity,
+            ...placement,
+            updatedAt: now,
+          };
+        });
+        return changed ? { activities } : state;
+      });
+    },
+
+    unscheduleToInbox: (id) => {
+      set((state) => {
+        const now = getNow();
+        let changed = false;
+        const activities = state.activities.map((activity): Activity => {
+          if (activity.id !== id) {
+            return activity;
+          }
+          if (activity.isDone) {
+            return activity;
+          }
+          const needsUpdate =
+            activity.bucket !== 'inbox' || activity.date !== null || activity.time !== null;
+          if (!needsUpdate) {
+            return activity;
+          }
+          changed = true;
+          return {
+            ...activity,
+            bucket: 'inbox',
+            date: null,
+            time: null,
+            durationMinutes: null,
+            updatedAt: now,
+          };
+        });
+        return changed ? { activities } : state;
+      });
+    },
+
+    setTime: (id, time, durationMinutes) => {
+      set((state) => {
+        const now = getNow();
+        let changed = false;
+        const activities = state.activities.map((activity): Activity => {
+          if (activity.id !== id) {
+            return activity;
+          }
+
+          const placement = normalizeActivityPlacement(
+            activity.bucket,
+            activity.date,
+            time,
+            durationMinutes !== undefined ? durationMinutes : activity.durationMinutes,
+            getToday(),
+          );
+
+          if (
+            activity.time === placement.time &&
+            activity.durationMinutes === placement.durationMinutes
+          ) {
+            return activity;
+          }
+
+          changed = true;
+          return {
+            ...activity,
+            ...placement,
+            updatedAt: now,
+          };
+        });
+        return changed ? { activities } : state;
+      });
+    },
+
+    toggleDone: (id) => {
+      set((state) => {
+        const now = getNow();
+        const today = getToday();
+        let changed = false;
+
+        const activities = state.activities.map((activity): Activity => {
+          if (activity.id !== id) {
+            return activity;
+          }
+
+          const nextIsDone = !activity.isDone;
+          const shouldScheduleToday =
+            nextIsDone && (activity.bucket === 'inbox' || activity.bucket === 'later');
+
+          changed = true;
+
+          if (!shouldScheduleToday) {
+            return {
+              ...activity,
+              isDone: nextIsDone,
+              updatedAt: now,
+            };
+          }
+
+          return {
+            ...activity,
+            bucket: 'scheduled',
+            date: today,
+            time: null,
+            durationMinutes: null,
+            orderIndex: null,
             isDone: nextIsDone,
             updatedAt: now,
           };
-        }
+        });
 
-        return {
-          ...activity,
-          bucket: 'scheduled',
-          date: today,
-          time: null,
-          durationMinutes: null,
-          orderIndex: null,
-          isDone: nextIsDone,
-          updatedAt: now,
-        };
+        return changed ? { activities } : state;
       });
+    },
 
-      return changed ? { activities } : state;
-    });
-  },
+    reorderInDay: (date, orderedIds) => {
+      set((state) => {
+        const orderMap = new Map<string, number>();
+        orderedIds.forEach((activityId, index) => {
+          orderMap.set(activityId, index);
+        });
 
-  reorderInDay: (date, orderedIds) => {
-    set((state) => {
-      const orderMap = new Map<string, number>();
-      orderedIds.forEach((activityId, index) => {
-        orderMap.set(activityId, index);
+        const now = getNow();
+        let changed = false;
+
+        const activities = state.activities.map((activity): Activity => {
+          if (activity.date !== date) {
+            return activity;
+          }
+
+          const nextOrderIndex = orderMap.get(activity.id);
+          if (nextOrderIndex === undefined || activity.orderIndex === nextOrderIndex) {
+            return activity;
+          }
+
+          changed = true;
+          return {
+            ...activity,
+            orderIndex: nextOrderIndex,
+            updatedAt: now,
+          };
+        });
+
+        return changed ? { activities } : state;
       });
+    },
 
-      const now = nowIsoString();
-      let changed = false;
+    reorderInBucket: (bucket, orderedIds) => {
+      set((state) => {
+        const orderMap = new Map<string, number>();
+        orderedIds.forEach((activityId, index) => {
+          orderMap.set(activityId, index);
+        });
 
-      const activities = state.activities.map((activity): Activity => {
-        if (activity.date !== date) {
-          return activity;
-        }
+        const now = getNow();
+        let changed = false;
 
-        const nextOrderIndex = orderMap.get(activity.id);
-        if (nextOrderIndex === undefined || activity.orderIndex === nextOrderIndex) {
-          return activity;
-        }
+        const activities = state.activities.map((activity): Activity => {
+          if (activity.bucket !== bucket) {
+            return activity;
+          }
 
-        changed = true;
-        return {
-          ...activity,
-          orderIndex: nextOrderIndex,
-          updatedAt: now,
-        };
+          const nextOrderIndex = orderMap.get(activity.id);
+          if (nextOrderIndex === undefined || activity.orderIndex === nextOrderIndex) {
+            return activity;
+          }
+
+          changed = true;
+          return {
+            ...activity,
+            orderIndex: nextOrderIndex,
+            updatedAt: now,
+          };
+        });
+
+        return changed ? { activities } : state;
       });
+    },
 
-      return changed ? { activities } : state;
-    });
-  },
-
-  reorderInBucket: (bucket, orderedIds) => {
-    set((state) => {
-      const orderMap = new Map<string, number>();
-      orderedIds.forEach((activityId, index) => {
-        orderMap.set(activityId, index);
+    moveActivity: (input) => {
+      set((state) => {
+        const activities = moveActivityInCollection(state.activities, input, {
+          now: getNow(),
+          today: getToday(),
+        });
+        return activities === state.activities ? state : { activities };
       });
+    },
 
-      const now = nowIsoString();
-      let changed = false;
+    // ─────────────────────────────────────────────────────────────────────────
+    // Settings Actions
+    // ─────────────────────────────────────────────────────────────────────────
 
-      const activities = state.activities.map((activity): Activity => {
-        if (activity.bucket !== bucket) {
-          return activity;
-        }
+    setWeekStart: (weekStart) => {
+      set((state) => ({
+        settings: { ...state.settings, weekStart },
+      }));
+    },
 
-        const nextOrderIndex = orderMap.get(activity.id);
-        if (nextOrderIndex === undefined || activity.orderIndex === nextOrderIndex) {
-          return activity;
-        }
+    setThemeMode: (themeMode) => {
+      set((state) => ({
+        settings: { ...state.settings, themeMode },
+      }));
+    },
 
-        changed = true;
-        return {
-          ...activity,
-          orderIndex: nextOrderIndex,
-          updatedAt: now,
-        };
+    // ─────────────────────────────────────────────────────────────────────────
+    // Persistence Actions
+    // ─────────────────────────────────────────────────────────────────────────
+
+    resetAllData: () => {
+      dependencies.onReset?.();
+      set({
+        activities: getDefaultActivities(),
+        lists: getDefaultListsState(),
+        settings: getDefaultSettings(),
       });
-
-      return changed ? { activities } : state;
-    });
-  },
-
-  moveActivity: (input) => {
-    set((state) => {
-      const activities = moveActivityInCollection(state.activities, input, {
-        now: nowIsoString(),
-        today: todayLocal(),
-      });
-      return activities === state.activities ? state : { activities };
-    });
-  },
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Settings Actions
-  // ─────────────────────────────────────────────────────────────────────────
-
-  setWeekStart: (weekStart) => {
-    set((state) => ({
-      settings: { ...state.settings, weekStart },
-    }));
-  },
-
-  setThemeMode: (themeMode) => {
-    set((state) => ({
-      settings: { ...state.settings, themeMode },
-    }));
-  },
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Persistence Actions
-  // ─────────────────────────────────────────────────────────────────────────
-
-  resetAllData: () => {
-    clearPersistedState();
-    set({
-      activities: getDefaultActivities(),
-      lists: getDefaultListsState(),
-      settings: getDefaultSettings(),
-    });
-  },
-}));
+    },
+  }));
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Selectors (exported for backward compatibility)
@@ -507,20 +492,3 @@ export const getActivitiesForWeek = (
     {} as Record<string, Activity[]>,
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Persistence Subscription Helper
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Creates a persisted state object from the current store state.
- */
-export function createPersistedStateFromStore(): PersistedState {
-  const state = useHakuStore.getState();
-  return {
-    version: CURRENT_SCHEMA_VERSION,
-    activities: state.activities,
-    lists: state.lists,
-    settings: state.settings,
-  };
-}

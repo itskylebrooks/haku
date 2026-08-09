@@ -6,7 +6,7 @@
  */
 
 import { migratePersistedState, savePersistedState } from './local';
-import { useHakuStore } from './store';
+import { useHakuStore } from './browserStore';
 import { STORAGE_KEY, type PersistedState } from './types';
 
 export type ImportResult = { ok: true } | { ok: false; error: string };

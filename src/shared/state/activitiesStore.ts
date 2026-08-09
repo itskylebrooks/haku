@@ -3,8 +3,8 @@
  * Prefer importing from the state index (`@/shared/state`) going forward.
  */
 
+export { useHakuStore as useActivitiesStore } from './browserStore';
 export {
-  useHakuStore as useActivitiesStore,
   getInboxActivities,
   getLaterActivities,
   getActivitiesForDate,

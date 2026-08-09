@@ -5,7 +5,7 @@
  * to localStorage. This module should be imported once at app startup.
  */
 
-import { useHakuStore, createPersistedStateFromStore } from './store';
+import { useHakuStore, createPersistedStateFromStore } from './browserStore';
 import { savePersistedState } from './local';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -111,21 +111,27 @@ export function persistNow(): void {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Page Unload Handler
+// Lifecycle flush handlers
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Sets up a beforeunload handler to persist immediately before page close.
- * This ensures any pending debounced changes are saved.
+ * Flushes pending state when the page is hidden or discarded. `pagehide` and
+ * `visibilitychange` cover mobile/PWA lifecycle transitions where
+ * `beforeunload` may not run.
  */
-export function setupUnloadHandler(): () => void {
-  const handleBeforeUnload = () => {
-    persistNow();
+export function setupPersistenceFlushHandlers(): () => void {
+  const handleFlush = () => persistNow();
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'hidden') handleFlush();
   };
 
-  window.addEventListener('beforeunload', handleBeforeUnload);
+  window.addEventListener('beforeunload', handleFlush);
+  window.addEventListener('pagehide', handleFlush);
+  document.addEventListener('visibilitychange', handleVisibilityChange);
 
   return () => {
-    window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.removeEventListener('beforeunload', handleFlush);
+    window.removeEventListener('pagehide', handleFlush);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
   };
 }

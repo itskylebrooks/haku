@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Activity } from '../types/activity';
-import { useHakuStore } from './store';
+import { useHakuStore } from './browserStore';
 import { importStateFromJson } from './import';
 import * as local from './local';
-import { getDefaultActivities, getDefaultListsState, getDefaultSettings, STORAGE_KEY } from './types';
+import {
+  getDefaultActivities,
+  getDefaultListsState,
+  getDefaultSettings,
+  STORAGE_KEY,
+} from './types';
 
 const importedActivity: Activity = {
   id: 'imported-1',

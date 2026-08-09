@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Activity } from '../types/activity';
-import { useHakuStore } from './store';
+import { useHakuStore } from './browserStore';
 import { getDefaultListsState, getDefaultSettings } from './types';
 
 const activity = (overrides: Partial<Activity> = {}): Activity => ({

@@ -7,7 +7,8 @@
 
 import pkg from '../../../package.json';
 import { todayLocal } from '../utils/calendarDate';
-import { useHakuStore } from './store';
+import { useHakuStore } from './browserStore';
+import { CURRENT_SCHEMA_VERSION } from './types';
 
 /**
  * Creates an export-ready object from the current store state.
@@ -15,6 +16,7 @@ import { useHakuStore } from './store';
  * {
  *   app: 'haku',
  *   version: '<app version from package.json>',
+ *   schemaVersion: <persisted data schema version>,
  *   exportedAt: '<ISO timestamp>',
  *   activities: [...],
  *   lists: {...},
@@ -27,6 +29,7 @@ export function createPersistedStateSnapshot() {
   return {
     app: 'haku',
     version: pkg.version,
+    schemaVersion: CURRENT_SCHEMA_VERSION,
     exportedAt: new Date().toISOString(),
     activities: state.activities,
     lists: state.lists,

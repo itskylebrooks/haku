@@ -26,15 +26,16 @@ export {
 
 // Store
 export {
-  useHakuStore,
   getInboxActivities,
   getLaterActivities,
   getActivitiesForDate,
   getActivitiesForWeek,
-  createPersistedStateFromStore,
+  createHakuStore,
 } from './store';
 
-export type { HakuStoreState } from './store';
+export { useHakuStore, createPersistedStateFromStore } from './browserStore';
+
+export type { HakuStoreState, HakuDataState, HakuStoreDependencies } from './store';
 
 // Backcompat alias for activity store naming
 export { useActivitiesStore } from './activitiesStore';
@@ -63,4 +64,9 @@ export { importStateFromJson, importStateFromFile, readFileAsText } from './impo
 export type { ImportResult } from './import';
 
 // Initialization
-export { initializePersistence, cleanupPersistence, persistNow, setupUnloadHandler } from './init';
+export {
+  initializePersistence,
+  cleanupPersistence,
+  persistNow,
+  setupPersistenceFlushHandlers,
+} from './init';

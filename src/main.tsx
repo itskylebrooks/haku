@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from '@/app';
-import { initializePersistence, setupUnloadHandler } from '@/shared/state';
+import { initializePersistence, setupPersistenceFlushHandlers } from '@/shared/state';
 import './index.css';
 
 // Initialize persistence before rendering
@@ -9,7 +9,7 @@ import './index.css';
 initializePersistence();
 
 // Ensure data is persisted before page unload
-setupUnloadHandler();
+setupPersistenceFlushHandlers();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
