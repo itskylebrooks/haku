@@ -24,6 +24,7 @@ import {
 import { getInboxActivities, getLaterActivities, useActivitiesStore } from '@/shared/state';
 import { getWeekActivities, getWeekDates, getWeekStartDate } from './weekSelectors';
 import { distributeIntoTwoColumns } from './columnDistribution';
+import { todayLocal } from '@/shared/utils/calendarDate';
 
 interface WeekPageProps {
   activeDate: string;
@@ -332,7 +333,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     const maxCount = counts.length > 0 ? Math.max(...counts) : 0;
     return Math.max(5, maxCount);
   }, [weekActivities, topWeekDates]);
-  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const todayIso = useMemo(() => todayLocal(), []);
 
   const handleToggleDone = (id: string) => {
     toggleDone(id);

@@ -10,6 +10,7 @@ import { create } from 'zustand';
 
 import type { Activity, Bucket } from '../types/activity';
 import { isScheduled } from '../types/activity';
+import { getCalendarWeekDates, todayLocal } from '../utils/calendarDate';
 import { clearPersistedState, loadPersistedState } from './local';
 import type { ListsState, PersistedState, Settings } from './types';
 import {
@@ -69,7 +70,6 @@ const generateActivityId = (() => {
 })();
 
 const nowIsoString = () => new Date().toISOString();
-const todayIsoDate = () => new Date().toISOString().slice(0, 10);
 
 const isValidDuration = (value: number): boolean =>
   Number.isFinite(value) && value >= 15 && value <= 300 && value % 15 === 0;
@@ -373,7 +373,7 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
   toggleDone: (id) => {
     set((state) => {
       const now = nowIsoString();
-      const today = todayIsoDate();
+      const today = todayLocal();
       let changed = false;
 
       const activities = state.activities.map((activity): Activity => {
@@ -544,20 +544,11 @@ export const getLaterActivities = (activities: Activity[]): Activity[] =>
 export const getActivitiesForDate = (activities: Activity[], date: string): Activity[] =>
   activities.filter((activity) => isScheduled(activity) && activity.date === date);
 
-const getWeekDates = (weekStartDate: string): string[] => {
-  const start = new Date(`${weekStartDate}T00:00:00.000Z`);
-  return Array.from({ length: 7 }, (_, dayOffset) => {
-    const nextDate = new Date(start);
-    nextDate.setUTCDate(start.getUTCDate() + dayOffset);
-    return nextDate.toISOString().slice(0, 10);
-  });
-};
-
 export const getActivitiesForWeek = (
   activities: Activity[],
   weekStartDate: string,
 ): Record<string, Activity[]> => {
-  const dates = getWeekDates(weekStartDate);
+  const dates = getCalendarWeekDates(weekStartDate);
   return dates.reduce<Record<string, Activity[]>>(
     (acc, date) => {
       acc[date] = getActivitiesForDate(activities, date);

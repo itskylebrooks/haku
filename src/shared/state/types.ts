@@ -6,6 +6,7 @@
  */
 
 import type { Activity } from '../types/activity';
+import { addCalendarDays, todayLocal } from '../utils/calendarDate';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Settings
@@ -77,17 +78,10 @@ export function getDefaultListsState(): ListsState {
 }
 
 export function getDefaultActivities(): Activity[] {
-  // Create simple helper to compute today/yesterday/tomorrow ISO dates (YYYY-MM-DD)
-  const offsetIsoDate = (offsetDays: number): string => {
-    const d = new Date();
-    d.setUTCDate(d.getUTCDate() + offsetDays);
-    return d.toISOString().slice(0, 10);
-  };
-
   const now = new Date().toISOString();
-  const today = offsetIsoDate(0);
-  const yesterday = offsetIsoDate(-1);
-  const tomorrow = offsetIsoDate(1);
+  const today = todayLocal();
+  const yesterday = addCalendarDays(today, -1);
+  const tomorrow = addCalendarDays(today, 1);
 
   // Seed activities to provide a gentle first-run experience.
   // IDs are deterministic to make it easy to reason about these seeded items.

@@ -23,6 +23,7 @@ import {
   DRAG_PLACEHOLDER_ID,
 } from '@/shared/utils/activityOrdering';
 import { useActivitiesStore } from '@/shared/state';
+import { todayLocal } from '@/shared/utils/calendarDate';
 import { getDayViewData } from './daySelectors';
 
 interface DayPageProps {
@@ -118,7 +119,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
   const displayActivities =
     isDesktop && !isTouchDrag ? todayActivities : (previewOrder ?? todayActivities);
 
-  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const todayIso = useMemo(() => todayLocal(), []);
   const isToday = activeDate === todayIso;
   const isPast = activeDate < todayIso;
   const mobileListTitle = isToday ? 'Today' : isPast ? 'Past' : 'Future';

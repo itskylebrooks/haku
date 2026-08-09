@@ -1,4 +1,5 @@
 import { compareActivitiesByTime, isScheduled, type Activity } from '@/shared/types/activity';
+import { getCalendarWeekDates, getCalendarWeekStart } from '@/shared/utils/calendarDate';
 
 export type WeekActivities = Record<string, Activity[]>;
 
@@ -19,30 +20,10 @@ export const getWeekStartDate = (
   isoDate: string,
   weekStartsOn: 'monday' | 'sunday' = 'monday',
 ): string => {
-  const date = new Date(`${isoDate}T00:00:00Z`);
-  if (Number.isNaN(date.getTime())) {
-    return isoDate;
-  }
-
-  const dayOfWeek = date.getUTCDay(); // Sunday = 0, Monday = 1
-  const offset = weekStartsOn === 'sunday' ? dayOfWeek : (dayOfWeek + 6) % 7; // Monday as start
-
-  date.setUTCDate(date.getUTCDate() - offset);
-  return date.toISOString().slice(0, 10);
+  return getCalendarWeekStart(isoDate, weekStartsOn);
 };
 
-export const getWeekDates = (weekStartDate: string): string[] => {
-  const start = new Date(`${weekStartDate}T00:00:00Z`);
-  if (Number.isNaN(start.getTime())) {
-    return [];
-  }
-
-  return Array.from({ length: 7 }, (_, dayOffset) => {
-    const nextDate = new Date(start);
-    nextDate.setUTCDate(start.getUTCDate() + dayOffset);
-    return nextDate.toISOString().slice(0, 10);
-  });
-};
+export const getWeekDates = getCalendarWeekDates;
 
 export const getWeekActivities = (
   activities: Activity[],

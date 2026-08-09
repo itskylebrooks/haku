@@ -9,30 +9,22 @@ import { useHakuStore, type ThemeMode } from '@/shared/state';
 import type { Bucket } from '@/shared/types/activity';
 import { AddActivityModal } from '@/shared/ui';
 import { createPageMotion } from '@/shared/ui/animations';
+import { addCalendarDays, todayLocal } from '@/shared/utils/calendarDate';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
 
 type ViewMode = 'day' | 'week';
 type ActiveTab = 'board' | 'day' | 'week';
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
-
 const shiftDate = (isoDate: string, mode: ViewMode, direction: 1 | -1) => {
-  const date = new Date(`${isoDate}T00:00:00Z`);
-  if (Number.isNaN(date.getTime())) {
-    return isoDate;
-  }
-
   const daysToMove = mode === 'day' ? 1 : 7;
-  date.setUTCDate(date.getUTCDate() + direction * daysToMove);
-
-  return date.toISOString().slice(0, 10);
+  return addCalendarDays(isoDate, direction * daysToMove);
 };
 
 function App() {
   const [mode, setMode] = useState<ViewMode>('day');
   const [activeTab, setActiveTab] = useState<ActiveTab>('day');
-  const [currentDate, setCurrentDate] = useState<string>(todayIso());
+  const [currentDate, setCurrentDate] = useState<string>(todayLocal());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [addModalInitialPlacement, setAddModalInitialPlacement] = useState<Bucket | undefined>(
     undefined,
@@ -80,7 +72,7 @@ function App() {
     if (isSyncPageOpen) {
       return;
     }
-    const today = todayIso();
+    const today = todayLocal();
     // Determine direction based on comparison with current
     if (today > currentDate) setDirection(1);
     else if (today < currentDate) setDirection(-1);
@@ -92,12 +84,12 @@ function App() {
     setActiveTab(tab);
     if (tab === 'day') {
       setMode('day');
-      setCurrentDate(todayIso());
+      setCurrentDate(todayLocal());
     } else if (tab === 'week') {
       setMode('week');
-      setCurrentDate(todayIso());
+      setCurrentDate(todayLocal());
     } else if (tab === 'board') {
-      setCurrentDate(todayIso());
+      setCurrentDate(todayLocal());
     }
   };
   const handleOpenSettings = () => setIsSettingsOpen(true);
@@ -109,7 +101,7 @@ function App() {
       // If a placement override provided, use it. Otherwise derive from current tab.
       if (placement) {
         setAddModalInitialPlacement(placement);
-        setAddModalDefaultDate(placement === 'scheduled' ? todayIso() : undefined);
+        setAddModalDefaultDate(placement === 'scheduled' ? todayLocal() : undefined);
       } else {
         if (activeTab === 'board') {
           setAddModalInitialPlacement('inbox');
@@ -117,7 +109,7 @@ function App() {
         } else {
           // day/week -> schedule for today's date
           setAddModalInitialPlacement('scheduled');
-          setAddModalDefaultDate(todayIso());
+          setAddModalDefaultDate(todayLocal());
         }
       }
       setIsAddModalOpen(true);

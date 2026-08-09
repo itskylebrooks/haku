@@ -6,6 +6,7 @@
  */
 
 import pkg from '../../../package.json';
+import { todayLocal } from '../utils/calendarDate';
 import { useHakuStore } from './store';
 
 /**
@@ -77,7 +78,7 @@ export function createDownloadForJson(filename: string, jsonString: string): voi
  * @param filename - Optional custom filename (defaults to haku-backup-{date}.json)
  */
 export function downloadStateAsJson(filename?: string): void {
-  const defaultFilename = `haku-export-${new Date().toISOString().slice(0, 10)}.json`;
+  const defaultFilename = `haku-export-${todayLocal()}.json`;
   const json = exportStateToJson();
   createDownloadForJson(filename ?? defaultFilename, json);
 }

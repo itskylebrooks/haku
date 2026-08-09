@@ -1,26 +1,12 @@
 import { useActivitiesStore } from '@/shared/state';
 import type { Activity, Bucket } from '@/shared/types/activity';
 import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from '@/shared/ui/animations';
+import { addCalendarDays, todayLocal } from '@/shared/utils/calendarDate';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Circle, Diamond, Square } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import SimpleDatePicker from '../date/SimpleDatePicker';
 import SimpleTimePicker from '../date/SimpleTimePicker';
-
-// Date helpers
-const addDays = (date: Date, days: number): Date => {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-};
-
-const addWeeks = (date: Date, weeks: number): Date => {
-  return addDays(date, weeks * 7);
-};
-
-const formatDate = (date: Date): string => {
-  return date.toISOString().slice(0, 10);
-};
 
 type PlacementOption = 'inbox' | 'date' | 'later';
 type ModalMode = 'create' | 'edit';
@@ -36,8 +22,6 @@ interface AddActivityModalProps {
   onUpdate?: (id: string, updates: Partial<Omit<Activity, 'id' | 'createdAt'>>) => void;
   defaultDate?: string;
 }
-
-const todayIso = (): string => new Date().toISOString().slice(0, 10);
 
 const placementLabels: { key: PlacementOption; label: string }[] = [
   { key: 'inbox', label: 'Inbox' },
@@ -87,7 +71,7 @@ const AddActivityModalContent = ({
     if (isEditMode && activityToEdit.date !== null) {
       return activityToEdit.date;
     }
-    return defaultDate ?? todayIso();
+    return defaultDate ?? todayLocal();
   };
 
   const getInitialTime = (): string | null => {
@@ -257,16 +241,13 @@ const AddActivityModalContent = ({
 
     // Handle duplicates if configured and we have a valid date (works for both edit and create)
     if (duplicateCount > 0 && dateValue) {
-      const baseDate = new Date(dateValue);
-
       for (let i = 1; i <= duplicateCount; i++) {
-        const nextDate =
-          duplicateInterval === 'week' ? addWeeks(baseDate, i) : addDays(baseDate, i);
+        const daysToAdd = duplicateInterval === 'week' ? i * 7 : i;
 
         addActivity({
           title: trimmedTitle,
           bucket,
-          date: formatDate(nextDate),
+          date: addCalendarDays(dateValue, daysToAdd),
           time: timeValue,
           durationMinutes: durationValue,
           note: noteValue === '' ? null : noteValue,
