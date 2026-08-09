@@ -37,8 +37,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
   const toggleDone = useActivitiesStore((state) => state.toggleDone);
   const deleteActivity = useActivitiesStore((state) => state.deleteActivity);
   const updateActivity = useActivitiesStore((state) => state.updateActivity);
-  const scheduleActivity = useActivitiesStore((state) => state.scheduleActivity);
-  const reorderInDay = useActivitiesStore((state) => state.reorderInDay);
+  const moveActivity = useActivitiesStore((state) => state.moveActivity);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -251,10 +250,6 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
 
     const sourceDate = activity.bucket === 'scheduled' ? activity.date : null;
 
-    if (!(activity.bucket === 'scheduled' && activity.date === activeDate)) {
-      scheduleActivity(activity.id, activeDate);
-    }
-
     const currentDayItems = todayActivities;
     const currentIndex = currentDayItems.findIndex((item) => item.id === activity.id);
     let adjustedIndex = targetIndex;
@@ -283,10 +278,11 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
       return item;
     });
 
-    reorderInDay(
-      activeDate,
-      finalOrder.map((item) => item.id),
-    );
+    moveActivity({
+      activityId: activity.id,
+      destination: { bucket: 'scheduled', date: activeDate },
+      destinationOrderedIds: finalOrder.map((item) => item.id),
+    });
     resetDragState();
   };
 
@@ -337,18 +333,14 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     },
     onDragEnd: ({ id, cancelled }) => {
       if (!cancelled && previewOrderRef.current) {
-        const draggedActivity = activities.find((a) => a.id === id);
-        if (
-          draggedActivity &&
-          !(draggedActivity.bucket === 'scheduled' && draggedActivity.date === activeDate)
-        ) {
-          scheduleActivity(id, activeDate);
-        }
-
         const finalOrderedIds = previewOrderRef.current.map((a) =>
           a.id === DRAG_PLACEHOLDER_ID ? id : a.id,
         );
-        reorderInDay(activeDate, finalOrderedIds);
+        moveActivity({
+          activityId: id,
+          destination: { bucket: 'scheduled', date: activeDate },
+          destinationOrderedIds: finalOrderedIds,
+        });
       }
 
       setIsTouchDrag(false);

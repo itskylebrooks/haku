@@ -52,11 +52,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
   const toggleDone = useActivitiesStore((state) => state.toggleDone);
   const deleteActivity = useActivitiesStore((state) => state.deleteActivity);
   const updateActivity = useActivitiesStore((state) => state.updateActivity);
-  const moveToInbox = useActivitiesStore((state) => state.moveToInbox);
-  const moveToLater = useActivitiesStore((state) => state.moveToLater);
-  const scheduleActivity = useActivitiesStore((state) => state.scheduleActivity);
-  const reorderInDay = useActivitiesStore((state) => state.reorderInDay);
-  const reorderInBucket = useActivitiesStore((state) => state.reorderInBucket);
+  const moveActivity = useActivitiesStore((state) => state.moveActivity);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [activityBeingEdited, setActivityBeingEdited] = useState<Activity | null>(null);
@@ -490,12 +486,6 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     }
 
     const sourceDate = activity.bucket === 'scheduled' ? activity.date : null;
-    const isFlexible = activity.time === null;
-
-    if (activity.bucket !== 'scheduled' || activity.date !== date) {
-      scheduleActivity(activity.id, date);
-    }
-
     const currentDayItems = weekActivities[date] ?? [];
     const currentIndex = currentDayItems.findIndex((item) => item.id === activity.id);
     let adjustedIndex = targetIndex;
@@ -526,20 +516,15 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
       return item;
     });
 
-    const orderedIds = finalOrder.map((item, index) => ({ id: item.id, idx: index }));
-    orderedIds.sort((a, b) => a.idx - b.idx);
-    reorderInDay(
-      date,
-      orderedIds.map((o) => o.id),
-    );
-
-    if (isFlexible && sourceDate && sourceDate !== date) {
-      const remainingSource = getFlexibleIdsForDate(sourceDate, activity.id);
-      reorderInDay(sourceDate, remainingSource);
-    } else if (!isFlexible && sourceDate && sourceDate !== date) {
-      const remainingSource = getFlexibleIdsForDate(sourceDate, activity.id);
-      reorderInDay(sourceDate, remainingSource);
-    }
+    moveActivity({
+      activityId: activity.id,
+      destination: { bucket: 'scheduled', date },
+      destinationOrderedIds: finalOrder.map((item) => item.id),
+      sourceOrderedIds:
+        sourceDate && sourceDate !== date
+          ? getFlexibleIdsForDate(sourceDate, activity.id)
+          : undefined,
+    });
 
     resetDragState();
   };
@@ -562,21 +547,18 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     const sourceDate = activity.bucket === 'scheduled' ? activity.date : null;
     const isFlexibleScheduled = activity.bucket === 'scheduled' && activity.time === null;
 
-    if (bucket === 'inbox') {
-      moveToInbox(activity.id);
-    } else {
-      moveToLater(activity.id);
-    }
-
     const orderedIds = getBucketOrderedIds(bucket, activity.id);
     const clampedIndex = Math.min(Math.max(targetIndex, 0), orderedIds.length);
     orderedIds.splice(clampedIndex, 0, activity.id);
-    reorderInBucket(bucket, orderedIds);
-
-    if (isFlexibleScheduled && sourceDate) {
-      const remainingSource = getFlexibleIdsForDate(sourceDate, activity.id);
-      reorderInDay(sourceDate, remainingSource);
-    }
+    moveActivity({
+      activityId: activity.id,
+      destination: { bucket },
+      destinationOrderedIds: orderedIds,
+      sourceOrderedIds:
+        isFlexibleScheduled && sourceDate
+          ? getFlexibleIdsForDate(sourceDate, activity.id)
+          : undefined,
+    });
 
     resetDragState();
   };
@@ -638,7 +620,15 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     const activitiesForDay = weekActivities[date] ?? [];
     const finalOrder = computeAnchoredPreviewOrder(activitiesForDay, droppedId, targetIndex);
     const orderedIds = finalOrder.map((a) => a.id);
-    reorderInDay(date, orderedIds);
+    moveActivity({
+      activityId: activity.id,
+      destination: { bucket: 'scheduled', date },
+      destinationOrderedIds: orderedIds,
+      sourceOrderedIds:
+        activity.bucket === 'scheduled' && activity.date && activity.date !== date
+          ? getFlexibleIdsForDate(activity.date, activity.id)
+          : undefined,
+    });
 
     resetDragState();
   };
@@ -823,37 +813,33 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
           const targetDate = target.date;
           const preview = mobilePreviewOrderRef.current[targetDate];
           if (preview) {
-            if (!(activity.bucket === 'scheduled' && activity.date === targetDate)) {
-              scheduleActivity(id, targetDate);
-            }
-
             const orderedIds = preview.map((a) => (a.id === DRAG_PLACEHOLDER_ID ? id : a.id));
-            reorderInDay(targetDate, orderedIds);
-
             const origin = touchDragOriginRef.current;
             const movedFromOtherDay = origin?.type === 'day' && origin.date !== targetDate;
-            if (movedFromOtherDay && activity.bucket === 'scheduled') {
-              const remainingSource = getFlexibleIdsForDate(origin.date, activity.id);
-              reorderInDay(origin.date, remainingSource);
-            }
+            moveActivity({
+              activityId: id,
+              destination: { bucket: 'scheduled', date: targetDate },
+              destinationOrderedIds: orderedIds,
+              sourceOrderedIds:
+                movedFromOtherDay && activity.bucket === 'scheduled'
+                  ? getFlexibleIdsForDate(origin.date, activity.id)
+                  : undefined,
+            });
           }
         } else if (activity && target?.type === 'bucket') {
           const preview = bucketPreviewOrderRef.current[target.bucket];
           if (preview) {
-            if (target.bucket === 'inbox') {
-              moveToInbox(activity.id);
-            } else {
-              moveToLater(activity.id);
-            }
-
             const finalOrderedIds = preview.map((a) => (a.id === DRAG_PLACEHOLDER_ID ? id : a.id));
-            reorderInBucket(target.bucket, finalOrderedIds);
-
             const origin = touchDragOriginRef.current;
-            if (origin?.type === 'day' && activity.bucket === 'scheduled') {
-              const remainingSource = getFlexibleIdsForDate(origin.date, activity.id);
-              reorderInDay(origin.date, remainingSource);
-            }
+            moveActivity({
+              activityId: id,
+              destination: { bucket: target.bucket },
+              destinationOrderedIds: finalOrderedIds,
+              sourceOrderedIds:
+                origin?.type === 'day' && activity.bucket === 'scheduled'
+                  ? getFlexibleIdsForDate(origin.date, activity.id)
+                  : undefined,
+            });
           }
         }
       }

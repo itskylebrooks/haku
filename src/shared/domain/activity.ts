@@ -12,6 +12,17 @@ export type NewActivityInput = {
   note?: string | null;
 };
 
+export type ActivityDestination =
+  | { bucket: 'scheduled'; date: string }
+  | { bucket: 'inbox' | 'later' };
+
+export interface MoveActivityInput {
+  activityId: string;
+  destination: ActivityDestination;
+  destinationOrderedIds: string[];
+  sourceOrderedIds?: string[];
+}
+
 type ActivityPlacement = Pick<Activity, 'bucket' | 'date' | 'time' | 'durationMinutes'>;
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -135,6 +146,86 @@ export const updateActivityEntity = (
     orderIndex,
     updatedAt: context.now,
   };
+};
+
+const createOrderMap = (ids: string[]): Map<string, number> => {
+  const uniqueIds = [...new Set(ids)];
+  return new Map(uniqueIds.map((id, index) => [id, index]));
+};
+
+const isInSameLocation = (left: Activity, right: Activity): boolean => {
+  if (left.bucket !== right.bucket) return false;
+  return left.bucket !== 'scheduled' || left.date === right.date;
+};
+
+const isInDestination = (activity: Activity, destination: ActivityDestination): boolean =>
+  activity.bucket === destination.bucket &&
+  (destination.bucket !== 'scheduled' || activity.date === destination.date);
+
+/** Applies a location change and both affected orderings as one pure transaction. */
+export const moveActivityInCollection = (
+  activities: Activity[],
+  input: MoveActivityInput,
+  context: { now: string; today: string },
+): Activity[] => {
+  const movingActivity = activities.find(({ id }) => id === input.activityId);
+  if (!movingActivity) return activities;
+  if (movingActivity.isDone && input.destination.bucket !== 'scheduled') return activities;
+
+  const destinationIds = input.destinationOrderedIds.includes(input.activityId)
+    ? input.destinationOrderedIds
+    : [...input.destinationOrderedIds, input.activityId];
+  const destinationOrder = createOrderMap(destinationIds);
+  const sourceOrder = createOrderMap(input.sourceOrderedIds ?? []);
+  const placement = normalizeActivityPlacement(
+    input.destination.bucket,
+    input.destination.bucket === 'scheduled' ? input.destination.date : null,
+    movingActivity.time,
+    movingActivity.durationMinutes,
+    context.today,
+  );
+
+  let changed = false;
+  const nextActivities = activities.map((activity): Activity => {
+    const isMoving = activity.id === movingActivity.id;
+    const destinationIndex = destinationOrder.get(activity.id);
+    const sourceIndex = sourceOrder.get(activity.id);
+    const nextOrderIndex =
+      destinationIndex !== undefined && (isMoving || isInDestination(activity, input.destination))
+        ? destinationIndex
+        : sourceIndex !== undefined && isInSameLocation(activity, movingActivity)
+          ? sourceIndex
+          : activity.orderIndex;
+
+    const nextPlacement = isMoving
+      ? placement
+      : {
+          bucket: activity.bucket,
+          date: activity.date,
+          time: activity.time,
+          durationMinutes: activity.durationMinutes,
+        };
+
+    if (
+      activity.bucket === nextPlacement.bucket &&
+      activity.date === nextPlacement.date &&
+      activity.time === nextPlacement.time &&
+      activity.durationMinutes === nextPlacement.durationMinutes &&
+      activity.orderIndex === nextOrderIndex
+    ) {
+      return activity;
+    }
+
+    changed = true;
+    return {
+      ...activity,
+      ...nextPlacement,
+      orderIndex: nextOrderIndex,
+      updatedAt: context.now,
+    };
+  });
+
+  return changed ? nextActivities : activities;
 };
 
 export const isPersistedActivity = (value: unknown): value is Activity => {

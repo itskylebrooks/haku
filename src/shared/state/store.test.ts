@@ -96,4 +96,32 @@ describe('Haku activity store', () => {
     expect(byId.get('first')?.orderIndex).toBe(1);
     expect(byId.get('other-day')?.orderIndex).toBe(7);
   });
+
+  it('publishes one state update for an atomic cross-list move', () => {
+    resetStore([
+      activity({ id: 'moving', orderIndex: 0 }),
+      activity({ id: 'source-peer', orderIndex: 1 }),
+      activity({
+        id: 'later-peer',
+        bucket: 'later',
+        date: null,
+        orderIndex: 0,
+      }),
+    ]);
+    const subscriber = vi.fn();
+    const unsubscribe = useHakuStore.subscribe(subscriber);
+
+    useHakuStore.getState().moveActivity({
+      activityId: 'moving',
+      destination: { bucket: 'later' },
+      destinationOrderedIds: ['later-peer', 'moving'],
+      sourceOrderedIds: ['source-peer'],
+    });
+
+    unsubscribe();
+    expect(subscriber).toHaveBeenCalledTimes(1);
+    const byId = new Map(useHakuStore.getState().activities.map((item) => [item.id, item]));
+    expect(byId.get('moving')).toMatchObject({ bucket: 'later', date: null, orderIndex: 1 });
+    expect(byId.get('source-peer')?.orderIndex).toBe(0);
+  });
 });

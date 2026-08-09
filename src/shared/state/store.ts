@@ -10,7 +10,9 @@ import { create } from 'zustand';
 
 import {
   createActivityEntity,
+  moveActivityInCollection,
   normalizeActivityPlacement,
+  type MoveActivityInput,
   type NewActivityInput,
   updateActivityEntity,
 } from '../domain/activity';
@@ -48,6 +50,7 @@ export interface HakuStoreState {
   toggleDone: (id: string) => void;
   reorderInDay: (date: string, orderedIds: string[]) => void;
   reorderInBucket: (bucket: Extract<Bucket, 'inbox' | 'later'>, orderedIds: string[]) => void;
+  moveActivity: (input: MoveActivityInput) => void;
 
   // Settings actions
   setWeekStart: (weekStart: Settings['weekStart']) => void;
@@ -409,6 +412,16 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
       });
 
       return changed ? { activities } : state;
+    });
+  },
+
+  moveActivity: (input) => {
+    set((state) => {
+      const activities = moveActivityInCollection(state.activities, input, {
+        now: nowIsoString(),
+        today: todayLocal(),
+      });
+      return activities === state.activities ? state : { activities };
     });
   },
 

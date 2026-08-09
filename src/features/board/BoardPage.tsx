@@ -28,9 +28,7 @@ const BoardPage = () => {
   const toggleDone = useActivitiesStore((state) => state.toggleDone);
   const deleteActivity = useActivitiesStore((state) => state.deleteActivity);
   const updateActivity = useActivitiesStore((state) => state.updateActivity);
-  const reorderInBucket = useActivitiesStore((state) => state.reorderInBucket);
-  const moveToInbox = useActivitiesStore((state) => state.moveToInbox);
-  const moveToLater = useActivitiesStore((state) => state.moveToLater);
+  const moveActivity = useActivitiesStore((state) => state.moveActivity);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [activityBeingEdited, setActivityBeingEdited] = useState<Activity | null>(null);
@@ -258,18 +256,14 @@ const BoardPage = () => {
       return;
     }
 
-    if (activity.bucket !== bucket) {
-      if (bucket === 'inbox') {
-        moveToInbox(activity.id);
-      } else {
-        moveToLater(activity.id);
-      }
-    }
-
     const orderedIds = getBucketOrderedIds(bucket, activity.id);
     const clampedIndex = Math.min(Math.max(targetIndex, 0), orderedIds.length);
     orderedIds.splice(clampedIndex, 0, activity.id);
-    reorderInBucket(bucket, orderedIds);
+    moveActivity({
+      activityId: activity.id,
+      destination: { bucket },
+      destinationOrderedIds: orderedIds,
+    });
 
     resetDragState();
   };
@@ -405,16 +399,12 @@ const BoardPage = () => {
           targetBucket === 'later' ? previewLaterRef.current : previewInboxRef.current;
 
         if (draggedActivity && targetBucket && preview) {
-          if (draggedActivity.bucket !== targetBucket) {
-            if (targetBucket === 'inbox') {
-              moveToInbox(id);
-            } else {
-              moveToLater(id);
-            }
-          }
-
           const finalOrderedIds = preview.map((a) => (a.id === DRAG_PLACEHOLDER_ID ? id : a.id));
-          reorderInBucket(targetBucket, finalOrderedIds);
+          moveActivity({
+            activityId: id,
+            destination: { bucket: targetBucket },
+            destinationOrderedIds: finalOrderedIds,
+          });
         }
       }
 

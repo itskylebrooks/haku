@@ -5,6 +5,7 @@ import {
   createActivityEntity,
   isPersistedActivity,
   isPersistedActivityCollection,
+  moveActivityInCollection,
   updateActivityEntity,
 } from './activity';
 
@@ -80,5 +81,37 @@ describe('activity domain', () => {
 
   it('rejects duplicate IDs in persisted collections', () => {
     expect(isPersistedActivityCollection([validActivity, { ...validActivity }])).toBe(false);
+  });
+
+  it('moves and reorders an activity in one collection transaction', () => {
+    const sourcePeer = { ...validActivity, id: 'source-peer', orderIndex: 1 };
+    const destinationPeer = {
+      ...validActivity,
+      id: 'destination-peer',
+      bucket: 'later' as const,
+      date: null,
+      time: null,
+      durationMinutes: null,
+      orderIndex: 0,
+    };
+
+    const result = moveActivityInCollection(
+      [validActivity, sourcePeer, destinationPeer],
+      {
+        activityId: validActivity.id,
+        destination: { bucket: 'later' },
+        destinationOrderedIds: [destinationPeer.id, validActivity.id],
+        sourceOrderedIds: [sourcePeer.id],
+      },
+      context,
+    );
+
+    expect(result.find(({ id }) => id === validActivity.id)).toMatchObject({
+      bucket: 'later',
+      date: null,
+      orderIndex: 1,
+    });
+    expect(result.find(({ id }) => id === sourcePeer.id)?.orderIndex).toBe(0);
+    expect(result.find(({ id }) => id === destinationPeer.id)?.orderIndex).toBe(0);
   });
 });
