@@ -1,5 +1,6 @@
 import { useAutoScroll } from '@/shared/hooks/useAutoScroll';
 import { useDesktopLayout } from '@/shared/hooks/useDesktopLayout';
+import { usePointerActivityDrag } from '@/shared/hooks/usePointerActivityDrag';
 import { useThrottledCallback } from '@/shared/hooks/useThrottle';
 import { useTouchDragAndDrop } from '@/shared/hooks/useTouchDragAndDrop';
 import { getInboxActivities, getLaterActivities, useActivitiesStore } from '@/shared/state';
@@ -35,12 +36,16 @@ const BoardPage = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newActivityPlacement, setNewActivityPlacement] =
     useState<Extract<Bucket, 'inbox' | 'later'>>('inbox');
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [draggedCardHeight, setDraggedCardHeight] = useState<number>(72);
   const [previewInbox, setPreviewInbox] = useState<Activity[] | null>(null);
   const [previewLater, setPreviewLater] = useState<Activity[] | null>(null);
   const previewInboxRef = useRef<Activity[] | null>(null);
   const previewLaterRef = useRef<Activity[] | null>(null);
+  const clearPreviews = useCallback(() => {
+    setPreviewInbox(null);
+    setPreviewLater(null);
+    previewInboxRef.current = null;
+    previewLaterRef.current = null;
+  }, []);
   const inboxContainerRef = useRef<HTMLDivElement>(null);
   const laterContainerRef = useRef<HTMLDivElement>(null);
   const [scrollContainer, setScrollContainer] = useState<HTMLElement | Window | null>(null);
@@ -60,6 +65,19 @@ const BoardPage = () => {
     scrollContainer: scrollContainer ?? window,
     onScrolling: refreshCachedRects,
   });
+  const {
+    draggingId,
+    draggedCardHeight,
+    dragOverKey,
+    beginDrag,
+    clearDragState,
+    handleDragStart,
+    handleDragOverZone,
+    handleDragLeaveZone,
+  } = usePointerActivityDrag({
+    onAutoScroll: startAutoScroll,
+    onBeginDrag: clearPreviews,
+  });
 
   const { isDesktop, shouldUseTouch } = useDesktopLayout();
   const prefersTouchDrag = !isDesktop || shouldUseTouch;
@@ -70,8 +88,6 @@ const BoardPage = () => {
     'inbox' | 'later'
   > | null>(null);
   const overlayRef = useRef<TouchDragOverlayHandle>(null);
-  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
-  const dragLeaveTimeoutRef = useRef<number | null>(null);
   // Cached container rects to avoid layout thrashing during drag
   const inboxRectRef = useRef<DOMRect | null>(null);
   const laterRectRef = useRef<DOMRect | null>(null);
@@ -147,20 +163,18 @@ const BoardPage = () => {
   };
 
   const resetDragState = useCallback(() => {
-    setDraggingId(null);
-    setPreviewInbox(null);
-    setPreviewLater(null);
-    previewInboxRef.current = null;
-    previewLaterRef.current = null;
-    setDragOverKey(null);
+    clearDragState();
+    clearPreviews();
     throttledSetPreviewInbox.cancel();
     throttledSetPreviewLater.cancel();
-    if (dragLeaveTimeoutRef.current !== null) {
-      window.clearTimeout(dragLeaveTimeoutRef.current);
-      dragLeaveTimeoutRef.current = null;
-    }
     stopAutoScroll();
-  }, [throttledSetPreviewInbox, throttledSetPreviewLater, stopAutoScroll]);
+  }, [
+    clearDragState,
+    clearPreviews,
+    throttledSetPreviewInbox,
+    throttledSetPreviewLater,
+    stopAutoScroll,
+  ]);
 
   useEffect(() => {
     if (!isDesktop || isTouchDrag || !draggingId || !enablePointerDrag) return;
@@ -184,21 +198,6 @@ const BoardPage = () => {
     };
   }, [isDesktop, isTouchDrag, draggingId, enablePointerDrag, resetDragState]);
 
-  const handleDragStart = (event: React.DragEvent<HTMLDivElement>, activity: Activity) => {
-    event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.setData('text/plain', activity.id);
-    setDraggingId(activity.id);
-    setPreviewInbox(null);
-    setPreviewLater(null);
-    setDragOverKey(null);
-
-    // Capture the height of the card being dragged
-    const target = event.currentTarget;
-    if (target) {
-      setDraggedCardHeight(target.offsetHeight);
-    }
-  };
-
   const handleDragEnd = () => {
     resetDragState();
   };
@@ -207,38 +206,6 @@ const BoardPage = () => {
     `bucket-${bucket}-zone-${index}`;
   const makeBucketAppendKey = (bucket: Extract<Bucket, 'inbox' | 'later'>) =>
     `bucket-${bucket}-append`;
-
-  const handleDragOverZone = (event: React.DragEvent<HTMLElement>, key: string) => {
-    event.preventDefault();
-    event.stopPropagation();
-    event.dataTransfer.dropEffect = 'move';
-    if (dragLeaveTimeoutRef.current !== null) {
-      window.clearTimeout(dragLeaveTimeoutRef.current);
-      dragLeaveTimeoutRef.current = null;
-    }
-    if (dragOverKey !== key) {
-      setDragOverKey(key);
-    }
-    startAutoScroll(event.clientY);
-  };
-
-  const handleDragLeaveZone = (event: React.DragEvent<HTMLElement> | null, key: string) => {
-    if (event) {
-      const nextTarget = event.relatedTarget as Node | null;
-      if (nextTarget && event.currentTarget.contains(nextTarget)) {
-        return;
-      }
-    }
-    if (dragLeaveTimeoutRef.current !== null) {
-      window.clearTimeout(dragLeaveTimeoutRef.current);
-    }
-    dragLeaveTimeoutRef.current = window.setTimeout(() => {
-      if (dragOverKey === key) {
-        setDragOverKey(null);
-      }
-      dragLeaveTimeoutRef.current = null;
-    }, 50);
-  };
 
   const handleDropOnBucket = (
     event: React.DragEvent<HTMLElement>,
@@ -328,15 +295,10 @@ const BoardPage = () => {
       getFallbackElement: () => inboxContainerRef.current ?? laterContainerRef.current,
     },
     onDragStart: ({ id, meta, rect }) => {
-      setDraggedCardHeight(rect.height);
-      setDraggingId(id);
+      beginDrag(id, rect.height);
       setIsTouchDrag(true);
       touchDragBucketRef.current = meta;
       setTouchDragOverBucket(meta);
-      setPreviewInbox(null);
-      setPreviewLater(null);
-      previewInboxRef.current = null;
-      previewLaterRef.current = null;
       refreshCachedRects();
     },
     onDragMove: ({ id, clientX, clientY }) => {

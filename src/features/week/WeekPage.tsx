@@ -13,6 +13,7 @@ import {
 } from '@/shared/ui';
 import { useAutoScroll } from '@/shared/hooks/useAutoScroll';
 import { useDesktopLayout } from '@/shared/hooks/useDesktopLayout';
+import { usePointerActivityDrag } from '@/shared/hooks/usePointerActivityDrag';
 import { useTouchDragAndDrop } from '@/shared/hooks/useTouchDragAndDrop';
 import { FAST_TRANSITION, SLIDE_VARIANTS } from '@/shared/ui/animations';
 import type { Activity, Bucket } from '@/shared/types/activity';
@@ -59,9 +60,6 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newActivityDate, setNewActivityDate] = useState<string | null>(null);
   const [newActivityPlacement, setNewActivityPlacement] = useState<Bucket>('scheduled');
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [draggedCardHeight, setDraggedCardHeight] = useState<number>(72);
-  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
   const [mobilePreviewOrder, setMobilePreviewOrder] = useState<Record<string, Activity[]>>({});
   const [mobileDragOverDate, setMobileDragOverDate] = useState<string | null>(null);
   const [bucketPreviewOrder, setBucketPreviewOrder] = useState<
@@ -298,9 +296,30 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     }
   }, [scheduleMeasurement, weekDates]);
 
+  const clearDragPreviews = useCallback(() => {
+    setMobilePreviewOrder({});
+    setBucketPreviewOrder({});
+    setMobileDragOverDate(null);
+    mobilePreviewOrderRef.current = {};
+    bucketPreviewOrderRef.current = {};
+  }, []);
+
   const { startAutoScroll, stopAutoScroll } = useAutoScroll({
     scrollContainer: scrollContainer ?? window,
     onScrolling: refreshCachedRects,
+  });
+  const {
+    draggingId,
+    draggedCardHeight,
+    dragOverKey,
+    beginDrag,
+    clearDragState,
+    handleDragStart,
+    handleDragOverZone,
+    handleDragLeaveZone,
+  } = usePointerActivityDrag({
+    onAutoScroll: startAutoScroll,
+    onBeginDrag: clearDragPreviews,
   });
   const weekActivities = useMemo(
     () => getWeekActivities(activities, weekStartDate),
@@ -377,13 +396,8 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     id ? (activities.find((activity) => activity.id === id) ?? null) : null;
 
   const resetDragState = useCallback(() => {
-    setDraggingId(null);
-    setDragOverKey(null);
-    setMobilePreviewOrder({});
-    setBucketPreviewOrder({});
-    setMobileDragOverDate(null);
-    mobilePreviewOrderRef.current = {};
-    bucketPreviewOrderRef.current = {};
+    clearDragState();
+    clearDragPreviews();
     touchDragOriginRef.current = null;
     touchDragTargetRef.current = null;
     touchDragDateRef.current = null;
@@ -401,7 +415,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     }
     clearMeasurementCaches();
     stopAutoScroll();
-  }, [clearMeasurementCaches, stopAutoScroll]);
+  }, [clearDragPreviews, clearDragState, clearMeasurementCaches, stopAutoScroll]);
 
   const getBucketOrderedIds = (
     bucket: Extract<Bucket, 'inbox' | 'later'>,
@@ -411,56 +425,8 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     return items.filter((activity) => activity.id !== excludeId).map((activity) => activity.id);
   };
 
-  const handleDragStart = (event: React.DragEvent<HTMLDivElement>, activity: Activity) => {
-    event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.setData('text/plain', activity.id);
-    setDraggingId(activity.id);
-    setDragOverKey(null);
-
-    const target = event.currentTarget;
-    if (target) {
-      setDraggedCardHeight(target.offsetHeight);
-    }
-  };
-
   const handleDragEnd = () => {
     resetDragState();
-  };
-
-  const handleDragOverZone = (event: React.DragEvent<HTMLElement>, key: string) => {
-    event.preventDefault();
-    event.stopPropagation();
-    event.dataTransfer.dropEffect = 'move';
-    if (dragLeaveTimeoutRef.current !== null) {
-      window.clearTimeout(dragLeaveTimeoutRef.current);
-      dragLeaveTimeoutRef.current = null;
-    }
-    if (dragOverKey !== key) {
-      setDragOverKey(key);
-    }
-    startAutoScroll(event.clientY);
-  };
-
-  const clearDragKey = (key: string) => {
-    if (dragOverKey === key) {
-      setDragOverKey(null);
-    }
-  };
-
-  const handleDragLeaveZone = (event: React.DragEvent<HTMLElement> | null, key: string) => {
-    if (event) {
-      const nextTarget = event.relatedTarget as Node | null;
-      if (nextTarget && event.currentTarget.contains(nextTarget)) {
-        return;
-      }
-    }
-    if (dragLeaveTimeoutRef.current !== null) {
-      window.clearTimeout(dragLeaveTimeoutRef.current);
-    }
-    dragLeaveTimeoutRef.current = window.setTimeout(() => {
-      clearDragKey(key);
-      dragLeaveTimeoutRef.current = null;
-    }, 50);
   };
 
   const getFlexibleIdsForDate = (date: string, excludeId?: string): string[] => {
@@ -720,16 +686,11 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
       getScrollContainer: () => scrollContainer,
     },
     onDragStart: ({ id, meta, rect }) => {
-      setDraggedCardHeight(rect.height);
-      setDraggingId(id);
+      beginDrag(id, rect.height);
       setIsTouchDrag(true);
       touchDragOriginRef.current = meta;
       touchDragTargetRef.current = meta;
       touchDragDateRef.current = meta.type === 'day' ? meta.date : null;
-      mobilePreviewOrderRef.current = {};
-      bucketPreviewOrderRef.current = {};
-      setMobilePreviewOrder({});
-      setBucketPreviewOrder({});
       setMobileDragOverDate(meta.type === 'day' ? meta.date : null);
       clearMeasurementCaches();
 

@@ -13,6 +13,7 @@ import {
 } from '@/shared/ui';
 import { useAutoScroll } from '@/shared/hooks/useAutoScroll';
 import { useDesktopLayout } from '@/shared/hooks/useDesktopLayout';
+import { usePointerActivityDrag } from '@/shared/hooks/usePointerActivityDrag';
 import { useThrottledCallback } from '@/shared/hooks/useThrottle';
 import { useTouchDragAndDrop } from '@/shared/hooks/useTouchDragAndDrop';
 import { FAST_TRANSITION, SLIDE_VARIANTS } from '@/shared/ui/animations';
@@ -42,22 +43,31 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [activityBeingEdited, setActivityBeingEdited] = useState<Activity | null>(null);
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [draggedCardHeight, setDraggedCardHeight] = useState<number>(72);
   const [previewOrder, setPreviewOrder] = useState<Activity[] | null>(null);
   const previewOrderRef = useRef<Activity[] | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollContainer, setScrollContainer] = useState<HTMLElement | Window | null>(null);
+  const clearPreview = useCallback(() => {
+    setPreviewOrder(null);
+    previewOrderRef.current = null;
+  }, []);
 
   const { isDesktop, shouldUseTouch } = useDesktopLayout();
   const prefersTouchDrag = !isDesktop || shouldUseTouch;
   const enablePointerDrag = isDesktop && !shouldUseTouch;
   const [isTouchDrag, setIsTouchDrag] = useState(false);
   const overlayRef = useRef<TouchDragOverlayHandle>(null);
-  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
-  const dragLeaveTimeoutRef = useRef<number | null>(null);
-
   const { startAutoScroll, stopAutoScroll } = useAutoScroll(scrollContainer ?? window);
+  const {
+    draggingId,
+    draggedCardHeight,
+    dragOverKey,
+    beginDrag,
+    clearDragState,
+    handleDragStart,
+    handleDragOverZone,
+    handleDragLeaveZone,
+  } = usePointerActivityDrag({ onAutoScroll: startAutoScroll, onBeginDrag: clearPreview });
 
   // Throttle preview order updates to max 30fps for better performance on Android
   const throttledSetPreviewOrder = useThrottledCallback(
@@ -153,17 +163,11 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
   };
 
   const resetDragState = useCallback(() => {
-    setDraggingId(null);
-    setPreviewOrder(null);
-    previewOrderRef.current = null;
-    setDragOverKey(null);
+    clearDragState();
+    clearPreview();
     throttledSetPreviewOrder.cancel();
-    if (dragLeaveTimeoutRef.current !== null) {
-      window.clearTimeout(dragLeaveTimeoutRef.current);
-      dragLeaveTimeoutRef.current = null;
-    }
     stopAutoScroll();
-  }, [throttledSetPreviewOrder, stopAutoScroll]);
+  }, [clearDragState, clearPreview, throttledSetPreviewOrder, stopAutoScroll]);
 
   useEffect(() => {
     if (!isDesktop || isTouchDrag || !draggingId || !enablePointerDrag) return;
@@ -183,58 +187,12 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     };
   }, [isDesktop, isTouchDrag, draggingId, enablePointerDrag, resetDragState]);
 
-  const handleDragStart = (event: React.DragEvent<HTMLDivElement>, activity: Activity) => {
-    event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.setData('text/plain', activity.id);
-    setDraggingId(activity.id);
-    setPreviewOrder(null);
-    setDragOverKey(null);
-
-    // Capture the height of the card being dragged
-    const target = event.currentTarget;
-    if (target) {
-      setDraggedCardHeight(target.offsetHeight);
-    }
-  };
-
   const handleDragEnd = () => {
     resetDragState();
   };
 
   const makeTodayZoneKey = (zoneIndex: number) => `today-zone-${zoneIndex}`;
   const todayAppendKey = 'today-append';
-
-  const handleDragOverZone = (event: React.DragEvent<HTMLElement>, key: string) => {
-    event.preventDefault();
-    event.stopPropagation();
-    event.dataTransfer.dropEffect = 'move';
-    if (dragLeaveTimeoutRef.current !== null) {
-      window.clearTimeout(dragLeaveTimeoutRef.current);
-      dragLeaveTimeoutRef.current = null;
-    }
-    if (dragOverKey !== key) {
-      setDragOverKey(key);
-    }
-    startAutoScroll(event.clientY);
-  };
-
-  const handleDragLeaveZone = (event: React.DragEvent<HTMLElement> | null, key: string) => {
-    if (event) {
-      const nextTarget = event.relatedTarget as Node | null;
-      if (nextTarget && event.currentTarget.contains(nextTarget)) {
-        return;
-      }
-    }
-    if (dragLeaveTimeoutRef.current !== null) {
-      window.clearTimeout(dragLeaveTimeoutRef.current);
-    }
-    dragLeaveTimeoutRef.current = window.setTimeout(() => {
-      if (dragOverKey === key) {
-        setDragOverKey(null);
-      }
-      dragLeaveTimeoutRef.current = null;
-    }, 50);
-  };
 
   const handleDropOnToday = (event: React.DragEvent<HTMLDivElement>, targetIndex: number) => {
     event.preventDefault();
@@ -311,11 +269,8 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
       getFallbackElement: () => containerRef.current,
     },
     onDragStart: ({ id, rect }) => {
-      setDraggedCardHeight(rect.height);
-      setDraggingId(id);
+      beginDrag(id, rect.height);
       setIsTouchDrag(true);
-      setPreviewOrder(null);
-      previewOrderRef.current = null;
     },
     onDragMove: ({ id, clientY }) => {
       const targetIndex = getTargetIndexFromY(clientY);
