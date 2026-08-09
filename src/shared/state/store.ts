@@ -8,6 +8,12 @@
 
 import { create } from 'zustand';
 
+import {
+  createActivityEntity,
+  normalizeActivityPlacement,
+  type NewActivityInput,
+  updateActivityEntity,
+} from '../domain/activity';
 import type { Activity, Bucket } from '../types/activity';
 import { isScheduled } from '../types/activity';
 import { getCalendarWeekDates, todayLocal } from '../utils/calendarDate';
@@ -24,15 +30,6 @@ import {
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-type AddActivityInput = {
-  title: string;
-  bucket?: Bucket;
-  date?: string | null;
-  time?: string | null;
-  durationMinutes?: number | null;
-  note?: string | null;
-};
-
 export interface HakuStoreState {
   // Core state
   activities: Activity[];
@@ -40,7 +37,7 @@ export interface HakuStoreState {
   settings: Settings;
 
   // Activity actions
-  addActivity: (input: AddActivityInput) => Activity;
+  addActivity: (input: NewActivityInput) => Activity;
   updateActivity: (id: string, updates: Partial<Omit<Activity, 'id' | 'createdAt'>>) => void;
   deleteActivity: (id: string) => void;
   moveToInbox: (id: string) => void;
@@ -70,19 +67,6 @@ const generateActivityId = (() => {
 })();
 
 const nowIsoString = () => new Date().toISOString();
-
-const isValidDuration = (value: number): boolean =>
-  Number.isFinite(value) && value >= 15 && value <= 300 && value % 15 === 0;
-
-const normalizeDurationMinutes = (value?: number | null): number | null => {
-  if (value === null || value === undefined) {
-    return null;
-  }
-  return isValidDuration(value) ? value : null;
-};
-
-const isScheduledWithTime = (bucket: Bucket, time: string | null): boolean =>
-  bucket === 'scheduled' && time !== null;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Initial State
@@ -121,28 +105,12 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
   // ─────────────────────────────────────────────────────────────────────────
 
   addActivity: (input) => {
-    const title = input.title.trim();
-    const bucket = input.bucket ?? 'inbox';
     const now = nowIsoString();
-
-    const date = bucket === 'scheduled' ? (input.date ?? null) : null;
-    const time = bucket === 'scheduled' ? (input.time ?? null) : null;
-    const anchored = isScheduledWithTime(bucket, time);
-    const durationMinutes = anchored ? normalizeDurationMinutes(input.durationMinutes) : null;
-
-    const newActivity: Activity = {
+    const newActivity = createActivityEntity(input, {
       id: generateActivityId(),
-      title,
-      bucket,
-      date,
-      time,
-      durationMinutes,
-      note: input.note ?? null,
-      isDone: false,
-      orderIndex: null,
-      createdAt: now,
-      updatedAt: now,
-    };
+      now,
+      today: todayLocal(),
+    });
 
     set((state) => ({ activities: [...state.activities, newActivity] }));
 
@@ -165,54 +133,14 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
           return activity;
         }
 
-        const requestedBucket = restUpdates.bucket ?? activity.bucket;
-        const nextIsDone = restUpdates.isDone !== undefined ? restUpdates.isDone : activity.isDone;
-        const nextBucket =
-          nextIsDone && requestedBucket !== 'scheduled' ? 'scheduled' : requestedBucket;
-
-        const nextDate = nextBucket === 'scheduled' ? (restUpdates.date ?? activity.date) : null;
-
-        const rawTime = restUpdates.time !== undefined ? restUpdates.time : activity.time;
-        const anchored = isScheduledWithTime(nextBucket, rawTime);
-        const nextTime = anchored ? rawTime : null;
-
-        const rawDuration =
-          restUpdates.durationMinutes !== undefined
-            ? restUpdates.durationMinutes
-            : activity.durationMinutes;
-        const nextDuration = anchored ? normalizeDurationMinutes(rawDuration) : null;
-
-        const nextTitle = restUpdates.title ?? activity.title;
-        const nextNote = restUpdates.note !== undefined ? restUpdates.note : activity.note;
-        const nextOrderIndex =
-          restUpdates.orderIndex !== undefined ? restUpdates.orderIndex : activity.orderIndex;
-
-        if (
-          activity.bucket === nextBucket &&
-          activity.date === nextDate &&
-          activity.time === nextTime &&
-          activity.durationMinutes === nextDuration &&
-          activity.title === nextTitle &&
-          activity.note === nextNote &&
-          activity.isDone === nextIsDone &&
-          activity.orderIndex === nextOrderIndex
-        ) {
-          return activity;
-        }
+        const updated = updateActivityEntity(activity, restUpdates, {
+          now,
+          today: todayLocal(),
+        });
+        if (updated === activity) return activity;
 
         modified = true;
-        return {
-          ...activity,
-          bucket: nextBucket,
-          date: nextDate,
-          time: nextTime,
-          durationMinutes: nextDuration,
-          title: nextTitle,
-          note: nextNote,
-          isDone: nextIsDone,
-          orderIndex: nextOrderIndex,
-          updatedAt: now,
-        };
+        return updated;
       });
 
       return modified ? { activities } : state;
@@ -293,14 +221,20 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
         if (activity.id !== id) {
           return activity;
         }
-        if (activity.bucket === 'scheduled' && activity.date === date) {
+        const placement = normalizeActivityPlacement(
+          'scheduled',
+          date,
+          activity.time,
+          activity.durationMinutes,
+          todayLocal(),
+        );
+        if (activity.bucket === 'scheduled' && activity.date === placement.date) {
           return activity;
         }
         changed = true;
         return {
           ...activity,
-          bucket: 'scheduled',
-          date,
+          ...placement,
           updatedAt: now,
         };
       });
@@ -347,22 +281,25 @@ export const useHakuStore = create<HakuStoreState>((set) => ({
           return activity;
         }
 
-        const anchored = isScheduledWithTime(activity.bucket, time);
-        const nextTime = anchored ? time : null;
+        const placement = normalizeActivityPlacement(
+          activity.bucket,
+          activity.date,
+          time,
+          durationMinutes !== undefined ? durationMinutes : activity.durationMinutes,
+          todayLocal(),
+        );
 
-        const rawDuration =
-          durationMinutes !== undefined ? durationMinutes : activity.durationMinutes;
-        const nextDuration = anchored ? normalizeDurationMinutes(rawDuration) : null;
-
-        if (activity.time === nextTime && activity.durationMinutes === nextDuration) {
+        if (
+          activity.time === placement.time &&
+          activity.durationMinutes === placement.durationMinutes
+        ) {
           return activity;
         }
 
         changed = true;
         return {
           ...activity,
-          time: nextTime,
-          durationMinutes: nextDuration,
+          ...placement,
           updatedAt: now,
         };
       });

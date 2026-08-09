@@ -65,6 +65,25 @@ describe('shared/state/local', () => {
     expect(migratePersistedState(invalid)).toBeNull();
   });
 
+  it('rejects activities that violate domain invariants', () => {
+    const impossiblePlacement = {
+      ...validV1,
+      activities: [{ ...sampleActivity, bucket: 'inbox', date: '2026-01-02' }],
+    };
+    const invalidDuration = {
+      ...validV1,
+      activities: [{ ...sampleActivity, durationMinutes: 17 }],
+    };
+    const duplicateIds = {
+      ...validV1,
+      activities: [sampleActivity, { ...sampleActivity }],
+    };
+
+    expect(migratePersistedState(impossiblePlacement)).toBeNull();
+    expect(migratePersistedState(invalidDuration)).toBeNull();
+    expect(migratePersistedState(duplicateIds)).toBeNull();
+  });
+
   it('round-trips persisted state through localStorage', () => {
     savePersistedState(validV1);
 

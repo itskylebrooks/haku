@@ -6,7 +6,8 @@
  * prevent app crashes when storage is unavailable or full.
  */
 
-import type { Activity, Bucket } from '../types/activity';
+import { isPersistedActivityCollection } from '../domain/activity';
+import type { Activity } from '../types/activity';
 import type { ListsState, PersistedState, PersistedStateV1 } from './types';
 import { CURRENT_SCHEMA_VERSION, STORAGE_KEY } from './types';
 
@@ -16,34 +17,6 @@ import { CURRENT_SCHEMA_VERSION, STORAGE_KEY } from './types';
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function isValidBucket(value: unknown): value is Bucket {
-  return value === 'inbox' || value === 'later' || value === 'scheduled';
-}
-
-function isValidActivity(value: unknown): value is Activity {
-  if (!isObject(value)) return false;
-
-  const v = value as Record<string, unknown>;
-
-  return (
-    typeof v.id === 'string' &&
-    typeof v.title === 'string' &&
-    isValidBucket(v.bucket) &&
-    (v.date === null || typeof v.date === 'string') &&
-    (v.time === null || typeof v.time === 'string') &&
-    (v.durationMinutes === null || typeof v.durationMinutes === 'number') &&
-    (v.note === null || typeof v.note === 'string') &&
-    typeof v.isDone === 'boolean' &&
-    (v.orderIndex === null || typeof v.orderIndex === 'number') &&
-    typeof v.createdAt === 'string' &&
-    typeof v.updatedAt === 'string'
-  );
-}
-
-function isValidActivitiesArray(value: unknown): value is Activity[] {
-  return Array.isArray(value) && value.every(isValidActivity);
 }
 
 function isValidSettings(value: unknown): boolean {
@@ -134,7 +107,7 @@ function migrateFromV1(raw: unknown): PersistedStateV1 | null {
   if (data.version !== 1) return null;
 
   // Validate activities
-  if (!isValidActivitiesArray(data.activities)) return null;
+  if (!isPersistedActivityCollection(data.activities)) return null;
 
   // Validate settings
   if (!isValidSettings(data.settings)) return null;
