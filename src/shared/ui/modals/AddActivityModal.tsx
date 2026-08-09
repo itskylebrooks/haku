@@ -1,4 +1,4 @@
-import { useActivitiesStore } from '@/shared/state';
+import { useHakuStore } from '@/shared/state';
 import type { Activity, Bucket } from '@/shared/types/activity';
 import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from '@/shared/ui/animations';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -53,7 +53,7 @@ const AddActivityModalContent = ({
   onUpdate,
   defaultDate,
 }: AddActivityModalProps) => {
-  const addActivity = useActivitiesStore((state) => state.addActivity);
+  const addActivity = useHakuStore((state) => state.addActivity);
 
   const {
     isEditMode,

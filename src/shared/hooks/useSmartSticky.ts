@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { useAppScrollContainer } from '../ui/layout/AppScrollContainerContext';
 
 // Detect scroll direction and manage smart sticky visibility on mobile.
 export const useSmartSticky = (viewKey?: string) => {
+  const scrollContainer = useAppScrollContainer();
   const [isVisible, setIsVisible] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const lastScrollY = useRef(0);
@@ -40,7 +42,6 @@ export const useSmartSticky = (viewKey?: string) => {
   // Expand tab bar when view changes and lock scroll handling briefly.
   useEffect(() => {
     if (!(viewKey && isMobile) || typeof window === 'undefined') return;
-    const scrollContainer = document.querySelector('main');
     const getScrollY = () =>
       scrollContainer instanceof HTMLElement ? scrollContainer.scrollTop : window.scrollY;
 
@@ -59,7 +60,7 @@ export const useSmartSticky = (viewKey?: string) => {
     }, 150);
 
     return () => window.clearTimeout(timeoutId);
-  }, [viewKey, isMobile]);
+  }, [viewKey, isMobile, scrollContainer]);
 
   useEffect(() => {
     if (!isMobile || typeof window === 'undefined') return;
@@ -69,7 +70,6 @@ export const useSmartSticky = (viewKey?: string) => {
     const HIDE_THRESHOLD = 18;
     const SHOW_THRESHOLD = 28;
     const MIN_DELTA = 2;
-    const scrollContainer = document.querySelector('main');
     const getScrollY = () =>
       scrollContainer instanceof HTMLElement ? scrollContainer.scrollTop : window.scrollY;
 
@@ -129,7 +129,7 @@ export const useSmartSticky = (viewKey?: string) => {
         scrollContainer.removeEventListener('scroll', handleScroll);
       }
     };
-  }, [isMobile]);
+  }, [isMobile, scrollContainer]);
 
   return { isVisible, isMobile };
 };

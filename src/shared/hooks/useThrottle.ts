@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 type ThrottledFunction<Args extends unknown[]> = ((...args: Args) => void) & {
   cancel: () => void;
@@ -17,18 +17,25 @@ export function useThrottledCallback<Args extends unknown[]>(
   const lastCallRef = useRef<number>(0);
   const pendingArgsRef = useRef<Args | null>(null);
   const timeoutRef = useRef<number | null>(null);
+  const callbackRef = useRef(callback);
+  const delayRef = useRef(delay);
+
+  useEffect(() => {
+    callbackRef.current = callback;
+    delayRef.current = delay;
+  }, [callback, delay]);
 
   const runPending = useCallback(() => {
     if (pendingArgsRef.current !== null) {
       lastCallRef.current = Date.now();
-      callback(...pendingArgsRef.current);
+      callbackRef.current(...pendingArgsRef.current);
       pendingArgsRef.current = null;
     }
     if (timeoutRef.current !== null) {
       window.clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
-  }, [callback]);
+  }, []);
 
   const cancel = useCallback(() => {
     if (timeoutRef.current !== null) {
@@ -43,38 +50,32 @@ export function useThrottledCallback<Args extends unknown[]>(
       const now = Date.now();
       const timeSinceLastCall = now - lastCallRef.current;
 
-      if (timeSinceLastCall >= delay) {
+      const currentDelay = delayRef.current;
+      if (timeSinceLastCall >= currentDelay) {
         // Enough time has passed, execute immediately
         lastCallRef.current = now;
-        callback(...args);
+        callbackRef.current(...args);
       } else {
         // Store args and schedule execution for remaining time
         pendingArgsRef.current = args;
         if (timeoutRef.current === null) {
-          timeoutRef.current = window.setTimeout(runPending, delay - timeSinceLastCall);
+          timeoutRef.current = window.setTimeout(runPending, currentDelay - timeSinceLastCall);
         }
       }
     },
-    [callback, delay, runPending],
+    [runPending],
   );
 
   useEffect(() => cancel, [cancel]);
 
-  // Use a ref to store the enhanced function to avoid recreating it
-  const enhancedRef = useRef<ThrottledFunction<Args> | undefined>(undefined);
-  if (!enhancedRef.current) {
-    // Create a new function object with cancel and flush methods
-    const fn = ((...args: Args) => throttled(...args)) as ThrottledFunction<Args>;
-    // eslint-disable-next-line react-hooks/immutability
-    fn.cancel = cancel;
-    // eslint-disable-next-line react-hooks/immutability
-    fn.flush = runPending;
-    enhancedRef.current = fn;
-  } else {
-    // Update the methods in case dependencies changed
-    enhancedRef.current.cancel = cancel;
-    enhancedRef.current.flush = runPending;
-  }
-
-  return enhancedRef.current;
+  return useMemo(
+    () =>
+      // The returned callback reads refs only when invoked, never during render.
+      // eslint-disable-next-line react-hooks/refs
+      Object.assign((...args: Args) => throttled(...args), {
+        cancel,
+        flush: runPending,
+      }) as ThrottledFunction<Args>,
+    [cancel, runPending, throttled],
+  );
 }

@@ -17,13 +17,14 @@ import { usePointerActivityDrag } from '@/shared/hooks/usePointerActivityDrag';
 import { useThrottledCallback } from '@/shared/hooks/useThrottle';
 import { useTouchDragAndDrop } from '@/shared/hooks/useTouchDragAndDrop';
 import { FAST_TRANSITION, SLIDE_VARIANTS } from '@/shared/ui/animations';
+import { useAppScrollContainer } from '@/shared/ui/layout/AppScrollContainerContext';
 import type { Activity } from '@/shared/types/activity';
 import {
   computeAnchoredPreviewOrder,
   computePlaceholderPreview,
   DRAG_PLACEHOLDER_ID,
 } from '@/shared/utils/activityOrdering';
-import { useActivitiesStore } from '@/shared/state';
+import { useHakuStore } from '@/shared/state';
 import { todayLocal } from '@/shared/utils/calendarDate';
 import { getDayViewData } from './daySelectors';
 
@@ -34,11 +35,11 @@ interface DayPageProps {
 }
 
 const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
-  const activities = useActivitiesStore((state) => state.activities);
-  const toggleDone = useActivitiesStore((state) => state.toggleDone);
-  const deleteActivity = useActivitiesStore((state) => state.deleteActivity);
-  const updateActivity = useActivitiesStore((state) => state.updateActivity);
-  const moveActivity = useActivitiesStore((state) => state.moveActivity);
+  const activities = useHakuStore((state) => state.activities);
+  const toggleDone = useHakuStore((state) => state.toggleDone);
+  const deleteActivity = useHakuStore((state) => state.deleteActivity);
+  const updateActivity = useHakuStore((state) => state.updateActivity);
+  const moveActivity = useHakuStore((state) => state.moveActivity);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -46,7 +47,7 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
   const [previewOrder, setPreviewOrder] = useState<Activity[] | null>(null);
   const previewOrderRef = useRef<Activity[] | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [scrollContainer, setScrollContainer] = useState<HTMLElement | Window | null>(null);
+  const scrollContainer = useAppScrollContainer();
   const clearPreview = useCallback(() => {
     setPreviewOrder(null);
     previewOrderRef.current = null;
@@ -57,7 +58,9 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
   const enablePointerDrag = isDesktop && !shouldUseTouch;
   const [isTouchDrag, setIsTouchDrag] = useState(false);
   const overlayRef = useRef<TouchDragOverlayHandle>(null);
-  const { startAutoScroll, stopAutoScroll } = useAutoScroll(scrollContainer ?? window);
+  const { startAutoScroll, stopAutoScroll } = useAutoScroll({
+    scrollContainer: scrollContainer ?? window,
+  });
   const {
     draggingId,
     draggedCardHeight,
@@ -74,16 +77,6 @@ const DayPage = ({ activeDate, onResetToday, direction = 0 }: DayPageProps) => {
     (order: Activity[] | null) => setPreviewOrder(order),
     32,
   );
-
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    const main = document.querySelector('main') as HTMLElement | null;
-    if (main) {
-      setScrollContainer(main);
-    } else {
-      setScrollContainer(window);
-    }
-  }, []);
 
   const { overdue, todayAnchored, todayFlexible } = useMemo(
     () => getDayViewData(activities, activeDate),

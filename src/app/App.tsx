@@ -31,6 +31,7 @@ function App() {
   );
   const [addModalDefaultDate, setAddModalDefaultDate] = useState<string | undefined>(undefined);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [scrollContainer, setScrollContainer] = useState<HTMLElement | null>(null);
 
   const [direction, setDirection] = useState(0);
 
@@ -40,13 +41,12 @@ function App() {
   const shouldReduceMotion = useReducedMotion();
   const pageMotion = createPageMotion(shouldReduceMotion);
 
-  const scrollToTop = () => {
-    const main = document.querySelector('main');
-    if (main && typeof (main as HTMLElement).scrollTo === 'function') {
-      (main as HTMLElement).scrollTo({ top: 0, behavior: 'auto' });
+  const scrollToTop = useCallback(() => {
+    if (scrollContainer) {
+      scrollContainer.scrollTo({ top: 0, behavior: 'auto' });
     }
     window.scrollTo({ top: 0, behavior: 'auto' });
-  };
+  }, [scrollContainer]);
 
   // Get settings from persisted store
   const weekStart = useHakuStore((state) => state.settings.weekStart);
@@ -139,7 +139,7 @@ function App() {
 
   useEffect(() => {
     scrollToTop();
-  }, [activeTab, mode, isSyncPageOpen]);
+  }, [activeTab, mode, isSyncPageOpen, scrollToTop]);
 
   // Apply theme to document root
   useEffect(() => {
@@ -204,7 +204,7 @@ function App() {
           activeTab={activeTab}
           currentDate={currentDate}
           isSyncPageOpen={isSyncPageOpen}
-          onModeChange={setMode}
+          onScrollContainerChange={setScrollContainer}
           onTabChange={handleTabChange}
           onPrev={handlePrev}
           onNext={handleNext}

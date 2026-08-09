@@ -37,10 +37,6 @@ export { useHakuStore, createPersistedStateFromStore } from './browserStore';
 
 export type { HakuStoreState, HakuDataState, HakuStoreDependencies } from './store';
 
-// Backcompat alias for activity store naming
-export { useActivitiesStore } from './activitiesStore';
-export type { ActivitiesState } from './activitiesStore';
-
 // Local storage operations
 export {
   loadPersistedState,

@@ -3,7 +3,7 @@ import { useDesktopLayout } from '@/shared/hooks/useDesktopLayout';
 import { usePointerActivityDrag } from '@/shared/hooks/usePointerActivityDrag';
 import { useThrottledCallback } from '@/shared/hooks/useThrottle';
 import { useTouchDragAndDrop } from '@/shared/hooks/useTouchDragAndDrop';
-import { getInboxActivities, getLaterActivities, useActivitiesStore } from '@/shared/state';
+import { getInboxActivities, getLaterActivities, useHakuStore } from '@/shared/state';
 import type { Activity, Bucket } from '@/shared/types/activity';
 import {
   ActivityCard,
@@ -15,6 +15,7 @@ import {
   WeekActivityRow,
 } from '@/shared/ui';
 import { FAST_TRANSITION } from '@/shared/ui/animations';
+import { useAppScrollContainer } from '@/shared/ui/layout/AppScrollContainerContext';
 import {
   computeAnchoredPreviewOrder,
   computePlaceholderPreview,
@@ -25,11 +26,11 @@ import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const BoardPage = () => {
-  const activities = useActivitiesStore((state) => state.activities);
-  const toggleDone = useActivitiesStore((state) => state.toggleDone);
-  const deleteActivity = useActivitiesStore((state) => state.deleteActivity);
-  const updateActivity = useActivitiesStore((state) => state.updateActivity);
-  const moveActivity = useActivitiesStore((state) => state.moveActivity);
+  const activities = useHakuStore((state) => state.activities);
+  const toggleDone = useHakuStore((state) => state.toggleDone);
+  const deleteActivity = useHakuStore((state) => state.deleteActivity);
+  const updateActivity = useHakuStore((state) => state.updateActivity);
+  const moveActivity = useHakuStore((state) => state.moveActivity);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [activityBeingEdited, setActivityBeingEdited] = useState<Activity | null>(null);
@@ -48,7 +49,7 @@ const BoardPage = () => {
   }, []);
   const inboxContainerRef = useRef<HTMLDivElement>(null);
   const laterContainerRef = useRef<HTMLDivElement>(null);
-  const [scrollContainer, setScrollContainer] = useState<HTMLElement | Window | null>(null);
+  const scrollContainer = useAppScrollContainer();
   const touchDragBucketRef = useRef<Extract<Bucket, 'inbox' | 'later'> | null>(null);
 
   // Callback to refresh cached container rects during autoscroll
@@ -100,22 +101,6 @@ const BoardPage = () => {
     (order: Activity[] | null) => setPreviewLater(order),
     32,
   );
-
-  const scrollContainerRef = useRef<HTMLElement | Window>(window);
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    const main = document.querySelector('main') as HTMLElement | null;
-    if (main) {
-      scrollContainerRef.current = main;
-    }
-  }, []);
-
-  // Pass scrollContainerRef.current to setScrollContainer once after initial setup
-  useEffect(() => {
-    if (scrollContainerRef.current !== window) {
-      setScrollContainer(scrollContainerRef.current);
-    }
-  }, []);
 
   const inboxActivities = useMemo(() => getInboxActivities(activities), [activities]);
   const laterActivities = useMemo(() => getLaterActivities(activities), [activities]);

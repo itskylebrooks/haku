@@ -15,19 +15,7 @@ interface AutoScrollConfig {
  * Uses requestAnimationFrame for smooth 60fps scrolling.
  * Optimized to avoid layout thrashing by caching container rect.
  */
-export const useAutoScroll = (
-  configOrContainer?: HTMLElement | Window | null | AutoScrollConfig,
-) => {
-  // Support both old signature (just container) and new signature (config object)
-  const config =
-    configOrContainer &&
-    typeof configOrContainer === 'object' &&
-    'scrollContainer' in configOrContainer
-      ? (configOrContainer as AutoScrollConfig)
-      : { scrollContainer: configOrContainer as HTMLElement | Window | null | undefined };
-
-  const { scrollContainer, onScrolling } = config;
-
+export const useAutoScroll = ({ scrollContainer, onScrolling }: AutoScrollConfig = {}) => {
   const scrollContainerRef = useRef<HTMLElement | Window | null | undefined>(scrollContainer);
   const onScrollingRef = useRef(onScrolling);
   const rafIdRef = useRef<number | null>(null);

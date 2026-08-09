@@ -1,6 +1,7 @@
 import { useDesktopLayout } from '@/shared/hooks/useDesktopLayout';
 import type { Bucket } from '@/shared/types/activity';
-import type React from 'react';
+import { AppScrollContainerProvider } from '@/shared/ui/layout/AppScrollContainer';
+import { useCallback, useState, type ReactNode } from 'react';
 import DesktopHeader from './DesktopHeader';
 import MobileHeader from './MobileHeader';
 import MobileTabBar from './MobileTabBar';
@@ -13,14 +14,14 @@ interface AppShellProps {
   activeTab: ActiveTab;
   currentDate: string;
   isSyncPageOpen: boolean;
-  onModeChange: (mode: ViewMode) => void;
+  onScrollContainerChange: (container: HTMLElement | null) => void;
   onTabChange: (tab: ActiveTab) => void;
   onPrev: () => void;
   onNext: () => void;
   onResetToday: () => void;
   onOpenSettings: () => void;
   onOpenAdd: (placement?: Bucket) => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 const AppShell = ({
@@ -28,8 +29,7 @@ const AppShell = ({
   activeTab,
   currentDate,
   isSyncPageOpen,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onModeChange: _onModeChange,
+  onScrollContainerChange,
   onTabChange,
   onPrev,
   onNext,
@@ -39,6 +39,14 @@ const AppShell = ({
   children,
 }: AppShellProps) => {
   const { isDesktop } = useDesktopLayout();
+  const [scrollContainer, setScrollContainer] = useState<HTMLElement | null>(null);
+  const handleScrollContainer = useCallback(
+    (container: HTMLElement | null) => {
+      setScrollContainer(container);
+      onScrollContainerChange(container);
+    },
+    [onScrollContainerChange],
+  );
   // Calculate prev/next based on active tab
   const handlePrev = () => {
     if (activeTab === 'board' || isSyncPageOpen) return;
@@ -51,7 +59,7 @@ const AppShell = ({
   };
 
   return (
-    <>
+    <AppScrollContainerProvider container={scrollContainer}>
       {/* Desktop Header - hidden on mobile */}
       {isDesktop && (
         <DesktopHeader
@@ -83,7 +91,7 @@ const AppShell = ({
 
       {/* Main content area */}
       {/* Make the main content scrollable (when needed) and fill remaining height */}
-      <main className="flex-1 overflow-auto overscroll-contain">
+      <main ref={handleScrollContainer} className="flex-1 overflow-auto overscroll-contain">
         {children}
         {!isDesktop && <div aria-hidden className="h-[var(--mobile-tabbar-reserved-safe)]" />}
       </main>
@@ -97,7 +105,7 @@ const AppShell = ({
           stickyKey={isSyncPageOpen ? 'sync' : activeTab}
         />
       )}
-    </>
+    </AppScrollContainerProvider>
   );
 };
 

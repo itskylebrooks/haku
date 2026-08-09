@@ -16,13 +16,14 @@ import { useDesktopLayout } from '@/shared/hooks/useDesktopLayout';
 import { usePointerActivityDrag } from '@/shared/hooks/usePointerActivityDrag';
 import { useTouchDragAndDrop } from '@/shared/hooks/useTouchDragAndDrop';
 import { FAST_TRANSITION, SLIDE_VARIANTS } from '@/shared/ui/animations';
+import { useAppScrollContainer } from '@/shared/ui/layout/AppScrollContainerContext';
 import type { Activity, Bucket } from '@/shared/types/activity';
 import {
   computeAnchoredPreviewOrder,
   computePlaceholderPreview,
   DRAG_PLACEHOLDER_ID,
 } from '@/shared/utils/activityOrdering';
-import { getInboxActivities, getLaterActivities, useActivitiesStore } from '@/shared/state';
+import { getInboxActivities, getLaterActivities, useHakuStore } from '@/shared/state';
 import { getWeekActivities, getWeekDates, getWeekStartDate } from './weekSelectors';
 import { distributeIntoTwoColumns } from './columnDistribution';
 import { todayLocal } from '@/shared/utils/calendarDate';
@@ -49,11 +50,11 @@ const formatMobileDayLabel = (isoDate: string): { weekday: string; monthDay: str
 const formatDesktopDayLabel = formatMobileDayLabel;
 
 const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPageProps) => {
-  const activities = useActivitiesStore((state) => state.activities);
-  const toggleDone = useActivitiesStore((state) => state.toggleDone);
-  const deleteActivity = useActivitiesStore((state) => state.deleteActivity);
-  const updateActivity = useActivitiesStore((state) => state.updateActivity);
-  const moveActivity = useActivitiesStore((state) => state.moveActivity);
+  const activities = useHakuStore((state) => state.activities);
+  const toggleDone = useHakuStore((state) => state.toggleDone);
+  const deleteActivity = useHakuStore((state) => state.deleteActivity);
+  const updateActivity = useHakuStore((state) => state.updateActivity);
+  const moveActivity = useHakuStore((state) => state.moveActivity);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [activityBeingEdited, setActivityBeingEdited] = useState<Activity | null>(null);
@@ -71,7 +72,7 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
   const bucketColumnMetaRef = useRef<
     Record<string, { bucket: Extract<Bucket, 'inbox' | 'later'>; startIndex: number }>
   >({});
-  const [scrollContainer, setScrollContainer] = useState<HTMLElement | Window | null>(null);
+  const scrollContainer = useAppScrollContainer();
   type TouchTarget =
     | { type: 'day'; date: string }
     | { type: 'bucket'; bucket: Extract<Bucket, 'inbox' | 'later'>; columnKey: string };
@@ -230,17 +231,6 @@ const WeekPage = ({ activeDate, weekStart, onResetToday, direction = 0 }: WeekPa
     if (measurementRafRef.current !== null) {
       cancelAnimationFrame(measurementRafRef.current);
       measurementRafRef.current = null;
-    }
-  }, []);
-
-  // Find the nearest main scroll container within AppShell (default) once mounted
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    const main = document.querySelector('main') as HTMLElement | null;
-    if (main) {
-      setScrollContainer(main);
-    } else {
-      setScrollContainer(window);
     }
   }, []);
 
