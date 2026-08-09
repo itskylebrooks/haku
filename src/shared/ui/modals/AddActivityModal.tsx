@@ -1,29 +1,30 @@
 import { useActivitiesStore } from '@/shared/state';
 import type { Activity, Bucket } from '@/shared/types/activity';
 import { BACKDROP_VARIANTS, SCALE_FADE_VARIANTS } from '@/shared/ui/animations';
-import { addCalendarDays, todayLocal } from '@/shared/utils/calendarDate';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Circle, Diamond, Square } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import SimpleDatePicker from '../date/SimpleDatePicker';
 import SimpleTimePicker from '../date/SimpleTimePicker';
-
-type PlacementOption = 'inbox' | 'date' | 'later';
-type ModalMode = 'create' | 'edit';
+import {
+  useActivityForm,
+  type ActivityFormMode,
+  type ActivityPlacementOption,
+} from './activityForm';
 
 interface AddActivityModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialTitle?: string;
   initialPlacement?: Bucket;
-  mode?: ModalMode;
+  mode?: ActivityFormMode;
   activityToEdit?: Activity;
   onDelete?: (id: string) => void;
   onUpdate?: (id: string, updates: Partial<Omit<Activity, 'id' | 'createdAt'>>) => void;
   defaultDate?: string;
 }
 
-const placementLabels: { key: PlacementOption; label: string }[] = [
+const placementLabels: { key: ActivityPlacementOption; label: string }[] = [
   { key: 'inbox', label: 'Inbox' },
   { key: 'date', label: 'Date' },
   { key: 'later', label: 'Later' },
@@ -54,86 +55,47 @@ const AddActivityModalContent = ({
 }: AddActivityModalProps) => {
   const addActivity = useActivitiesStore((state) => state.addActivity);
 
-  const isEditMode = mode === 'edit' && activityToEdit !== undefined;
-  const isPlacementLocked = Boolean(isEditMode && activityToEdit?.isDone);
-
-  // Derive initial placement from activity being edited or use defaults
-  const getInitialPlacement = (): PlacementOption => {
-    if (isEditMode) {
-      if (activityToEdit.bucket === 'scheduled') return 'date';
-      if (activityToEdit.bucket === 'later') return 'later';
-      return 'inbox';
-    }
-    return initialPlacement === 'scheduled' ? 'date' : (initialPlacement ?? 'inbox');
-  };
-
-  const getInitialDate = (): string | null => {
-    if (isEditMode && activityToEdit.date !== null) {
-      return activityToEdit.date;
-    }
-    return defaultDate ?? todayLocal();
-  };
-
-  const getInitialTime = (): string | null => {
-    if (isEditMode) {
-      return activityToEdit.time;
-    }
-    return null;
-  };
-
-  const getInitialDuration = (): number | null => {
-    if (isEditMode) {
-      return activityToEdit.durationMinutes;
-    }
-    return null;
-  };
-
-  const getInitialTitle = (): string => {
-    if (isEditMode) {
-      return activityToEdit.title;
-    }
-    return initialTitle ?? '';
-  };
-
-  const getInitialNote = (): string => {
-    if (isEditMode) {
-      return activityToEdit.note ?? '';
-    }
-    return '';
-  };
-
-  const getInitialShowNote = (): boolean => {
-    if (isEditMode) {
-      return activityToEdit.note !== null && activityToEdit.note !== '';
-    }
-    return false;
-  };
-
-  const [title, setTitle] = useState(getInitialTitle);
-  const [placement, setPlacement] = useState<PlacementOption>(getInitialPlacement);
-  const [scheduledDate, setScheduledDate] = useState<string | null>(getInitialDate);
-  const [scheduledTime, setScheduledTime] = useState<string | null>(getInitialTime);
-  const [durationMinutes, setDurationMinutes] = useState<number | null>(getInitialDuration);
+  const {
+    isEditMode,
+    isPlacementLocked,
+    title,
+    setTitle,
+    placement,
+    setPlacement,
+    scheduledDate,
+    setScheduledDate,
+    scheduledTime,
+    setScheduledTime,
+    durationMinutes,
+    setDurationMinutes,
+    duplicateCount,
+    setDuplicateCount,
+    duplicateInterval,
+    setDuplicateInterval,
+    note,
+    setNote,
+    showNote,
+    setShowNote,
+    isDatePlacement,
+    canSubmit,
+    createSubmission,
+  } = useActivityForm({
+    mode,
+    activity: activityToEdit,
+    initialTitle,
+    initialPlacement,
+    defaultDate,
+  });
 
   const [isDurationMenuOpen, setIsDurationMenuOpen] = useState(false);
 
-  // Duplicate forward state
   const [isDuplicateMenuOpen, setIsDuplicateMenuOpen] = useState(false);
-  const [duplicateCount, setDuplicateCount] = useState<number>(0);
-  const [duplicateInterval, setDuplicateInterval] = useState<'day' | 'week'>('day');
   const duplicateContainerRef = useRef<HTMLDivElement>(null);
-
-  const [note, setNote] = useState<string>(getInitialNote);
-  const [showNote, setShowNote] = useState<boolean>(getInitialShowNote);
   const durationContainerRef = useRef<HTMLDivElement>(null);
 
   const noteRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const trimmedTitle = useMemo(() => title.trim(), [title]);
-  const isDatePlacement = placement === 'date';
-  // Show duration if time is set; duplicate/repeat logic will replace old repeat logic
   const showDuration = isDatePlacement && scheduledTime !== null;
-  const canSubmit = Boolean(trimmedTitle) && (!isDatePlacement || !!scheduledDate);
 
   useEffect(() => {
     // Lock scrolling on mount logic
@@ -181,99 +143,36 @@ const AddActivityModalContent = ({
     onClose();
   }, [onClose]);
 
-  const handleScheduledTimeChange = useCallback((nextTime: string | null) => {
-    setScheduledTime(nextTime);
-    if (nextTime !== null) {
-      return;
-    }
-
-    setDurationMinutes(null);
-    setIsDurationMenuOpen(false);
-    setIsDuplicateMenuOpen(false);
-    setDuplicateCount(0);
-    setDuplicateInterval('day');
-  }, []);
+  const handleScheduledTimeChange = useCallback(
+    (nextTime: string | null) => {
+      setScheduledTime(nextTime);
+      if (nextTime === null) {
+        setIsDurationMenuOpen(false);
+        setIsDuplicateMenuOpen(false);
+      }
+    },
+    [setScheduledTime],
+  );
 
   const handleSubmit = useCallback(() => {
-    if (!trimmedTitle) return;
+    const submission = createSubmission();
+    if (!submission) return;
 
-    let bucket: Bucket = 'inbox';
-    let dateValue: string | null = null;
-    let timeValue: string | null = null;
-    let durationValue: number | null = null;
-
-    if (placement === 'date') {
-      bucket = 'scheduled';
-      if (!scheduledDate) return;
-      dateValue = scheduledDate;
-      timeValue = scheduledTime;
-      if (timeValue !== null) {
-        durationValue = durationMinutes;
-      }
-    } else if (placement === 'later') {
-      bucket = 'later';
-    }
-
-    const noteValue = note.trim();
-
-    // Unified handle for both create and edit mode to support duplication
-    if (isEditMode && onUpdate) {
-      // Edit mode: update existing activity
-      onUpdate(activityToEdit.id, {
-        title: trimmedTitle,
-        bucket,
-        date: dateValue,
-        time: timeValue,
-        durationMinutes: durationValue,
-        note: noteValue === '' ? null : noteValue,
-      });
+    if (isEditMode && activityToEdit && onUpdate) {
+      onUpdate(activityToEdit.id, submission.primary);
     } else {
-      // Create mode: add new activity
-      addActivity({
-        title: trimmedTitle,
-        bucket,
-        date: dateValue,
-        time: timeValue,
-        durationMinutes: durationValue,
-        note: noteValue === '' ? null : noteValue,
-      });
+      addActivity(submission.primary);
     }
 
-    // Handle duplicates if configured and we have a valid date (works for both edit and create)
-    if (duplicateCount > 0 && dateValue) {
-      for (let i = 1; i <= duplicateCount; i++) {
-        const daysToAdd = duplicateInterval === 'week' ? i * 7 : i;
-
-        addActivity({
-          title: trimmedTitle,
-          bucket,
-          date: addCalendarDays(dateValue, daysToAdd),
-          time: timeValue,
-          durationMinutes: durationValue,
-          note: noteValue === '' ? null : noteValue,
-        });
-      }
+    for (const duplicate of submission.duplicates) {
+      addActivity(duplicate);
     }
 
     handleClose();
-  }, [
-    trimmedTitle,
-    placement,
-    scheduledDate,
-    scheduledTime,
-    durationMinutes,
-    note,
-    isEditMode,
-    onUpdate,
-    activityToEdit,
-    addActivity,
-    duplicateCount,
-    duplicateInterval,
-    handleClose,
-  ]);
+  }, [createSubmission, isEditMode, onUpdate, activityToEdit, addActivity, handleClose]);
 
   const handleDelete = () => {
-    if (isEditMode && onDelete) {
+    if (isEditMode && activityToEdit && onDelete) {
       onDelete(activityToEdit.id);
     }
   };
